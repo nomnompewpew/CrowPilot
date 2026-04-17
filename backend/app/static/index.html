@@ -1411,6 +1411,33 @@ STRIPE_API_KEY=..."></textarea>
   </dialog>
 
     <script>
+      const el = (id) => document.getElementById(id);
+
+      /* ── State ─────────────────────────────────────────────────────── */
+      const state = {
+        conversationId: null,
+        providers: {},
+        uiMode: 'zen',
+        conversationFilter: 'active',
+        autoModel: false,
+        mcpSuggestion: null,
+        credentials: [],
+        connectors: {},
+        projects: [],
+        selectedProjectId: null,
+        projectCapabilities: null,
+        projectScripts: [],
+        projectRuntimes: [],
+        selectedRuntimeId: null,
+        noteList: [],
+        conversationBuckets: {
+          active: [],
+          hidden: [],
+          archived_good: [],
+          archived_bad: [],
+        },
+      };
+
       /* ── Auth ──────────────────────────────────────────────────────── */
       async function checkAuth() {
         try {
@@ -1463,33 +1490,7 @@ STRIPE_API_KEY=..."></textarea>
         }
       });
 
-      /* ── State & helpers ───────────────────────────────────────────── */
-      const state = {
-        conversationId: null,
-        providers: {},
-        uiMode: 'zen',
-        conversationFilter: 'active',
-        autoModel: false,
-        mcpSuggestion: null,
-        credentials: [],
-        connectors: {},
-        projects: [],
-        selectedProjectId: null,
-        projectCapabilities: null,
-        projectScripts: [],
-        projectRuntimes: [],
-        selectedRuntimeId: null,
-        noteList: [],
-        conversationBuckets: {
-          active: [],
-          hidden: [],
-          archived_good: [],
-          archived_bad: [],
-        },
-      };
-
-      const el = (id) => document.getElementById(id);
-
+      /* ── Helpers & NAV ─────────────────────────────────────────────── */
       const NAV_LABELS = {
         deck: 'Command Deck',
         mcp: 'MCP Forge',
@@ -1500,6 +1501,8 @@ STRIPE_API_KEY=..."></textarea>
         integrations: 'Integrations',
         projects: 'Projects',
       };
+
+      function tabSwitch(tab) {
         document.querySelectorAll('button[data-nav]').forEach((btn) => {
           btn.classList.toggle('active', btn.dataset.nav === tab);
         });
