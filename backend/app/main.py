@@ -91,100 +91,204 @@ SENSITIVE_PATTERNS = {
 }
 
 
+# ---------------------------------------------------------------------------
+# MCP Onboarding Catalog — HTTP/SSE servers only.
+# "remote"  = hosted endpoint, user supplies API key or OAuth.
+# "local"   = user runs the server locally (e.g. `--port` flag); URL is the
+#             localhost address once started.
+# ---------------------------------------------------------------------------
 MCP_ONBOARDING_CATALOG = {
-    "github": {
-        "name": "github-mcp",
-        "transport": "stdio",
-        "url": None,
-        "command": "npx -y @modelcontextprotocol/server-github",
-        "args": [],
-        "env": {"GITHUB_TOKEN": "<required>"},
-        "docs": [
-            "https://github.com/modelcontextprotocol/servers/tree/main/src/github",
-            "https://modelcontextprotocol.io",
-        ],
-        "notes": "Requires a GitHub token with scopes matching requested operations.",
-    },
-    "stripe": {
-        "name": "stripe-mcp",
-        "transport": "stdio",
-        "url": None,
-        "command": "npx -y @stripe/mcp",
-        "args": [],
-        "env": {"STRIPE_API_KEY": "<required>"},
-        "docs": [
-            "https://docs.stripe.com",
-            "https://modelcontextprotocol.io",
-        ],
-        "notes": "Use restricted Stripe keys where possible.",
-    },
+    # ── Remote hosted ────────────────────────────────────────────────────────
     "cloudflare": {
-        "name": "cloudflare-mcp",
-        "transport": "stdio",
-        "url": None,
-        "command": "npx -y @cloudflare/mcp-server",
+        "name": "cloudflare",
+        "transport": "http",
+        "url": "https://mcp.cloudflare.com",
+        "command": None,
         "args": [],
         "env": {"CLOUDFLARE_API_TOKEN": "<required>"},
-        "docs": [
-            "https://developers.cloudflare.com",
-            "https://modelcontextprotocol.io",
-        ],
-        "notes": "Token should be scoped to required Cloudflare resources.",
+        "auth_type": "api_key",
+        "docs": ["https://developers.cloudflare.com/mcp"],
+        "notes": "Workers, Pages, D1, R2, KV, Queues, Durable Objects. Scoped API token required.",
+        "capabilities": ["cloudflare workers", "cloudflare pages", "d1 database", "r2 storage", "kv store", "durable objects", "queues"],
     },
-    "astro": {
-        "name": "astro-mcp",
-        "transport": "stdio",
-        "url": None,
-        "command": "npx -y @astrojs/mcp-server",
+    "sentry": {
+        "name": "sentry",
+        "transport": "sse",
+        "url": "https://mcp.sentry.io/sse",
+        "command": None,
         "args": [],
         "env": {},
-        "docs": [
-            "https://docs.astro.build",
-            "https://modelcontextprotocol.io",
-        ],
-        "notes": "May require project-local context when used for code operations.",
+        "auth_type": "oauth",
+        "docs": ["https://docs.sentry.io/product/sentry-mcp/"],
+        "notes": "OAuth-based. Access issues, traces, performance data, and error monitoring.",
+        "capabilities": ["error monitoring", "issue tracking", "performance traces", "release tracking"],
+    },
+    "neon": {
+        "name": "neon",
+        "transport": "sse",
+        "url": "https://mcp.neon.tech/sse",
+        "command": None,
+        "args": [],
+        "env": {},
+        "auth_type": "oauth",
+        "docs": ["https://neon.tech/docs/ai/neon-mcp-server"],
+        "notes": "OAuth-based. Manage Neon Postgres databases, run SQL, manage branches and projects.",
+        "capabilities": ["postgresql", "database management", "branching", "sql queries", "schema introspection"],
+    },
+    "supabase": {
+        "name": "supabase",
+        "transport": "sse",
+        "url": "https://mcp.supabase.com/sse",
+        "command": None,
+        "args": [],
+        "env": {},
+        "auth_type": "oauth",
+        "docs": ["https://supabase.com/docs/guides/getting-started/mcp"],
+        "notes": "OAuth-based. Manage Supabase projects, databases, auth, storage, and Edge Functions.",
+        "capabilities": ["postgresql", "auth", "storage", "edge functions", "realtime", "project management"],
+    },
+    "firecrawl": {
+        "name": "firecrawl",
+        "transport": "sse",
+        "url": "https://mcp.firecrawl.dev/sse",
+        "command": None,
+        "args": [],
+        "env": {"FIRECRAWL_API_KEY": "<required>"},
+        "auth_type": "api_key",
+        "docs": ["https://docs.firecrawl.dev/mcp"],
+        "notes": "Web scraping, crawling, and structured content extraction. API key required.",
+        "capabilities": ["web scraping", "crawling", "content extraction", "markdown conversion", "structured data"],
+    },
+    "exa": {
+        "name": "exa",
+        "transport": "sse",
+        "url": "https://mcp.exa.ai/sse",
+        "command": None,
+        "args": [],
+        "env": {"EXA_API_KEY": "<required>"},
+        "auth_type": "api_key",
+        "docs": ["https://docs.exa.ai"],
+        "notes": "Neural web search — find semantically relevant pages and extract full content.",
+        "capabilities": ["web search", "semantic search", "content retrieval", "research"],
+    },
+    # ── Self-hosted HTTP (start locally, then register the localhost URL) ────
+    "playwright": {
+        "name": "playwright",
+        "transport": "http",
+        "url": "http://localhost:3000",
+        "command": "npx -y @playwright/mcp --port 3000",
+        "args": [],
+        "env": {},
+        "auth_type": "none",
+        "docs": ["https://github.com/microsoft/playwright-mcp"],
+        "notes": "Run locally first: `npx @playwright/mcp --port 3000`. Chromium browser automation, screenshots, form interaction.",
+        "capabilities": ["browser automation", "screenshots", "form interaction", "web scraping", "accessibility"],
+    },
+    "browserbase": {
+        "name": "browserbase",
+        "transport": "sse",
+        "url": None,
+        "command": "npx -y @browserbasehq/mcp",
+        "args": [],
+        "env": {"BROWSERBASE_API_KEY": "<required>", "BROWSERBASE_PROJECT_ID": "<required>"},
+        "auth_type": "api_key",
+        "docs": ["https://docs.browserbase.com/mcp"],
+        "notes": "Cloud browser sessions. Requires Browserbase API key and project ID.",
+        "capabilities": ["cloud browser", "browser automation", "session recording", "CDP"],
+    },
+    # ── Credential-gated remote ──────────────────────────────────────────────
+    "github": {
+        "name": "github",
+        "transport": "http",
+        "url": "https://api.githubcopilot.com/mcp/",
+        "command": None,
+        "args": [],
+        "env": {"GITHUB_TOKEN": "<required>"},
+        "auth_type": "bearer",
+        "docs": ["https://github.com/modelcontextprotocol/servers/tree/main/src/github"],
+        "notes": "GitHub Copilot MCP endpoint. Requires GitHub token with repo/issues scopes.",
+        "capabilities": ["repositories", "issues", "pull requests", "code search", "git operations"],
+    },
+    "stripe": {
+        "name": "stripe",
+        "transport": "http",
+        "url": "https://mcp.stripe.com",
+        "command": None,
+        "args": [],
+        "env": {"STRIPE_API_KEY": "<required>"},
+        "auth_type": "api_key",
+        "docs": ["https://docs.stripe.com/stripe-apps/create-app"],
+        "notes": "Stripe hosted MCP. Use restricted API keys scoped to needed resources.",
+        "capabilities": ["payments", "customers", "subscriptions", "products", "invoices", "webhooks"],
+    },
+    "notion": {
+        "name": "notion",
+        "transport": "http",
+        "url": "https://mcp.notion.com",
+        "command": None,
+        "args": [],
+        "env": {},
+        "auth_type": "oauth",
+        "docs": ["https://developers.notion.com"],
+        "notes": "OAuth-based. Read/write Notion pages, databases, and blocks.",
+        "capabilities": ["pages", "databases", "blocks", "search", "comments"],
+    },
+    "context7": {
+        "name": "context7",
+        "transport": "http",
+        "url": "https://mcp.context7.com/mcp",
+        "command": None,
+        "args": [],
+        "env": {},
+        "auth_type": "none",
+        "docs": ["https://context7.com/docs"],
+        "notes": "Free. Injects up-to-date library docs and code examples into context. No API key needed.",
+        "capabilities": ["documentation lookup", "library references", "code examples", "framework docs"],
     },
 }
 
-
-BUILTIN_MCP_SERVERS = [
+# ---------------------------------------------------------------------------
+# Builtin MCP servers — remote HTTP/SSE endpoints seeded into the DB on
+# every startup. Users can configure credentials but cannot delete these.
+# ---------------------------------------------------------------------------
+BUILTIN_MCP_SERVERS: list[dict] = [
     {
-        "name": "github-mcp",
-        "transport": "stdio",
-        "url": None,
-        "command": "npx -y @modelcontextprotocol/server-github",
+        "name": "cloudflare",
+        "transport": "http",
+        "url": "https://mcp.cloudflare.com",
+        "command": None,
         "args": [],
-        "env": {"GITHUB_TOKEN": "<required>"},
+        "env": {"CLOUDFLARE_API_TOKEN": "<required>"},
     },
     {
-        "name": "filesystem-mcp",
-        "transport": "stdio",
-        "url": None,
-        "command": "npx -y @modelcontextprotocol/server-filesystem",
-        "args": [str(Path(settings.projects_root).resolve())],
-        "env": {},
-    },
-    {
-        "name": "fetch-mcp",
-        "transport": "stdio",
-        "url": None,
-        "command": "npx -y @modelcontextprotocol/server-fetch",
+        "name": "sentry",
+        "transport": "sse",
+        "url": "https://mcp.sentry.io/sse",
+        "command": None,
         "args": [],
         "env": {},
     },
     {
-        "name": "playwright-mcp",
-        "transport": "stdio",
-        "url": None,
-        "command": "npx -y @playwright/mcp",
+        "name": "neon",
+        "transport": "sse",
+        "url": "https://mcp.neon.tech/sse",
+        "command": None,
         "args": [],
         "env": {},
     },
     {
-        "name": "astro-mcp",
-        "transport": "stdio",
-        "url": None,
-        "command": "npx -y @astrojs/mcp-server",
+        "name": "context7",
+        "transport": "http",
+        "url": "https://mcp.context7.com/mcp",
+        "command": None,
+        "args": [],
+        "env": {},
+    },
+    {
+        "name": "playwright",
+        "transport": "http",
+        "url": "http://localhost:3000",
+        "command": "npx -y @playwright/mcp --port 3000",
         "args": [],
         "env": {},
     },
@@ -265,10 +369,9 @@ def _normalize_existing_mcp_servers() -> None:
         next_command = command
         next_env = dict(env)
 
-        # Repair older fallback records that were incorrectly set to HTTP /health for stdio tools.
-        if transport == "http" and command and url.endswith("/health") and name.endswith("-mcp"):
-            next_transport = "stdio"
-            next_url = None
+        # Remove stale stdio fallback records left over from the old builtin list.
+        # These were incorrectly set to HTTP /health; just leave them as-is now
+        # since we no longer manage stdio servers.
 
         # Fill missing stdio command/env for known catalog entries.
         catalog_entry = catalog_by_name.get(name)
@@ -3231,51 +3334,20 @@ def delete_note(note_id: int) -> dict:
 
 @app.get("/api/mcp/vscode-config")
 def mcp_vscode_config() -> dict:
-    """Generate a VS Code settings.json snippet for all registered MCP servers."""
-    rows = DB_CONN.execute("SELECT * FROM mcp_servers ORDER BY id ASC").fetchall()
-    servers: dict[str, dict] = {}
-
-    for row in rows:
-        s = _serialize_mcp_row(row)
-        name = s["name"]
-        env = s.get("env") or {}
-
-        if s["transport"] == "stdio":
-            cmd_str = (s.get("command") or "").strip()
-            cmd_parts = shlex.split(cmd_str) if cmd_str else []
-            if not cmd_parts:
-                continue
-            vscode_env: dict[str, str] = {}
-            for k, v in env.items():
-                is_ref = isinstance(v, str) and bool(CRED_REF_PATTERN.match(v.strip()))
-                is_placeholder = isinstance(v, str) and v.strip() in ("<required>", "")
-                vscode_env[k] = f"${{env:{k}}}" if (is_ref or is_placeholder) else v
-            entry: dict = {"type": "stdio", "command": cmd_parts[0], "args": cmd_parts[1:] + (s.get("args") or [])}
-            if vscode_env:
-                entry["env"] = vscode_env
-            servers[name] = entry
-
-        elif s["transport"] in ("http", "sse"):
-            url = s.get("url")
-            if not url:
-                continue
-            servers[name] = {"type": "http", "url": url}
-
+    """Generate a VS Code settings.json snippet pointing at the CrowPilot HTTP/SSE relay."""
     addresses = _discover_local_ipv4()
     relay_url = f"http://{addresses[0] if addresses else '127.0.0.1'}:{settings.port}/mcp"
-
+    snippet = json.dumps(
+        {"mcp": {"servers": {"crowpilot-relay": {"type": "http", "url": relay_url}}}}, indent=2
+    )
     return {
         "relay_url": relay_url,
         "instructions": (
-            "Option A — Paste 'relay_only_snippet' into VS Code settings.json to route all HTTP MCP traffic "
-            "through this CrowPilot hub in a single entry. "
-            "Option B — Paste 'all_servers_snippet' to configure every server individually "
-            "(stdio servers run as local subprocesses inside VS Code)."
+            "Paste 'snippet' into VS Code settings.json (or workspace .vscode/settings.json). "
+            "CrowPilot aggregates all HTTP/SSE MCP backends through this single relay endpoint. "
+            "Add new HTTP/SSE MCP servers via the MCP Forge tab and they appear here automatically."
         ),
-        "relay_only_snippet": json.dumps(
-            {"mcp": {"servers": {"crowpilot-relay": {"type": "http", "url": relay_url}}}}, indent=2
-        ),
-        "all_servers_snippet": json.dumps({"mcp": {"servers": servers}}, indent=2),
+        "snippet": snippet,
     }
 
 
@@ -3287,7 +3359,7 @@ async def mcp_relay_info() -> dict:
         "description": "CrowPilot MCP relay — aggregates HTTP-based MCP servers registered in this hub.",
         "protocol": "mcp-streamable-http",
         "tools_from_transport": ["http", "sse"],
-        "note": "stdio servers must be configured individually in VS Code; see /api/mcp/vscode-config.",
+        "note": "Add HTTP/SSE MCP servers via the MCP Forge tab; they will be aggregated here automatically.",
     }
 
 
