@@ -1,0 +1,2717 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>CrowPilot Control Deck</title>
+    <link rel="icon" href="/favicon.ico" sizes="any" />
+    <style>
+      @import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Fraunces:opsz,wght@9..144,600&family=IBM+Plex+Mono:wght@400;600&display=swap");
+
+      :root {
+        --ink: #1f2330;
+        --muted: #5e687e;
+        --panel: #fffdf8;
+        --line: #d9d5ca;
+        --accent: #0a9396;
+        --accent-2: #ee9b00;
+        --accent-3: #ca6702;
+        --danger: #ae2012;
+        --ok: #2a9d8f;
+      }
+
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: "Space Grotesk", sans-serif;
+        color: var(--ink);
+        background:
+          radial-gradient(1200px 580px at 8% -10%, rgba(10,147,150,0.3), transparent 64%),
+          radial-gradient(900px 620px at 95% 0%, rgba(238,155,0,0.28), transparent 58%),
+          linear-gradient(170deg, #fff8e8 0%, #f5f7ff 54%, #fff4e8 100%);
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: "Space Grotesk", sans-serif;
+        color: var(--ink);
+        background:
+          radial-gradient(1200px 580px at 8% -10%, rgba(10,147,150,0.3), transparent 64%),
+          radial-gradient(900px 620px at 95% 0%, rgba(238,155,0,0.28), transparent 58%),
+          linear-gradient(170deg, #fff8e8 0%, #f5f7ff 54%, #fff4e8 100%);
+        display: flex;
+        flex-direction: row;
+      }
+
+      .sidebar {
+        width: 280px;
+        background: linear-gradient(180deg, rgba(255,255,255,0.95), rgba(255,255,255,0.9));
+        border-right: 1px solid var(--line);
+        padding: 16px;
+        overflow-y: auto;
+        flex-shrink: 0;
+        height: 100vh;
+        box-shadow: -2px 0 8px rgba(40,34,20,0.08);
+      }
+
+      .sidebar h3 {
+        font-family: "Fraunces", serif;
+        font-size: 0.95rem;
+        margin: 12px 0 8px;
+        color: var(--ink);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+
+      .sidebar-section {
+        margin-bottom: 20px;
+      }
+
+      .conversation-list {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+
+      .sidebar-filter-grid,
+      .sidebar-action-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 6px;
+      }
+
+      .sidebar-action-grid {
+        margin-top: 8px;
+      }
+
+      .sidebar-mini-button {
+        width: 100%;
+        padding: 7px 8px;
+        border-radius: 8px;
+        border: 1px solid var(--line);
+        background: rgba(255,255,255,0.82);
+        color: var(--ink);
+        font-size: 0.78rem;
+        font-weight: 700;
+        cursor: pointer;
+      }
+
+      .sidebar-mini-button.active {
+        background: linear-gradient(120deg, #0a9396, #38b6a8);
+        color: #f5fffe;
+        border-color: #0b6a6d;
+      }
+
+      .sidebar-meta {
+        margin-top: 8px;
+        font-size: 0.78rem;
+        color: var(--muted);
+        line-height: 1.4;
+      }
+
+      .conversation-item {
+        padding: 8px 10px;
+        border-radius: 8px;
+        background: rgba(10,147,150,0.05);
+        border: 1px solid rgba(10,147,150,0.2);
+        cursor: pointer;
+        font-size: 0.85rem;
+        color: var(--ink);
+        transition: all 200ms ease;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .conversation-item:hover {
+        background: rgba(10,147,150,0.12);
+        border-color: rgba(10,147,150,0.4);
+      }
+
+      .conversation-item.active {
+        background: linear-gradient(120deg, rgba(10,147,150,0.25), rgba(10,147,150,0.15));
+        border-color: var(--accent);
+        font-weight: 600;
+      }
+
+      .sidebar-button {
+        width: 100%;
+        padding: 8px 10px;
+        border-radius: 8px;
+        border: 1px solid var(--line);
+        background: rgba(255,255,255,0.8);
+        color: var(--ink);
+        font-weight: 600;
+        cursor: pointer;
+        font-size: 0.85rem;
+        transition: all 200ms ease;
+      }
+
+      .sidebar-button:hover {
+        background: linear-gradient(120deg, #0a9396, #38b6a8);
+        color: #f5fffe;
+        border-color: #0b6a6d;
+      }
+
+      .sidebar-button.active {
+        background: linear-gradient(120deg, #0a9396, #38b6a8);
+        color: #f5fffe;
+        border-color: #0b6a6d;
+      }
+
+      .mode-toggle {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 6px;
+      }
+
+      .mode-pill {
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        background: rgba(255,255,255,0.8);
+        color: var(--ink);
+        padding: 9px 10px;
+        font-weight: 700;
+      }
+
+      .mode-pill.active {
+        background: linear-gradient(120deg, #ee9b00, #ca6702);
+        color: #fff8ef;
+      }
+
+      .app {
+        flex: 1;
+        max-width: 1280px;
+        margin: 0 auto;
+        padding: 20px;
+        overflow-y: auto;
+        width: 100%;
+      }
+      .hero {
+        border: 1px solid var(--line);
+        border-radius: 22px;
+        padding: 18px;
+        background: linear-gradient(150deg, rgba(255,255,255,0.85), rgba(255,255,255,0.65));
+        box-shadow: 0 18px 60px rgba(40, 34, 20, 0.12);
+        animation: floatIn 440ms ease-out;
+      }
+      .hero-brand {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+      }
+      .hero-mascot {
+        width: 240px;
+        height: 240px;
+        border-radius: 14px;
+        border: 1px solid rgba(31,35,48,0.16);
+        box-shadow: 0 8px 20px rgba(31,35,48,0.14);
+        background: #fff;
+        object-fit: contain;
+      }
+      .hero-title {
+        font-family: "Fraunces", serif;
+        font-size: clamp(1.8rem, 2.8vw, 3rem);
+        line-height: 1.08;
+        margin: 2px 0 8px;
+      }
+      .hero-sub {
+        color: var(--muted);
+        max-width: 860px;
+        margin: 0;
+      }
+      .stat-strip {
+        margin-top: 14px;
+        display: grid;
+        gap: 10px;
+        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      }
+      .chip {
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        background: rgba(255,255,255,0.8);
+        padding: 10px;
+      }
+      .chip strong { font-size: 1.35rem; display: block; }
+      .chip span { color: var(--muted); font-size: .88rem; }
+
+      .mode-banner {
+        margin-top: 14px;
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        align-items: center;
+        border-top: 1px solid rgba(217,213,202,0.85);
+        padding-top: 12px;
+      }
+
+      .mode-title {
+        font-weight: 700;
+      }
+
+      .mode-note {
+        color: var(--muted);
+        font-size: .88rem;
+      }
+
+      .zen-shell {
+        border: 1px solid rgba(10,147,150,0.25);
+        background: linear-gradient(180deg, rgba(10,147,150,0.08), rgba(255,255,255,0.92));
+      }
+
+      .zen-shell textarea {
+        min-height: 140px;
+      }
+
+      .zen-result {
+        margin-top: 10px;
+        padding: 10px;
+        border-radius: 12px;
+        background: #fffef9;
+        border: 1px dashed #c9c0ae;
+        min-height: 2.5rem;
+        color: var(--muted);
+        white-space: pre-wrap;
+      }
+
+      body.zen-mode .big-brain-only {
+        display: none !important;
+      }
+
+      body.big-brain-mode .zen-only {
+        display: none !important;
+      }
+
+      .view {
+        display: none;
+        animation: fadeIn 260ms ease;
+      }
+      .view.active { display: block; }
+
+      .grid {
+        display: grid;
+        gap: 12px;
+      }
+      .grid.two { grid-template-columns: 1.1fr 1.4fr; }
+      .grid.dual { grid-template-columns: 1fr 1fr; }
+      .card {
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        background: var(--panel);
+        padding: 14px;
+        box-shadow: 0 12px 32px rgba(40, 34, 20, 0.08);
+      }
+      h2, h3 { margin: 2px 0 10px; }
+      h2 { font-family: "Fraunces", serif; font-size: 1.5rem; }
+      h3 { font-size: 1rem; letter-spacing: .02em; }
+      .tiny { color: var(--muted); font-size: .86rem; }
+
+      label {
+        display: block;
+        margin: 8px 0 4px;
+        color: var(--muted);
+        font-size: .9rem;
+      }
+      input, select, textarea, button {
+        width: 100%;
+        font-family: "Space Grotesk", sans-serif;
+        font-size: .95rem;
+        border-radius: 10px;
+        border: 1px solid #cfc8b8;
+        padding: 10px;
+      }
+      textarea { resize: vertical; min-height: 88px; }
+      .mono {
+        font-family: "IBM Plex Mono", monospace;
+        white-space: pre-wrap;
+      }
+      button {
+        cursor: pointer;
+        border: none;
+        font-weight: 700;
+        color: #fff;
+        background: linear-gradient(130deg, #0a9396, #11777f);
+      }
+      button.alt { background: linear-gradient(130deg, #ee9b00, #ca6702); }
+      button.warn { background: linear-gradient(130deg, #d94f38, #ae2012); }
+      .row {
+        display: flex;
+        gap: 8px;
+      }
+      .row > * { flex: 1; }
+
+      .messages {
+        min-height: 380px;
+        max-height: 60vh;
+        overflow-y: auto;
+        border: 1px dashed #c9c0ae;
+        border-radius: 12px;
+        padding: 10px;
+        background: #fffef9;
+      }
+      .msg {
+        border-radius: 10px;
+        margin-bottom: 9px;
+        padding: 10px;
+        white-space: pre-wrap;
+      }
+      .msg.user { background: rgba(10,147,150,0.15); border: 1px solid rgba(10,147,150,0.4); }
+      .msg.assistant { background: rgba(17,119,127,0.08); border: 1px solid rgba(17,119,127,0.2); }
+      .msg.error { background: rgba(174,32,18,0.12); border: 1px solid rgba(174,32,18,0.4); }
+
+      .list {
+        display: grid;
+        gap: 8px;
+      }
+      .list-item {
+        border: 1px solid #d5d0c0;
+        border-radius: 12px;
+        padding: 10px;
+        background: #fff;
+      }
+      .badge {
+        display: inline-block;
+        border-radius: 999px;
+        padding: 2px 9px;
+        font-size: .77rem;
+        font-weight: 700;
+      }
+      .badge.ok { background: rgba(42,157,143,0.2); color: #185c54; }
+      .badge.offline { background: rgba(174,32,18,0.16); color: #7a1a10; }
+      .badge.unknown { background: rgba(89,100,122,0.2); color: #3d4353; }
+
+      .widget-grid {
+        display: grid;
+        grid-template-columns: repeat(12, 1fr);
+        gap: 8px;
+      }
+      .widget-tile {
+        background: linear-gradient(180deg, #fff, #fef8ee);
+        border: 1px solid #d6cfbf;
+        border-radius: 12px;
+        padding: 10px;
+      }
+
+      .status {
+        min-height: 1.2rem;
+        color: var(--muted);
+        margin-top: 8px;
+      }
+
+      @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(6px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+      @keyframes floatIn {
+        from { opacity: 0; transform: translateY(-8px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+
+      @media (max-width: 990px) {
+        .grid.two,
+        .grid.dual { grid-template-columns: 1fr; }
+      }
+    </style>
+  </head>
+  <body class="big-brain-mode">
+    <aside class="sidebar">
+      <div class="sidebar-section">
+        <h3>Mode</h3>
+        <div class="mode-toggle">
+          <button class="mode-pill active" id="bigBrainModeBtn">Big Brain</button>
+          <button class="mode-pill" id="zenModeBtn">Zen</button>
+        </div>
+      </div>
+
+      <div class="sidebar-section">
+        <h3>Navigation</h3>
+        <div style="display: flex; flex-direction: column; gap: 6px;">
+          <button class="sidebar-button" data-nav="deck">🎮 Command Deck</button>
+          <button class="sidebar-button" data-nav="mcp">🔌 MCP Forge</button>
+          <button class="sidebar-button" data-nav="knowledge">📚 Knowledge Lab</button>
+          <button class="sidebar-button" data-nav="tasks">🛠️ Tasks</button>
+          <button class="sidebar-button" data-nav="skills">🧠 Skills</button>
+          <button class="sidebar-button" data-nav="credentials">🗝️ Credentials Vault</button>
+          <button class="sidebar-button" data-nav="integrations">🔐 Integrations</button>
+          <button class="sidebar-button" data-nav="projects">🏗️ Projects</button>
+        </div>
+      </div>
+
+      <div class="sidebar-section">
+        <h3>Status</h3>
+        <div id="sidebarStatus" class="mono" style="font-size: 0.8rem; color: var(--muted); line-height: 1.4;"></div>
+      </div>
+
+      <div class="sidebar-section">
+        <h3>Conversations</h3>
+        <button class="sidebar-button" id="newConvSidebarBtn">+ New Chat</button>
+        <div class="sidebar-filter-grid" style="margin-top:8px;">
+          <button class="sidebar-mini-button active" data-conv-filter="active" id="convFilterActive">Live</button>
+          <button class="sidebar-mini-button" data-conv-filter="hidden" id="convFilterHidden">Hidden</button>
+          <button class="sidebar-mini-button" data-conv-filter="archived_good" id="convFilterGood">Good</button>
+          <button class="sidebar-mini-button" data-conv-filter="archived_bad" id="convFilterBad">Bad</button>
+        </div>
+        <div id="conversationBucketMeta" class="sidebar-meta"></div>
+        <div id="conversationList" class="conversation-list"></div>
+      </div>
+
+      <div class="sidebar-section">
+        <h3>Conversation Actions</h3>
+        <div id="conversationSelectionMeta" class="sidebar-meta">Select a conversation to manage it.</div>
+        <div class="sidebar-action-grid">
+          <button class="sidebar-mini-button" id="archiveGoodBtn">Archive Good</button>
+          <button class="sidebar-mini-button" id="archiveBadBtn">Archive Bad</button>
+          <button class="sidebar-mini-button" id="hideConversationBtn">Hide</button>
+          <button class="sidebar-mini-button" id="restoreConversationBtn">Restore</button>
+        </div>
+        <button class="sidebar-button" id="deleteConversationBtn" style="margin-top:8px; background: linear-gradient(130deg, #d94f38, #ae2012);">Delete Forever</button>
+      </div>
+    </aside>
+    <main class="app">
+      <section class="hero">
+        <div class="hero-brand">
+          <img class="hero-mascot" src="/static/crowpilot-logo.png" alt="CrowPilot logo" />
+          <h1 class="hero-title">CrowPilot Control Deck</h1>
+        </div>
+        <p class="hero-sub">A local AI workspace powered by GitHub Copilot for model routing, reusable automations, composable skills, MCP orchestration, and knowledge tooling.</p>
+        <div id="statStrip" class="stat-strip"></div>
+        <div class="mode-banner">
+          <div>
+            <div id="modeTitle" class="mode-title">Big Brain Mode</div>
+            <div id="modeNote" class="mode-note">Full controls, direct forms, and lower-level levers for building and inspecting everything.</div>
+          </div>
+          <div style="display:flex; gap:8px; align-items:center;">
+            <button id="openCredentialsBtn" class="alt" style="width:auto; padding:8px 12px;">Open Credentials</button>
+          </div>
+        </div>
+      </section>
+
+
+
+      <section id="view-deck" class="view active">
+        <div class="grid two">
+          <article class="card big-brain-only">
+            <h2>Provider Routing</h2>
+            <label for="provider">Provider</label>
+            <select id="provider"></select>
+            <label for="model">Model</label>
+            <select id="model"></select>
+            <label for="autoModelToggle" style="display:flex; align-items:center; gap:8px; margin-top:8px;">
+              <input id="autoModelToggle" type="checkbox" style="width:auto;" />
+              Use Auto model selection (Copilot-style)
+            </label>
+            <div id="healthOut" class="status mono"></div>
+          </article>
+
+          <article class="card">
+            <h2>Streaming Chat</h2>
+            <div class="zen-only tiny" style="margin-bottom:10px;">Zen keeps chat on rails. Just ask for what you need and CrowPilot will use the active default routing behind the scenes.</div>
+            <div id="messages" class="messages"></div>
+            <label for="prompt">Prompt</label>
+            <textarea id="prompt" placeholder="Design a dashboard widget system for model usage analytics."></textarea>
+            <button id="sendBtn">Send</button>
+            <div id="chatStatus" class="status"></div>
+          </article>
+        </div>
+      </section>
+
+      <section id="view-mcp" class="view">
+        <div class="grid dual">
+          <article class="card big-brain-only">
+            <h2>Register MCP Server</h2>
+            <label for="mcpName">Name</label>
+            <input id="mcpName" placeholder="github-tools" />
+            <label for="mcpTransport">Transport</label>
+            <select id="mcpTransport">
+              <option value="http">http</option>
+              <option value="sse">sse</option>
+              <option value="stdio">stdio</option>
+            </select>
+            <label for="mcpUrl">URL (http/sse)</label>
+            <input id="mcpUrl" placeholder="http://127.0.0.1:9001/health" />
+            <label for="mcpCmd">Command (stdio)</label>
+            <input id="mcpCmd" placeholder="npx @modelcontextprotocol/server-github" />
+            <label for="mcpArgs">Args JSON</label>
+            <textarea id="mcpArgs" class="mono" placeholder='["--stdio"]'></textarea>
+            <label for="mcpEnv">Env JSON</label>
+            <textarea id="mcpEnv" class="mono" placeholder='{"GITHUB_TOKEN":"..."}'></textarea>
+            <div class="row" style="margin-top:8px;">
+              <div>
+                <label for="mcpEnvVarKey">Env Var Key</label>
+                <input id="mcpEnvVarKey" placeholder="CLOUDFLARE_API_TOKEN" />
+              </div>
+              <div>
+                <label for="mcpCredentialRef">Credential</label>
+                <select id="mcpCredentialRef"></select>
+              </div>
+            </div>
+            <div class="row" style="margin-top:8px;">
+              <button id="mcpLinkCredentialBtn" class="alt">Link Credential Ref</button>
+              <button id="mcpOpenCredentialsBtn">Manage Vault</button>
+            </div>
+            <label for="mcpOnboardPrompt">Onboarding Prompt</label>
+            <textarea id="mcpOnboardPrompt" placeholder="Add GitHub MCP server and include required auth fields."></textarea>
+            <div class="row" style="margin-top:8px;">
+              <button id="mcpSuggestBtn" class="alt">Suggest Config</button>
+              <button id="mcpApplySuggestionBtn">Apply Suggestion</button>
+            </div>
+            <div id="mcpOnboardOut" class="status mono"></div>
+            <div class="row" style="margin-top:8px;">
+              <button id="createMcpBtn">Add Server</button>
+              <button id="createAndCheckMcpBtn" class="alt">Add + Check</button>
+            </div>
+            <div id="mcpStatus" class="status"></div>
+          </article>
+
+          <article class="card zen-shell zen-only">
+            <h2>Zen MCP Guide</h2>
+            <p class="tiny">Describe the server you want in plain English. Include URLs, commands, or pasted setup snippets if you have them.</p>
+            <label for="zenMcpPrompt">Prompt</label>
+            <textarea id="zenMcpPrompt" placeholder="Add the GitHub MCP server using stdio and the @modelcontextprotocol GitHub package."></textarea>
+            <button id="zenMcpBtn">Create From Prompt</button>
+            <div id="zenMcpResult" class="zen-result"></div>
+          </article>
+
+          <article class="card">
+            <h2>MCP Server Registry</h2>
+            <div id="mcpList" class="list"></div>
+          </article>
+        </div>
+      </section>
+
+      <section id="view-knowledge" class="view">
+        <div class="grid dual">
+          <article class="card big-brain-only">
+            <h2>Knowledge Capture</h2>
+            <label for="noteTitle">Note Title</label>
+            <input id="noteTitle" placeholder="llama.cpp launch profile" />
+            <label for="noteBody">Note Body</label>
+            <textarea id="noteBody" placeholder="Store commands, outputs, links, and decisions."></textarea>
+            <button id="saveNoteBtn">Save + Chunk Index</button>
+
+            <label for="searchQ">Search Query</label>
+            <input id="searchQ" placeholder="flash attention syntax" />
+            <button id="searchBtn" class="alt" style="margin-top:8px;">Search Knowledge</button>
+            <div id="searchOut" class="status mono"></div>
+          </article>
+
+          <article class="card zen-shell zen-only">
+            <h2>Zen Knowledge Capture</h2>
+            <p class="tiny">Drop in raw notes, decisions, logs, or links. CrowPilot will turn them into a structured knowledge note.</p>
+            <label for="zenKnowledgePrompt">Prompt</label>
+            <textarea id="zenKnowledgePrompt" placeholder="Save a note about the llama.cpp launch profile we verified on port 8082 and mention flash attention is enabled."></textarea>
+            <button id="zenKnowledgeBtn">Save From Prompt</button>
+            <div id="zenKnowledgeResult" class="zen-result"></div>
+          </article>
+
+          <article class="card">
+            <h2>Dashboard Widgets</h2>
+            <div class="zen-only tiny" style="margin-bottom:10px;">Describe the widget you want and CrowPilot will infer the config and layout.</div>
+            <div class="zen-only">
+              <label for="zenWidgetPrompt">Widget Prompt</label>
+              <textarea id="zenWidgetPrompt" placeholder="Create a provider health widget that polls /api/health every 20 seconds and spans 4 columns."></textarea>
+              <button id="zenWidgetBtn">Create Widget From Prompt</button>
+              <div id="zenWidgetResult" class="zen-result"></div>
+            </div>
+            <div class="big-brain-only">
+              <label for="widgetName">Widget Name</label>
+              <input id="widgetName" placeholder="Provider Health Matrix" />
+              <label for="widgetType">Type</label>
+              <input id="widgetType" placeholder="health-grid" />
+              <div class="row">
+                <div>
+                  <label for="widgetCol">Col</label>
+                  <input id="widgetCol" type="number" value="1" />
+                </div>
+                <div>
+                  <label for="widgetRow">Row</label>
+                  <input id="widgetRow" type="number" value="1" />
+                </div>
+                <div>
+                  <label for="widgetW">W</label>
+                  <input id="widgetW" type="number" value="4" />
+                </div>
+                <div>
+                  <label for="widgetH">H</label>
+                  <input id="widgetH" type="number" value="2" />
+                </div>
+              </div>
+              <label for="widgetConfig">Config JSON</label>
+              <textarea id="widgetConfig" class="mono" placeholder='{"source":"/api/health","refresh_sec":20}'></textarea>
+              <button id="createWidgetBtn">Create Widget</button>
+              <div id="widgetStatus" class="status"></div>
+            </div>
+
+            <h3>Widget Canvas</h3>
+            <div id="widgetGrid" class="widget-grid"></div>
+          </article>
+        </div>
+      </section>
+
+      <section id="view-tasks" class="view">
+        <div class="grid dual">
+          <article class="card big-brain-only">
+            <h2>Personal Automation Task</h2>
+            <p class="tiny">Build repeatable workflows once, then run them whenever you need outputs like manual reports.</p>
+            <label for="autoTaskTitle">Task Name</label>
+            <input id="autoTaskTitle" placeholder="Weekly Portal Report Automation" />
+            <label for="autoTaskObjective">Objective</label>
+            <textarea id="autoTaskObjective" placeholder="Login, download CSV, normalize, and export final report."></textarea>
+            <div class="row">
+              <div>
+                <label for="autoTaskTrigger">Trigger</label>
+                <select id="autoTaskTrigger">
+                  <option value="manual">manual</option>
+                  <option value="scheduled">scheduled</option>
+                  <option value="event">event</option>
+                </select>
+              </div>
+              <div>
+                <label for="autoTaskSensitive">Sensitive Mode</label>
+                <select id="autoTaskSensitive">
+                  <option value="off">off</option>
+                  <option value="local_only">local_only</option>
+                  <option value="hybrid_redacted">hybrid_redacted</option>
+                </select>
+              </div>
+            </div>
+            <label for="autoTaskCloudTemplate">Cloud Prompt Template</label>
+            <textarea id="autoTaskCloudTemplate" class="mono" placeholder="Use placeholders like {{CRED_SLOT_1}} and {{ACCOUNT_ALIAS}}."></textarea>
+            <label for="autoTaskContext">Local Context JSON</label>
+            <textarea id="autoTaskContext" class="mono" placeholder='{"report_site":"https://portal.example.com","credential_keys":["REPORT_USER","REPORT_PASS"]}'></textarea>
+            <label for="autoTaskRunbook">Runbook Markdown</label>
+            <textarea id="autoTaskRunbook" placeholder="1. Authenticate locally\n2. Redact sensitive values\n3. Send templated request to cloud model\n4. Rehydrate outputs locally"></textarea>
+            <button id="createAutoTaskBtn">Save Task Blueprint</button>
+            <div id="autoTaskStatus" class="status"></div>
+          </article>
+
+          <article class="card zen-shell zen-only">
+            <h2>Zen Task Builder</h2>
+            <p class="tiny">Describe the workflow, paste code, or drop in a URL. CrowPilot will infer a reusable automation blueprint and save it.</p>
+            <label for="zenTaskPrompt">Prompt</label>
+            <textarea id="zenTaskPrompt" placeholder="Build me a repeatable task that logs into the vendor portal, downloads the monthly report, normalizes the CSV, and keeps credentials local-only."></textarea>
+            <button id="zenTaskBtn">Create Task From Prompt</button>
+            <div id="zenTaskResult" class="zen-result"></div>
+          </article>
+
+          <article class="card">
+            <h2>Task Library</h2>
+            <div id="automationTaskList" class="list"></div>
+          </article>
+        </div>
+      </section>
+
+      <section id="view-skills" class="view">
+        <div class="grid dual">
+          <article class="card big-brain-only">
+            <h2>Skill Registry</h2>
+            <p class="tiny">Store portable skill contracts your models can reuse across tasks and tools.</p>
+            <label for="skillName">Skill Name</label>
+            <input id="skillName" placeholder="portal-report-parser" />
+            <label for="skillCategory">Category</label>
+            <input id="skillCategory" placeholder="web-automation" />
+            <label for="skillDescription">Description</label>
+            <textarea id="skillDescription" placeholder="Parses portal export files and maps them into report-ready rows."></textarea>
+            <div class="row">
+              <div>
+                <label for="skillStatus">Status</label>
+                <select id="skillStatus">
+                  <option value="draft">draft</option>
+                  <option value="active">active</option>
+                  <option value="disabled">disabled</option>
+                </select>
+              </div>
+              <div>
+                <label for="skillLocalOnly">Execution Scope</label>
+                <select id="skillLocalOnly">
+                  <option value="false">hybrid/cloud-safe</option>
+                  <option value="true">local-only</option>
+                </select>
+              </div>
+            </div>
+            <label for="skillInputSchema">Input Schema JSON</label>
+            <textarea id="skillInputSchema" class="mono" placeholder='{"type":"object","properties":{"csv_path":{"type":"string"}}}'></textarea>
+            <label for="skillOutputSchema">Output Schema JSON</label>
+            <textarea id="skillOutputSchema" class="mono" placeholder='{"type":"object","properties":{"rows":{"type":"array"}}}'></textarea>
+            <label for="skillToolContract">Tool Contract JSON</label>
+            <textarea id="skillToolContract" class="mono" placeholder='{"required_tools":["browser","filesystem"],"notes":"No credential exfiltration"}'></textarea>
+            <button id="createSkillBtn">Register Skill</button>
+            <div id="skillStatusOut" class="status"></div>
+          </article>
+
+          <article class="card zen-shell zen-only">
+            <h2>Zen Skills Registry</h2>
+            <p class="tiny">Describe a skill, paste third-party code, or include a URL and CrowPilot will interpret it into a reusable skill contract.</p>
+            <label for="zenSkillPrompt">Prompt</label>
+            <textarea id="zenSkillPrompt" placeholder="Create a skill from this parser snippet that converts vendor CSV exports into a standard report schema. Make it local-only if it handles secrets."></textarea>
+            <button id="zenSkillBtn">Create Skill From Prompt</button>
+            <div id="zenSkillResult" class="zen-result"></div>
+          </article>
+
+          <article class="card">
+            <h2>Skills Library</h2>
+            <div id="skillList" class="list"></div>
+          </article>
+        </div>
+      </section>
+
+      <section id="view-credentials" class="view">
+        <div class="grid dual">
+          <article class="card">
+            <h2>Credential Vault</h2>
+            <p class="tiny">Credentials are encrypted locally before storage. Use credential references in other forms like {{cred:cloudflare-api-token}}.</p>
+            <label for="credentialName">Credential Name</label>
+            <input id="credentialName" placeholder="cloudflare-api-token" />
+            <div class="row">
+              <div>
+                <label for="credentialType">Type</label>
+                <select id="credentialType">
+                  <option value="api_key">api_key</option>
+                  <option value="password">password</option>
+                  <option value="oauth_token">oauth_token</option>
+                  <option value="session_token">session_token</option>
+                  <option value="other">other</option>
+                </select>
+              </div>
+              <div>
+                <label for="credentialProvider">Provider</label>
+                <input id="credentialProvider" placeholder="cloudflare" />
+              </div>
+            </div>
+            <label for="credentialUsername">Username (optional)</label>
+            <input id="credentialUsername" placeholder="me@example.com" />
+            <label for="credentialSecret">Secret</label>
+            <input id="credentialSecret" type="password" placeholder="paste token / secret" />
+            <label for="credentialMeta">Meta JSON</label>
+            <textarea id="credentialMeta" class="mono" placeholder='{"scope":"dns:edit"}'></textarea>
+            <div class="row" style="margin-top:8px;">
+              <button id="createCredentialBtn">Store Credential</button>
+              <button id="refreshCredentialBtn" class="alt">Refresh Vault List</button>
+            </div>
+            <div id="credentialStatus" class="status mono"></div>
+          </article>
+
+          <article class="card">
+            <h2>Import from .env</h2>
+            <p class="tiny">Paste a standard .env file block to import multiple secrets into the encrypted vault.</p>
+            <label for="credentialImportProvider">Provider Label</label>
+            <input id="credentialImportProvider" placeholder="stripe" />
+            <label for="credentialImportType">Imported Type</label>
+            <select id="credentialImportType">
+              <option value="api_key">api_key</option>
+              <option value="password">password</option>
+              <option value="oauth_token">oauth_token</option>
+              <option value="session_token">session_token</option>
+              <option value="other">other</option>
+            </select>
+            <label for="credentialImportEnv">.env Content</label>
+            <textarea id="credentialImportEnv" class="mono" placeholder="CLOUDFLARE_API_TOKEN=...
+STRIPE_API_KEY=..."></textarea>
+            <label for="credentialImportOverwrite" style="display:flex; align-items:center; gap:8px; margin-top:8px;">
+              <input id="credentialImportOverwrite" type="checkbox" style="width:auto;" />
+              Overwrite existing names
+            </label>
+            <button id="importCredentialEnvBtn" class="alt">Import .env</button>
+            <div id="credentialImportStatus" class="status mono"></div>
+          </article>
+
+          <article class="card">
+            <h2>Connector Login Launcher</h2>
+            <p class="tiny">Open provider login/token pages when an integration requires connector-style sign-in.</p>
+            <label for="connectorProvider">Provider</label>
+            <select id="connectorProvider"></select>
+            <label for="connectorOpenBrowser" style="display:flex; align-items:center; gap:8px; margin-top:8px;">
+              <input id="connectorOpenBrowser" type="checkbox" style="width:auto;" checked />
+              Try to open browser on host machine
+            </label>
+            <button id="launchConnectorBtn">Launch Connector</button>
+            <div id="connectorStatus" class="status mono"></div>
+          </article>
+
+          <article class="card">
+            <h2>Hub Access</h2>
+            <p class="tiny">Use these URLs from other devices on your local network to access this CrowPilot hub.</p>
+            <div id="hubAccessOut" class="mono"></div>
+          </article>
+
+          <article class="card" style="grid-column: 1 / -1;">
+            <h2>Stored Credentials</h2>
+            <div id="credentialList" class="list"></div>
+          </article>
+        </div>
+      </section>
+
+      <section id="view-integrations" class="view">
+        <div class="grid dual">
+          <article class="card">
+            <h2>Provider Integrations</h2>
+            <p class="tiny">Register free or paid model providers, sync model catalogs, and expose them to routing. Baseline access uses a GitHub account, and GitHub Copilot Pro is recommended for best backbone performance.</p>
+            <label for="integrationName">Integration Name</label>
+            <input id="integrationName" placeholder="google-vertex" />
+            <label for="integrationKind">Provider Kind</label>
+            <input id="integrationKind" placeholder="google / groq / openrouter / custom" />
+            <label for="integrationBaseUrl">Base URL</label>
+            <input id="integrationBaseUrl" placeholder="https://openrouter.ai/api/v1" />
+            <div class="row">
+              <div>
+                <label for="integrationAuthType">Auth Type</label>
+                <select id="integrationAuthType">
+                  <option value="api_key">api_key</option>
+                  <option value="oauth">oauth</option>
+                  <option value="adc">adc</option>
+                  <option value="none">none</option>
+                </select>
+              </div>
+              <div>
+                <label for="integrationStatus">Status</label>
+                <select id="integrationStatus">
+                  <option value="draft">draft</option>
+                  <option value="connected">connected</option>
+                  <option value="disabled">disabled</option>
+                </select>
+              </div>
+            </div>
+            <label for="integrationApiKey">API Key / Secret</label>
+            <input id="integrationApiKey" placeholder="optional" />
+            <div class="row" style="margin-top:8px;">
+              <div>
+                <label for="integrationCredentialRef">Credential</label>
+                <select id="integrationCredentialRef"></select>
+              </div>
+              <div style="display:flex; align-items:flex-end;">
+                <button id="integrationUseCredentialBtn" class="alt">Use Credential Ref</button>
+              </div>
+            </div>
+            <div class="row" style="margin-top:8px;">
+              <button id="integrationLaunchConnectorBtn">Launch Provider Login</button>
+              <button id="integrationOpenCredentialsBtn" class="alt">Open Vault</button>
+            </div>
+            <label for="integrationDefaultModel">Default Model</label>
+            <input id="integrationDefaultModel" placeholder="auto" />
+            <button id="createIntegrationBtn">Add Integration</button>
+            <div id="integrationStatusOut" class="status"></div>
+          </article>
+
+          <article class="card">
+            <h2>Integration Registry</h2>
+            <div id="integrationList" class="list"></div>
+          </article>
+
+          <article class="card zen-shell">
+            <h2>OAuth / CLI Playbooks</h2>
+            <div id="oauthTemplates" class="mono tiny"></div>
+          </article>
+
+          <article class="card">
+            <h2>Sensitive Approval Preview</h2>
+            <p class="tiny">Run local redaction first, review and edit tags, then pass the redacted prompt to cloud models.</p>
+            <label for="sensitiveInput">Original Prompt</label>
+            <textarea id="sensitiveInput" placeholder="Paste a prompt that may contain credentials or secrets."></textarea>
+            <label for="sensitiveManualTags">Manual Tags (comma-separated)</label>
+            <input id="sensitiveManualTags" placeholder="extra_secret_value,private_token" />
+            <label for="sensitiveManualUntags">Manual Untags (comma-separated)</label>
+            <input id="sensitiveManualUntags" placeholder="false_positive_value" />
+            <button id="sensitivePreviewBtn">Generate Redaction Preview</button>
+            <div id="sensitivePreviewOut" class="zen-result"></div>
+          </article>
+        </div>
+      </section>
+
+      <section id="view-projects" class="view">
+        <div class="grid dual">
+          <article class="card">
+            <h2>Workspace</h2>
+            <p class="tiny">Choose an existing folder and lock it in as your active workspace.</p>
+            <div class="row" style="margin-top:8px;">
+              <button id="browseProjectBtn">Browse</button>
+              <button id="discoverProjectsBtn" class="alt">Import Root Folders</button>
+              <button id="refreshProjectsBtn" class="alt">Refresh Projects</button>
+            </div>
+            <label for="projectManualPath">Manual Folder Path</label>
+            <div class="row">
+              <input id="projectManualPath" placeholder="/home/user/projects/my-monorepo" />
+              <button id="importProjectPathBtn" class="alt">Use Path</button>
+            </div>
+            <div id="projectCapabilityOut" class="tiny mono" style="margin-top:8px;"></div>
+            <div id="selectedProjectMeta" class="tiny mono" style="margin-top:8px;"></div>
+            <div id="projectStatusOut" class="status mono"></div>
+          </article>
+
+          <article class="card">
+            <h2>Workspaces</h2>
+            <div id="projectList" class="list"></div>
+          </article>
+
+          <article class="card">
+            <h2>Monorepo Scripts</h2>
+            <label for="projectAllowSystemAccess" style="display:flex; align-items:center; gap:8px; margin-top:8px;">
+              <input id="projectAllowSystemAccess" type="checkbox" style="width:auto;" />
+              Allow local script execution
+            </label>
+            <div class="row">
+              <div>
+                <label for="projectScriptSelect">Available Scripts</label>
+                <select id="projectScriptSelect"></select>
+              </div>
+              <div style="display:flex; align-items:flex-end; gap:8px;">
+                <button id="refreshProjectScriptsBtn" class="alt">Refresh Scripts</button>
+                <button id="runProjectScriptBtn">Run Selected</button>
+              </div>
+            </div>
+            <div id="projectRuntimeList" class="list" style="margin-top:10px;"></div>
+            <pre id="projectRuntimeLogs" class="mono" style="white-space:pre-wrap; min-height:120px; max-height:240px; overflow:auto; background:#12151e; color:#f4f8ff; border-radius:10px; padding:10px;">No runtime logs yet.</pre>
+          </article>
+
+          <article class="card">
+            <h2>Workspace Chat</h2>
+            <p class="tiny">Quick chat in your selected workspace context.</p>
+            <label for="projectChatPrompt">Prompt</label>
+            <textarea id="projectChatPrompt" placeholder="Build me a clean onboarding landing page and list files to edit."></textarea>
+            <button id="sendProjectChatBtn">Send</button>
+            <pre id="projectChatOut" class="mono" style="white-space:pre-wrap; min-height:120px; max-height:280px; overflow:auto; background:#12151e; color:#f4f8ff; border-radius:10px; padding:10px;"></pre>
+          </article>
+
+          <article class="card" style="grid-column: 1 / -1;">
+            <h2>Preview</h2>
+            <p class="tiny">Pick a local host and port from running scripts to preview apps safely.</p>
+            <div class="row">
+              <div>
+                <label for="projectPreviewHost">Host</label>
+                <select id="projectPreviewHost"></select>
+              </div>
+              <div>
+                <label for="projectPreviewPort">Port</label>
+                <select id="projectPreviewPort"></select>
+              </div>
+              <div>
+                <label for="projectPreviewPath">Path</label>
+                <input id="projectPreviewPath" placeholder="/" value="/" />
+              </div>
+              <div style="display:flex; align-items:flex-end;">
+                <button id="openProjectPreviewBtn">Open Viewer</button>
+              </div>
+            </div>
+            <div id="projectPreviewInfo" class="tiny mono" style="margin-top:8px;"></div>
+            <iframe id="projectPreviewFrame" title="Project preview" style="width:100%; min-height:480px; border:1px solid #d6cfbf; border-radius:12px; margin-top:10px; background:#fff;"></iframe>
+          </article>
+        </div>
+      </section>
+    </main>
+
+    <script>
+      const state = {
+        conversationId: null,
+        providers: {},
+        uiMode: 'big-brain',
+        conversationFilter: 'active',
+        autoModel: false,
+        mcpSuggestion: null,
+        credentials: [],
+        connectors: {},
+        projects: [],
+        selectedProjectId: null,
+        projectCapabilities: null,
+        projectScripts: [],
+        projectRuntimes: [],
+        selectedRuntimeId: null,
+        conversationBuckets: {
+          active: [],
+          hidden: [],
+          archived_good: [],
+          archived_bad: [],
+        },
+      };
+
+      const el = (id) => document.getElementById(id);
+
+      function tabSwitch(tab) {
+        document.querySelectorAll('button[data-nav]').forEach((btn) => {
+          btn.classList.toggle('active', btn.dataset.nav === tab);
+        });
+        document.querySelectorAll('.view').forEach((view) => {
+          view.classList.toggle('active', view.id === `view-${tab}`);
+        });
+      }
+
+      function setUiMode(mode) {
+        state.uiMode = mode;
+        document.body.classList.toggle('big-brain-mode', mode === 'big-brain');
+        document.body.classList.toggle('zen-mode', mode === 'zen');
+        el('bigBrainModeBtn').classList.toggle('active', mode === 'big-brain');
+        el('zenModeBtn').classList.toggle('active', mode === 'zen');
+        el('modeTitle').textContent = mode === 'zen' ? 'Zen Mode' : 'Big Brain Mode';
+        el('modeNote').textContent = mode === 'zen'
+          ? 'Prompt-driven rails with minimal controls. CrowPilot interprets your intent and fills the structured parts for you.'
+          : 'Full controls, direct forms, and lower-level levers for building and inspecting everything.';
+        updateSidebarStatus();
+      }
+
+      function currentConversationRecord() {
+        return Object.values(state.conversationBuckets)
+          .flat()
+          .find((conv) => conv.id === state.conversationId) || null;
+      }
+
+      function renderConversationFilters(counts = {}) {
+        const labels = {
+          active: `Live ${counts.active || 0}`,
+          hidden: `Hidden ${counts.hidden || 0}`,
+          archived_good: `Good ${counts.archived_good || 0}`,
+          archived_bad: `Bad ${counts.archived_bad || 0}`,
+        };
+
+        document.querySelectorAll('button[data-conv-filter]').forEach((btn) => {
+          const filter = btn.dataset.convFilter;
+          btn.classList.toggle('active', filter === state.conversationFilter);
+          btn.textContent = labels[filter];
+        });
+      }
+
+      function renderConversationSelectionMeta() {
+        const meta = el('conversationSelectionMeta');
+        const selected = currentConversationRecord();
+        if (!selected) {
+          meta.textContent = 'Select a conversation to manage it.';
+          return;
+        }
+
+        const bucket = selected.sidebar_state === 'archived'
+          ? `archived/${selected.archive_bucket || 'unknown'}`
+          : selected.sidebar_state === 'hidden' && selected.archive_bucket
+            ? `hidden/${selected.archive_bucket}`
+            : selected.sidebar_state;
+        meta.innerHTML = `${selected.title}<br/>${bucket} | ${selected.message_count || 0} messages`;
+      }
+
+      function renderConversationList() {
+        const list = el('conversationList');
+        list.innerHTML = '';
+
+        const rows = state.conversationBuckets[state.conversationFilter] || [];
+        const labelMap = {
+          active: 'Live conversations ready to continue.',
+          hidden: 'Hidden conversations stay recoverable but out of the main lane.',
+          archived_good: 'Good examples to keep as reusable patterns.',
+          archived_bad: 'Bad examples kept as anti-patterns and poison references.',
+        };
+        el('conversationBucketMeta').textContent = labelMap[state.conversationFilter] || '';
+
+        rows.forEach((conv) => {
+          const item = document.createElement('div');
+          item.className = `conversation-item ${conv.id === state.conversationId ? 'active' : ''}`;
+          const bucketBadge = conv.archive_bucket ? ` [${conv.archive_bucket}]` : '';
+          item.textContent = `${conv.title || `Chat ${conv.id}`}${bucketBadge}`;
+          item.title = `${conv.title || `Chat ${conv.id}`} (${conv.message_count || 0} messages)`;
+          item.addEventListener('click', async () => {
+            state.conversationId = conv.id;
+            await loadConversationMessages(conv.id);
+            renderConversationList();
+            renderConversationSelectionMeta();
+            updateSidebarStatus();
+            tabSwitch('deck');
+          });
+          list.appendChild(item);
+        });
+
+        renderConversationSelectionMeta();
+      }
+
+      function setConversationFilter(filter) {
+        state.conversationFilter = filter;
+        renderConversationFilters({
+          active: state.conversationBuckets.active.length,
+          hidden: state.conversationBuckets.hidden.length,
+          archived_good: state.conversationBuckets.archived_good.length,
+          archived_bad: state.conversationBuckets.archived_bad.length,
+        });
+        renderConversationList();
+        updateSidebarStatus();
+      }
+
+      function addMessage(role, text, klass = '') {
+        const wrap = el('messages');
+        const node = document.createElement('div');
+        node.className = `msg ${role} ${klass}`;
+        node.textContent = text;
+        wrap.appendChild(node);
+        wrap.scrollTop = wrap.scrollHeight;
+        return node;
+      }
+
+      async function runZenAction(domain, promptId, resultId) {
+        const prompt = el(promptId).value.trim();
+        if (!prompt) return;
+
+        el(resultId).textContent = 'Thinking...';
+        const resp = await fetch('/api/zen/act', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            domain,
+            prompt,
+            provider: state.providers.local_openai ? 'local_openai' : null,
+          }),
+        });
+
+        if (!resp.ok) {
+          el(resultId).textContent = `Failed: ${await resp.text()}`;
+          return;
+        }
+
+        const out = await resp.json();
+        const recordName = out.record?.title || out.record?.name || out.record?.id || 'saved item';
+        let extra = '';
+        if (domain === 'mcp_create' && out.record?.validation_report) {
+          const reportLines = [];
+          (out.record.validation_report.checks || []).forEach((c) => {
+            reportLines.push(`${c.ok ? 'OK' : 'FAIL'} ${c.step}: ${c.detail}`);
+          });
+          if ((out.record.validation_report.tools || []).length) {
+            reportLines.push(`Tools: ${(out.record.validation_report.tools || []).join(', ')}`);
+          }
+          if (reportLines.length) {
+            extra = `\n\nValidation:\n${reportLines.join('\n')}`;
+          }
+        }
+        el(resultId).textContent = `${out.summary}\n\nSaved: ${recordName}${extra}`;
+
+        if (domain === 'task_create') {
+          await listAutomationTasks();
+        } else if (domain === 'skill_create') {
+          await listSkills();
+        } else if (domain === 'note_create') {
+          el('searchOut').textContent = `Saved note: ${out.record?.title || 'Zen note'}`;
+        } else if (domain === 'mcp_create') {
+          await listMcpServers();
+        } else if (domain === 'widget_create') {
+          await listWidgets();
+        }
+        await loadSummary();
+      }
+
+      async function loadSummary() {
+        const resp = await fetch('/api/dashboard/summary');
+        const data = await resp.json();
+        const strip = el('statStrip');
+        const c = data.counts;
+        strip.innerHTML = `
+          <div class="chip"><strong>${c.conversations}</strong><span>Conversations</span></div>
+          <div class="chip"><strong>${c.messages}</strong><span>Messages</span></div>
+          <div class="chip"><strong>${c.notes}</strong><span>Knowledge Notes</span></div>
+          <div class="chip"><strong>${c.mcp_servers}</strong><span>MCP Servers</span></div>
+          <div class="chip"><strong>${c.widgets}</strong><span>Widgets</span></div>
+          <div class="chip"><strong>${c.automation_tasks || 0}</strong><span>Automation Tasks</span></div>
+          <div class="chip"><strong>${c.skills || 0}</strong><span>Skills</span></div>
+          <div class="chip"><strong>${c.integrations || 0}</strong><span>Integrations</span></div>
+          <div class="chip"><strong>${c.credentials || 0}</strong><span>Credentials</span></div>
+          <div class="chip"><strong>${c.projects || 0}</strong><span>Projects</span></div>
+        `;
+      }
+
+      async function refreshHealth() {
+        const resp = await fetch('/api/health');
+        const data = await resp.json();
+        state.providers = data.providers || {};
+
+        const select = el('provider');
+        select.innerHTML = ''; // Clear existing options
+        Object.keys(state.providers).forEach((name) => {
+          const opt = document.createElement('option');
+          opt.value = name;
+          opt.textContent = name;
+          select.appendChild(opt);
+        });
+
+        // Populate models for the currently selected provider
+        await updateModelsForProvider();
+
+        el('healthOut').textContent = JSON.stringify(state.providers, null, 2);
+      }
+
+      async function updateModelsForProvider() {
+        const provider = el('provider').value;
+        if (!provider) return;
+
+        const autoToggle = el('autoModelToggle');
+        autoToggle.disabled = provider !== 'copilot_proxy';
+        if (provider !== 'copilot_proxy' && autoToggle.checked) {
+          autoToggle.checked = false;
+          state.autoModel = false;
+        }
+
+        try {
+          const resp = await fetch(`/api/models?provider=${encodeURIComponent(provider)}`);
+          const data = await resp.json();
+
+          const select = el('model');
+          select.innerHTML = ''; // Clear existing options
+
+          if (data.ok && data.models.length > 0) {
+            // Add default model first if available
+            if (data.default_model) {
+              const opt = document.createElement('option');
+              opt.value = data.default_model;
+              opt.textContent = data.default_model + ' (default)';
+              opt.selected = true;
+              select.appendChild(opt);
+            }
+
+            // Add other models
+            data.models.forEach((model) => {
+              if (model !== data.default_model) {
+                const opt = document.createElement('option');
+                opt.value = model;
+                opt.textContent = model;
+                select.appendChild(opt);
+              }
+            });
+          } else if (data.default_model) {
+            // Fallback: at least show the default model
+            const opt = document.createElement('option');
+            opt.value = data.default_model;
+            opt.textContent = data.default_model + ' (default)';
+            opt.selected = true;
+            select.appendChild(opt);
+          }
+
+          if (state.autoModel && provider === 'copilot_proxy') {
+            el('model').value = 'auto';
+          }
+        } catch (err) {
+          console.error('Failed to load models:', err);
+          // Fallback: keep what was there
+        }
+      }
+
+      async function sendChat() {
+        const prompt = el('prompt').value.trim();
+        if (!prompt) return;
+
+        const provider = el('provider').value;
+        const selectedModel = el('model').value.trim();
+        const model = state.autoModel && provider === 'copilot_proxy' ? 'auto' : selectedModel;
+
+        addMessage('user', prompt);
+        el('prompt').value = '';
+        const assistant = addMessage('assistant', '');
+        el('chatStatus').textContent = 'Streaming...';
+
+        const resp = await fetch('/api/chat/stream', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            message: prompt,
+            conversation_id: state.conversationId,
+            provider,
+            model: model || null,
+          }),
+        });
+
+        if (!resp.ok || !resp.body) {
+          assistant.classList.add('error');
+          assistant.textContent = `Request failed: ${resp.status}`;
+          el('chatStatus').textContent = 'Error';
+          return;
+        }
+
+        const reader = resp.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+
+        while (true) {
+          const { value, done } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          const blocks = buffer.split('\n\n');
+          buffer = blocks.pop() || '';
+
+          blocks.forEach((block) => {
+            const line = block.split('\n').find((l) => l.startsWith('data: '));
+            if (!line) return;
+            const payload = JSON.parse(line.slice(6));
+            if (payload.type === 'meta') {
+              state.conversationId = payload.conversation_id;
+            } else if (payload.type === 'token') {
+              assistant.textContent += payload.token;
+            } else if (payload.type === 'error') {
+              assistant.classList.add('error');
+              assistant.textContent += `\n[error] ${payload.error}`;
+              el('chatStatus').textContent = 'Error';
+            } else if (payload.type === 'done') {
+              el('chatStatus').textContent = `Done. Conversation ${state.conversationId}`;
+            }
+          });
+        }
+      }
+
+      async function saveNote() {
+        const title = el('noteTitle').value.trim();
+        const body = el('noteBody').value.trim();
+        if (!title || !body) return;
+
+        const resp = await fetch('/api/notes', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title, body }),
+        });
+        const out = await resp.json();
+        el('searchOut').textContent = `Indexed ${out.chunks_indexed} chunks in note ${out.note_id}`;
+        await loadSummary();
+      }
+
+      async function searchNotes() {
+        const query = el('searchQ').value.trim();
+        if (!query) return;
+        const resp = await fetch('/api/notes/search', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ query, limit: 10 }),
+        });
+        const out = await resp.json();
+        el('searchOut').textContent = out.map((x) => `${x.note_title} [${x.chunk_index}]\n${x.chunk_text.slice(0, 180)}...`).join('\n\n') || 'No matches';
+      }
+
+      async function listMcpServers() {
+        const resp = await fetch('/api/mcp/servers');
+        const rows = await resp.json();
+        const target = el('mcpList');
+        target.innerHTML = '';
+
+        rows.forEach((row) => {
+          const item = document.createElement('div');
+          item.className = 'list-item';
+          const badgeClass = row.status === 'online' ? 'ok' : row.status === 'offline' ? 'offline' : 'unknown';
+          const lockBadge = row.is_builtin ? '<span class="badge">locked</span>' : '';
+          item.innerHTML = `
+            <div><strong>${row.name}</strong> <span class="badge ${badgeClass}">${row.status}</span> ${lockBadge}</div>
+            <div class="tiny">${row.transport} | ${row.url || row.command || 'n/a'}</div>
+            <div class="row" style="margin-top:8px;">
+              <button data-check="${row.id}" class="alt">Check</button>
+              ${row.is_builtin ? '' : `<button data-delete="${row.id}" class="warn">Delete</button>`}
+            </div>
+            <div class="tiny mono">${row.last_error || ''}</div>
+            <div class="tiny mono" id="mcpReport-${row.id}"></div>
+          `;
+          target.appendChild(item);
+        });
+
+        target.querySelectorAll('button[data-check]').forEach((btn) => {
+          btn.addEventListener('click', async () => {
+            const id = btn.getAttribute('data-check');
+            const resp = await fetch(`/api/mcp/servers/${id}/check`, { method: 'POST' });
+            const out = await resp.json();
+            const lines = [];
+            (out.validation_report?.checks || []).forEach((c) => {
+              lines.push(`${c.ok ? 'OK' : 'FAIL'} ${c.step}: ${c.detail}`);
+            });
+            if ((out.validation_report?.tools || []).length) {
+              lines.push(`Tools: ${(out.validation_report.tools || []).join(', ')}`);
+            }
+            if (lines.length) {
+              el('mcpStatus').textContent = lines.join('\n');
+            }
+            await listMcpServers();
+          });
+        });
+        target.querySelectorAll('button[data-delete]').forEach((btn) => {
+          btn.addEventListener('click', async () => {
+            const id = btn.getAttribute('data-delete');
+            await fetch(`/api/mcp/servers/${id}`, { method: 'DELETE' });
+            await listMcpServers();
+            await loadSummary();
+          });
+        });
+      }
+
+      async function createMcpServer() {
+        return createMcpServerInternal(false);
+      }
+
+      async function createAndCheckMcpServer() {
+        return createMcpServerInternal(true);
+      }
+
+      async function createMcpServerInternal(runCheckAfterCreate) {
+        const name = el('mcpName').value.trim();
+        const transport = el('mcpTransport').value;
+        if (!name) return;
+
+        let args = [];
+        let env = {};
+        try { args = el('mcpArgs').value.trim() ? JSON.parse(el('mcpArgs').value) : []; } catch (_) { el('mcpStatus').textContent = 'Invalid args JSON'; return; }
+        try { env = el('mcpEnv').value.trim() ? JSON.parse(el('mcpEnv').value) : {}; } catch (_) { el('mcpStatus').textContent = 'Invalid env JSON'; return; }
+
+        const payload = {
+          name,
+          transport,
+          url: el('mcpUrl').value.trim() || null,
+          command: el('mcpCmd').value.trim() || null,
+          args,
+          env,
+        };
+
+        const resp = await fetch('/api/mcp/servers', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+
+        if (!resp.ok) {
+          const text = await resp.text();
+          el('mcpStatus').textContent = `Failed: ${text}`;
+          return;
+        }
+
+        const created = await resp.json();
+
+        const createdLines = [];
+        (created.validation_report?.checks || []).forEach((c) => {
+          createdLines.push(`${c.ok ? 'OK' : 'FAIL'} ${c.step}: ${c.detail}`);
+        });
+        if ((created.validation_report?.tools || []).length) {
+          createdLines.push(`Tools: ${(created.validation_report.tools || []).join(', ')}`);
+        }
+
+        if (runCheckAfterCreate && created.id) {
+          const checkResp = await fetch(`/api/mcp/servers/${created.id}/check`, { method: 'POST' });
+          const checked = await checkResp.json();
+          const lines = [];
+          (checked.validation_report?.checks || []).forEach((c) => {
+            lines.push(`${c.ok ? 'OK' : 'FAIL'} ${c.step}: ${c.detail}`);
+          });
+          if ((checked.validation_report?.tools || []).length) {
+            lines.push(`Tools: ${(checked.validation_report.tools || []).join(', ')}`);
+          }
+          el('mcpStatus').textContent = lines.join('\n') || 'Server added and checked.';
+        } else if (createdLines.length) {
+          el('mcpStatus').textContent = createdLines.join('\n');
+        } else {
+          el('mcpStatus').textContent = 'MCP server added.';
+        }
+
+        await listMcpServers();
+        await loadSummary();
+      }
+
+      async function suggestMcpConfig() {
+        const prompt = el('mcpOnboardPrompt').value.trim();
+        if (!prompt) return;
+
+        const resp = await fetch('/api/mcp/onboard', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ prompt, include_catalog: false }),
+        });
+
+        if (!resp.ok) {
+          el('mcpOnboardOut').textContent = `Failed: ${await resp.text()}`;
+          return;
+        }
+
+        const out = await resp.json();
+        state.mcpSuggestion = out.primary_suggestion || null;
+
+        const lines = [];
+        lines.push(`Matched: ${(out.matched || []).join(', ') || 'none'}`);
+        lines.push(`Name: ${out.primary_suggestion?.name || 'n/a'}`);
+        lines.push(`Transport: ${out.primary_suggestion?.transport || 'n/a'}`);
+        if (out.primary_suggestion?.url) lines.push(`URL: ${out.primary_suggestion.url}`);
+        if (out.primary_suggestion?.command) lines.push(`Command: ${out.primary_suggestion.command}`);
+        if (out.suggestions?.[0]?.docs?.length) lines.push(`Docs: ${out.suggestions[0].docs.join(' | ')}`);
+        el('mcpOnboardOut').textContent = lines.join('\n');
+      }
+
+      function applyMcpSuggestion() {
+        const s = state.mcpSuggestion;
+        if (!s) {
+          el('mcpOnboardOut').textContent = 'No suggestion to apply. Use Suggest Config first.';
+          return;
+        }
+
+        el('mcpName').value = s.name || '';
+        el('mcpTransport').value = s.transport || 'http';
+        el('mcpUrl').value = s.url || '';
+        el('mcpCmd').value = s.command || '';
+        el('mcpArgs').value = JSON.stringify(s.args || [], null, 2);
+        el('mcpEnv').value = JSON.stringify(s.env || {}, null, 2);
+        el('mcpOnboardOut').textContent = 'Suggestion applied to MCP form fields.';
+      }
+
+      function currentCredentialRefToken() {
+        const sel = el('mcpCredentialRef');
+        if (!sel || !sel.value) return null;
+        return `{{cred:${sel.value}}}`;
+      }
+
+      function parseJsonOrEmpty(raw, statusElId, label) {
+        const text = (raw || '').trim();
+        if (!text) return {};
+        try {
+          return JSON.parse(text);
+        } catch (_) {
+          if (statusElId) {
+            el(statusElId).textContent = `Invalid ${label} JSON`;
+          }
+          return null;
+        }
+      }
+
+      function populateCredentialSelectors() {
+        const options = ['mcpCredentialRef', 'integrationCredentialRef'];
+        options.forEach((id) => {
+          const node = el(id);
+          if (!node) return;
+          node.innerHTML = '';
+          const blank = document.createElement('option');
+          blank.value = '';
+          blank.textContent = '-- select credential --';
+          node.appendChild(blank);
+          state.credentials.forEach((cred) => {
+            const opt = document.createElement('option');
+            opt.value = cred.name;
+            opt.textContent = `${cred.name} (${cred.provider || cred.credential_type})`;
+            node.appendChild(opt);
+          });
+        });
+      }
+
+      function renderCredentialList(rows) {
+        const wrap = el('credentialList');
+        if (!wrap) return;
+        wrap.innerHTML = '';
+        rows.forEach((row) => {
+          const item = document.createElement('div');
+          item.className = 'list-item';
+          item.innerHTML = `
+            <div><strong>${row.name}</strong></div>
+            <div class="tiny">${row.credential_type} | ${row.provider || 'no provider'} | ${row.username || 'no username'}</div>
+            <div class="tiny mono">ref: {{cred:${row.name}}}</div>
+            <div class="tiny">updated: ${row.updated_at}</div>
+            <div class="row" style="margin-top:8px;">
+              <button data-copy-cred-ref="${row.name}" class="alt">Copy Ref</button>
+              <button data-delete-cred="${row.id}" class="warn">Delete</button>
+            </div>
+          `;
+          wrap.appendChild(item);
+        });
+
+        wrap.querySelectorAll('button[data-copy-cred-ref]').forEach((btn) => {
+          btn.addEventListener('click', async () => {
+            const ref = `{{cred:${btn.getAttribute('data-copy-cred-ref')}}}`;
+            try {
+              await navigator.clipboard.writeText(ref);
+              el('credentialStatus').textContent = `Copied ${ref}`;
+            } catch (_) {
+              el('credentialStatus').textContent = `Reference: ${ref}`;
+            }
+          });
+        });
+
+        wrap.querySelectorAll('button[data-delete-cred]').forEach((btn) => {
+          btn.addEventListener('click', async () => {
+            const id = btn.getAttribute('data-delete-cred');
+            const resp = await fetch(`/api/credentials/${id}`, { method: 'DELETE' });
+            if (!resp.ok) {
+              el('credentialStatus').textContent = `Delete failed: ${await resp.text()}`;
+              return;
+            }
+            await listCredentials();
+          });
+        });
+      }
+
+      async function listCredentials() {
+        const resp = await fetch('/api/credentials');
+        if (!resp.ok) {
+          const out = await resp.text();
+          if (el('credentialStatus')) el('credentialStatus').textContent = `Vault unavailable: ${out}`;
+          return;
+        }
+        const rows = await resp.json();
+        state.credentials = rows;
+        populateCredentialSelectors();
+        renderCredentialList(rows);
+      }
+
+      async function createCredential() {
+        const name = el('credentialName').value.trim();
+        const secret = el('credentialSecret').value;
+        if (!name || !secret) {
+          el('credentialStatus').textContent = 'Name and secret are required.';
+          return;
+        }
+
+        const meta = parseJsonOrEmpty(el('credentialMeta').value, 'credentialStatus', 'meta');
+        if (meta === null) return;
+
+        const resp = await fetch('/api/credentials', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name,
+            credential_type: el('credentialType').value,
+            provider: el('credentialProvider').value.trim() || null,
+            username: el('credentialUsername').value.trim() || null,
+            secret,
+            meta,
+          }),
+        });
+
+        if (!resp.ok) {
+          el('credentialStatus').textContent = `Store failed: ${await resp.text()}`;
+          return;
+        }
+
+        el('credentialStatus').textContent = 'Credential stored in encrypted vault.';
+        el('credentialSecret').value = '';
+        await listCredentials();
+      }
+
+      async function importCredentialsEnv() {
+        const envText = el('credentialImportEnv').value.trim();
+        if (!envText) {
+          el('credentialImportStatus').textContent = 'Paste .env content first.';
+          return;
+        }
+
+        const resp = await fetch('/api/credentials/import-env', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            env_text: envText,
+            provider: el('credentialImportProvider').value.trim() || null,
+            credential_type: el('credentialImportType').value,
+            overwrite: !!el('credentialImportOverwrite').checked,
+          }),
+        });
+
+        if (!resp.ok) {
+          el('credentialImportStatus').textContent = `Import failed: ${await resp.text()}`;
+          return;
+        }
+
+        const out = await resp.json();
+        el('credentialImportStatus').textContent = `Imported ${out.imported.length}, updated ${out.updated.length}, skipped ${out.skipped.length}.`;
+        await listCredentials();
+      }
+
+      async function loadCredentialConnectors() {
+        const resp = await fetch('/api/credentials/connectors');
+        if (!resp.ok) return;
+        const out = await resp.json();
+        state.connectors = out;
+
+        const sel = el('connectorProvider');
+        if (sel) {
+          sel.innerHTML = '';
+          Object.keys(out).forEach((name) => {
+            const opt = document.createElement('option');
+            opt.value = name;
+            opt.textContent = `${name} - ${out[name].title}`;
+            sel.appendChild(opt);
+          });
+        }
+      }
+
+      async function launchConnector(provider = null, openBrowser = true, outElement = 'connectorStatus') {
+        const chosen = provider || (el('connectorProvider') ? el('connectorProvider').value : '');
+        if (!chosen) return;
+
+        const resp = await fetch('/api/credentials/connectors/launch', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ provider: chosen, open_browser: openBrowser }),
+        });
+        if (!resp.ok) {
+          el(outElement).textContent = `Connector launch failed: ${await resp.text()}`;
+          return;
+        }
+        const out = await resp.json();
+        const lines = [
+          `${out.title}`,
+          `URL: ${out.auth_url}`,
+          `Suggested env: ${out.suggested_env}`,
+          out.launched ? 'Browser launch attempted successfully.' : 'Browser did not launch automatically. Open URL manually.',
+        ];
+        if (out.launch_error) lines.push(`Launch error: ${out.launch_error}`);
+        el(outElement).textContent = lines.join('\n');
+      }
+
+      function linkCredentialIntoMcpEnv() {
+        const envKey = el('mcpEnvVarKey').value.trim();
+        const credentialName = el('mcpCredentialRef').value;
+        if (!envKey || !credentialName) {
+          el('mcpStatus').textContent = 'Set env key and credential first.';
+          return;
+        }
+
+        const env = parseJsonOrEmpty(el('mcpEnv').value, 'mcpStatus', 'env');
+        if (env === null) return;
+        env[envKey] = `{{cred:${credentialName}}}`;
+        el('mcpEnv').value = JSON.stringify(env, null, 2);
+        el('mcpStatus').textContent = `Linked ${envKey} -> {{cred:${credentialName}}}`;
+      }
+
+      function useCredentialForIntegration() {
+        const credentialName = el('integrationCredentialRef').value;
+        if (!credentialName) {
+          el('integrationStatusOut').textContent = 'Select a credential first.';
+          return;
+        }
+        el('integrationApiKey').value = `{{cred:${credentialName}}}`;
+        el('integrationStatusOut').textContent = `Integration key now uses {{cred:${credentialName}}}`;
+      }
+
+      async function loadHubAccess() {
+        const target = el('hubAccessOut');
+        if (!target) return;
+        const resp = await fetch('/api/hub/access');
+        if (!resp.ok) {
+          target.textContent = `Failed to load hub access: ${await resp.text()}`;
+          return;
+        }
+        const out = await resp.json();
+        target.textContent = [
+          `Configured host: ${out.configured_host}`,
+          `Port: ${out.port}`,
+          'Reachable URLs:',
+          ...(out.reachable_urls || []),
+          '',
+          out.note,
+        ].join('\n');
+      }
+
+      function renderProjectMeta() {
+        const target = el('selectedProjectMeta');
+        if (!target) return;
+        const project = state.projects.find((p) => p.id === state.selectedProjectId);
+        if (!project) {
+          target.textContent = 'No project selected.';
+          return;
+        }
+        target.textContent = `Selected: #${project.id} ${project.name} | ${project.kind} | ${project.path}`;
+      }
+
+      function renderProjectList() {
+        const wrap = el('projectList');
+        if (!wrap) return;
+        wrap.innerHTML = '';
+        state.projects.forEach((project) => {
+          const item = document.createElement('div');
+          item.className = 'list-item';
+          item.innerHTML = `
+            <div><strong>${project.name}</strong></div>
+            <div class="tiny mono">${project.path}</div>
+            <div class="tiny">${project.kind} | ${project.status} | updated ${project.updated_at}</div>
+            <div class="row" style="margin-top:8px;">
+              <button data-load-project="${project.id}">Select</button>
+            </div>
+          `;
+          wrap.appendChild(item);
+        });
+
+        wrap.querySelectorAll('button[data-load-project]').forEach((btn) => {
+          btn.addEventListener('click', async () => {
+            const id = Number(btn.getAttribute('data-load-project'));
+            await selectProject(id);
+          });
+        });
+      }
+
+      function renderProjectScriptOptions() {
+        const select = el('projectScriptSelect');
+        if (!select) return;
+        select.innerHTML = '';
+
+        if (!state.projectScripts.length) {
+          const opt = document.createElement('option');
+          opt.value = '';
+          opt.textContent = 'No scripts found';
+          select.appendChild(opt);
+          return;
+        }
+
+        state.projectScripts.forEach((row) => {
+          const opt = document.createElement('option');
+          opt.value = row.key;
+          opt.textContent = `${row.package} :: ${row.script} (${row.relative_dir})`;
+          select.appendChild(opt);
+        });
+      }
+
+      function renderProjectRuntimes() {
+        const wrap = el('projectRuntimeList');
+        if (!wrap) return;
+        wrap.innerHTML = '';
+        if (!state.projectRuntimes.length) {
+          wrap.innerHTML = '<div class="tiny">No scripts running.</div>';
+          return;
+        }
+
+        state.projectRuntimes.forEach((row) => {
+          const item = document.createElement('div');
+          item.className = 'list-item';
+          item.innerHTML = `
+            <div><strong>${row.package}</strong> :: ${row.script}</div>
+            <div class="tiny mono">pid ${row.pid} | ${row.running ? 'running' : `exit ${row.exit_code}`}</div>
+            <div class="tiny mono">${(row.command || []).join(' ')}</div>
+            <div class="row" style="margin-top:8px;">
+              <button data-runtime-logs="${row.id}" class="alt">Logs</button>
+              <button data-runtime-stop="${row.id}" class="warn" ${row.running ? '' : 'disabled'}>Stop</button>
+            </div>
+          `;
+          wrap.appendChild(item);
+        });
+
+        wrap.querySelectorAll('button[data-runtime-logs]').forEach((btn) => {
+          btn.addEventListener('click', async () => {
+            const runtimeId = btn.getAttribute('data-runtime-logs');
+            state.selectedRuntimeId = runtimeId;
+            await loadProjectRuntimeLogs(runtimeId);
+          });
+        });
+
+        wrap.querySelectorAll('button[data-runtime-stop]').forEach((btn) => {
+          btn.addEventListener('click', async () => {
+            const runtimeId = btn.getAttribute('data-runtime-stop');
+            const resp = await fetch(`/api/projects/${state.selectedProjectId}/runtimes/${runtimeId}/stop`, { method: 'POST' });
+            if (!resp.ok) {
+              el('projectStatusOut').textContent = `Stop failed: ${await resp.text()}`;
+              return;
+            }
+            await listProjectRuntimes();
+          });
+        });
+      }
+
+      function renderPreviewHosts() {
+        const hostSelect = el('projectPreviewHost');
+        if (!hostSelect) return;
+        const hosts = state.projectCapabilities?.preview_allowed_hosts || ['localhost', '127.0.0.1'];
+        hostSelect.innerHTML = '';
+        hosts.forEach((host) => {
+          const opt = document.createElement('option');
+          opt.value = host;
+          opt.textContent = host;
+          hostSelect.appendChild(opt);
+        });
+      }
+
+      function renderPreviewPorts() {
+        const ports = new Set(['3000', '4321', '5173', '8080']);
+        state.projectRuntimes.forEach((runtime) => {
+          (runtime.command || []).forEach((token) => {
+            const m = String(token).match(/\b(\d{4,5})\b/);
+            if (m) ports.add(m[1]);
+          });
+        });
+
+        const select = el('projectPreviewPort');
+        if (!select) return;
+        const current = select.value;
+        select.innerHTML = '';
+        Array.from(ports).sort((a, b) => Number(a) - Number(b)).forEach((port) => {
+          const opt = document.createElement('option');
+          opt.value = port;
+          opt.textContent = port;
+          select.appendChild(opt);
+        });
+        if (current && ports.has(current)) {
+          select.value = current;
+        }
+      }
+
+      async function loadProjectCapabilities() {
+        const out = el('projectCapabilityOut');
+        if (!out) return;
+        const resp = await fetch('/api/projects/capabilities');
+        if (!resp.ok) {
+          out.textContent = `Capabilities unavailable: ${await resp.text()}`;
+          return;
+        }
+        const data = await resp.json();
+        state.projectCapabilities = data;
+        out.textContent = [
+          `Projects root: ${data.projects_root}`,
+          `Native browse dialog: ${data.folder_picker_available ? 'available' : 'not available (use manual path)'}`,
+          `Copilot CLI: ${data.copilot_cli?.available ? 'available' : 'unavailable'}`,
+          data.copilot_cli?.configured ? `Configured command: ${data.copilot_cli.configured}` : '',
+          data.copilot_cli?.reason ? `Reason: ${data.copilot_cli.reason}` : '',
+        ].filter(Boolean).join('\n');
+        renderPreviewHosts();
+      }
+
+      async function listProjects() {
+        const resp = await fetch('/api/projects');
+        if (!resp.ok) {
+          el('projectStatusOut').textContent = `Failed to list projects: ${await resp.text()}`;
+          return;
+        }
+        state.projects = await resp.json();
+        renderProjectList();
+        if (!state.selectedProjectId && state.projects.length) {
+          state.selectedProjectId = state.projects[0].id;
+        }
+        renderProjectMeta();
+        if (state.selectedProjectId) {
+          await selectProject(state.selectedProjectId);
+        }
+      }
+
+      async function discoverProjectsFromRoot() {
+        const resp = await fetch('/api/projects/discover', { method: 'POST' });
+        if (!resp.ok) {
+          el('projectStatusOut').textContent = `Discover failed: ${await resp.text()}`;
+          return;
+        }
+        const out = await resp.json();
+        el('projectStatusOut').textContent = `Imported ${out.count} folder(s) from ${out.root}`;
+        await listProjects();
+      }
+
+      async function importProjectByPath(path) {
+        const inputPath = (path || '').trim();
+        if (!inputPath) {
+          el('projectStatusOut').textContent = 'Provide a folder path first.';
+          return;
+        }
+        const resp = await fetch('/api/projects/import', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ path: inputPath, kind: 'workspace' }),
+        });
+        if (!resp.ok) {
+          el('projectStatusOut').textContent = `Import failed: ${await resp.text()}`;
+          return;
+        }
+        const out = await resp.json();
+        state.selectedProjectId = out.id;
+        el('projectStatusOut').textContent = `Workspace selected: ${out.path}`;
+        await listProjects();
+        await selectProject(out.id);
+      }
+
+      async function browseProjectFolder() {
+        const resp = await fetch('/api/projects/browse', { method: 'POST' });
+        if (!resp.ok) {
+          el('projectStatusOut').textContent = `Browse failed: ${await resp.text()}. Use manual path if native picker is unavailable.`;
+          return;
+        }
+        const out = await resp.json();
+        state.selectedProjectId = out.project.id;
+        el('projectStatusOut').textContent = `Workspace selected: ${out.selected_path}`;
+        el('projectManualPath').value = out.selected_path;
+        await listProjects();
+        await selectProject(out.project.id);
+      }
+
+      async function selectProject(projectId) {
+        state.selectedProjectId = projectId;
+        renderProjectMeta();
+        const selected = state.projects.find((p) => p.id === projectId);
+        if (selected) {
+          el('projectManualPath').value = selected.path;
+        }
+        await Promise.all([loadProjectScripts(), listProjectRuntimes()]);
+      }
+
+      async function loadProjectScripts() {
+        if (!state.selectedProjectId) {
+          el('projectStatusOut').textContent = 'Select a project first.';
+          return;
+        }
+        const resp = await fetch(`/api/projects/${state.selectedProjectId}/scripts`);
+        if (!resp.ok) {
+          el('projectStatusOut').textContent = `Script scan failed: ${await resp.text()}`;
+          return;
+        }
+        const out = await resp.json();
+        state.projectScripts = out.scripts || [];
+        renderProjectScriptOptions();
+        el('projectStatusOut').textContent = `Detected ${state.projectScripts.length} runnable script(s).`;
+      }
+
+      async function runProjectScript() {
+        if (!state.selectedProjectId) {
+          el('projectStatusOut').textContent = 'Select a project first.';
+          return;
+        }
+        const scriptKey = el('projectScriptSelect').value;
+        if (!scriptKey) {
+          el('projectStatusOut').textContent = 'Choose a script first.';
+          return;
+        }
+
+        const resp = await fetch(`/api/projects/${state.selectedProjectId}/scripts/run`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            script_key: scriptKey,
+            allow_system_access: !!el('projectAllowSystemAccess').checked,
+          }),
+        });
+        if (!resp.ok) {
+          el('projectStatusOut').textContent = `Run failed: ${await resp.text()}`;
+          return;
+        }
+        const out = await resp.json();
+        el('projectStatusOut').textContent = `Started ${out.script} (pid ${out.pid})`;
+        await listProjectRuntimes();
+      }
+
+      async function listProjectRuntimes() {
+        if (!state.selectedProjectId) {
+          state.projectRuntimes = [];
+          renderProjectRuntimes();
+          return;
+        }
+        const resp = await fetch(`/api/projects/${state.selectedProjectId}/runtimes`);
+        if (!resp.ok) {
+          el('projectStatusOut').textContent = `Runtime list failed: ${await resp.text()}`;
+          return;
+        }
+        const out = await resp.json();
+        state.projectRuntimes = out.runtimes || [];
+        renderProjectRuntimes();
+        renderPreviewPorts();
+
+        if (state.selectedRuntimeId) {
+          await loadProjectRuntimeLogs(state.selectedRuntimeId);
+        }
+      }
+
+      async function loadProjectRuntimeLogs(runtimeId) {
+        if (!state.selectedProjectId || !runtimeId) return;
+        const resp = await fetch(`/api/projects/${state.selectedProjectId}/runtimes/${runtimeId}/logs?lines=220`);
+        if (!resp.ok) {
+          el('projectRuntimeLogs').textContent = `Log fetch failed: ${await resp.text()}`;
+          return;
+        }
+        const out = await resp.json();
+        const lines = out.logs || [];
+        el('projectRuntimeLogs').textContent = lines.length ? lines.join('\n') : 'No logs yet.';
+      }
+
+      function buildProjectPreviewUrl() {
+        const host = el('projectPreviewHost').value;
+        const port = el('projectPreviewPort').value;
+        const path = (el('projectPreviewPath').value || '/').trim();
+        const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+        return `http://${host}:${port}${normalizedPath}`;
+      }
+
+      async function openProjectPreview() {
+        if (!state.selectedProjectId) {
+          el('projectStatusOut').textContent = 'Select a project first.';
+          return;
+        }
+        const host = el('projectPreviewHost').value;
+        const allowedHosts = state.projectCapabilities?.preview_allowed_hosts || ['localhost', '127.0.0.1'];
+        if (!allowedHosts.includes(host)) {
+          el('projectStatusOut').textContent = `Host not allowed. Choose one of: ${allowedHosts.join(', ')}`;
+          return;
+        }
+        const url = buildProjectPreviewUrl();
+        const frame = el('projectPreviewFrame');
+        frame.src = url;
+
+        const resp = await fetch(`/api/projects/${state.selectedProjectId}/preview`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ dev_url: url }),
+        });
+        if (!resp.ok) {
+          el('projectStatusOut').textContent = `Preview save failed: ${await resp.text()}`;
+          return;
+        }
+        el('projectPreviewInfo').textContent = `Previewing ${url}`;
+      }
+
+      async function sendProjectChat() {
+        if (!state.selectedProjectId) {
+          el('projectStatusOut').textContent = 'Select a project first.';
+          return;
+        }
+
+        const prompt = el('projectChatPrompt').value.trim();
+        if (!prompt) return;
+
+        const project = state.projects.find((p) => p.id === state.selectedProjectId);
+        const scopedPrompt = `Workspace: ${project?.path || 'unknown'}\n\nUser request: ${prompt}`;
+        const provider = el('provider').value;
+        const selectedModel = el('model').value.trim();
+        const model = state.autoModel && provider === 'copilot_proxy' ? 'auto' : selectedModel;
+
+        el('projectChatOut').textContent = 'Thinking...';
+        const resp = await fetch('/api/chat/stream', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            message: scopedPrompt,
+            conversation_id: state.conversationId,
+            provider,
+            model: model || null,
+          }),
+        });
+
+        if (!resp.ok || !resp.body) {
+          el('projectChatOut').textContent = `Request failed: ${resp.status}`;
+          return;
+        }
+
+        const reader = resp.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+        let output = '';
+
+        while (true) {
+          const { value, done } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          const blocks = buffer.split('\n\n');
+          buffer = blocks.pop() || '';
+
+          blocks.forEach((block) => {
+            const line = block.split('\n').find((l) => l.startsWith('data: '));
+            if (!line) return;
+            const payload = JSON.parse(line.slice(6));
+            if (payload.type === 'meta') {
+              state.conversationId = payload.conversation_id;
+            } else if (payload.type === 'token') {
+              output += payload.token;
+              el('projectChatOut').textContent = output;
+            } else if (payload.type === 'error') {
+              output += `\n[error] ${payload.error}`;
+              el('projectChatOut').textContent = output;
+            }
+          });
+        }
+      }
+
+      async function listWidgets() {
+        const resp = await fetch('/api/widgets');
+        const rows = await resp.json();
+        const grid = el('widgetGrid');
+        grid.innerHTML = '';
+
+        rows.forEach((row) => {
+          const tile = document.createElement('div');
+          tile.className = 'widget-tile';
+          tile.style.gridColumn = `${row.layout_col} / span ${row.layout_w}`;
+          tile.style.gridRow = `${row.layout_row} / span ${row.layout_h}`;
+          tile.innerHTML = `
+            <div><strong>${row.name}</strong></div>
+            <div class="tiny">${row.widget_type}</div>
+            <div class="tiny mono">${JSON.stringify(row.config || {}, null, 2)}</div>
+            <button data-delete-widget="${row.id}" class="warn" style="margin-top:8px;">Delete</button>
+          `;
+          grid.appendChild(tile);
+        });
+
+        grid.querySelectorAll('button[data-delete-widget]').forEach((btn) => {
+          btn.addEventListener('click', async () => {
+            const id = btn.getAttribute('data-delete-widget');
+            await fetch(`/api/widgets/${id}`, { method: 'DELETE' });
+            await listWidgets();
+            await loadSummary();
+          });
+        });
+      }
+
+      async function createWidget() {
+        const name = el('widgetName').value.trim();
+        const widgetType = el('widgetType').value.trim();
+        if (!name || !widgetType) return;
+
+        let config = {};
+        try {
+          config = el('widgetConfig').value.trim() ? JSON.parse(el('widgetConfig').value) : {};
+        } catch (_) {
+          el('widgetStatus').textContent = 'Invalid widget config JSON';
+          return;
+        }
+
+        const payload = {
+          name,
+          widget_type: widgetType,
+          layout_col: Number(el('widgetCol').value || 1),
+          layout_row: Number(el('widgetRow').value || 1),
+          layout_w: Number(el('widgetW').value || 3),
+          layout_h: Number(el('widgetH').value || 2),
+          config,
+        };
+
+        const resp = await fetch('/api/widgets', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+
+        if (!resp.ok) {
+          el('widgetStatus').textContent = `Failed: ${await resp.text()}`;
+          return;
+        }
+
+        el('widgetStatus').textContent = 'Widget created.';
+        await listWidgets();
+        await loadSummary();
+      }
+
+      async function listAutomationTasks() {
+        const resp = await fetch('/api/tasks');
+        const rows = await resp.json();
+        const wrap = el('automationTaskList');
+        wrap.innerHTML = '';
+
+        rows.forEach((row) => {
+          const item = document.createElement('div');
+          item.className = 'list-item';
+          const sensitiveLabel = row.sensitive_mode === 'local_only'
+            ? '<span class="badge offline">local-only</span>'
+            : row.sensitive_mode === 'hybrid_redacted'
+              ? '<span class="badge ok">hybrid-redacted</span>'
+              : '<span class="badge unknown">off</span>';
+          item.innerHTML = `
+            <div><strong>#${row.id} ${row.title}</strong></div>
+            <div class="tiny">${row.status} | trigger=${row.trigger_type} | runs=${row.run_count}</div>
+            <div>${row.objective}</div>
+            <div class="tiny">Sensitive mode: ${sensitiveLabel}</div>
+            <div class="tiny">Last run: ${row.last_run_at || 'never'}</div>
+            <div class="row" style="margin-top:8px;">
+              <button data-automation-run="${row.id}">Run</button>
+              <button data-automation-status="ready" data-automation-id="${row.id}" class="alt">Ready</button>
+              <button data-automation-status="archived" data-automation-id="${row.id}" class="warn">Archive</button>
+            </div>
+          `;
+          wrap.appendChild(item);
+        });
+
+        wrap.querySelectorAll('button[data-automation-run]').forEach((btn) => {
+          btn.addEventListener('click', async () => {
+            const id = btn.getAttribute('data-automation-run');
+            await fetch(`/api/tasks/${id}/run`, {
+              method: 'POST',
+            });
+            await listAutomationTasks();
+            await loadSummary();
+          });
+        });
+
+        wrap.querySelectorAll('button[data-automation-id]').forEach((btn) => {
+          btn.addEventListener('click', async () => {
+            const id = btn.getAttribute('data-automation-id');
+            const status = btn.getAttribute('data-automation-status');
+            await fetch(`/api/tasks/${id}`, {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ status }),
+            });
+            await listAutomationTasks();
+          });
+        });
+      }
+
+      async function createAutomationTask() {
+        const title = el('autoTaskTitle').value.trim();
+        const objective = el('autoTaskObjective').value.trim();
+        if (!title || !objective) return;
+
+        let localContext = {};
+        try {
+          localContext = el('autoTaskContext').value.trim() ? JSON.parse(el('autoTaskContext').value) : {};
+        } catch (_) {
+          el('autoTaskStatus').textContent = 'Invalid local context JSON';
+          return;
+        }
+
+        const resp = await fetch('/api/tasks', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title,
+            objective,
+            trigger_type: el('autoTaskTrigger').value,
+            status: 'draft',
+            sensitive_mode: el('autoTaskSensitive').value,
+            local_context: localContext,
+            cloud_prompt_template: el('autoTaskCloudTemplate').value.trim() || null,
+            runbook_markdown: el('autoTaskRunbook').value.trim() || null,
+          }),
+        });
+        if (!resp.ok) {
+          el('autoTaskStatus').textContent = `Failed: ${await resp.text()}`;
+          return;
+        }
+
+        el('autoTaskStatus').textContent = 'Task blueprint saved.';
+        await listAutomationTasks();
+        await loadSummary();
+      }
+
+      async function listSkills() {
+        const resp = await fetch('/api/skills');
+        const rows = await resp.json();
+        const wrap = el('skillList');
+        wrap.innerHTML = '';
+
+        rows.forEach((row) => {
+          const item = document.createElement('div');
+          item.className = 'list-item';
+          item.innerHTML = `
+            <div><strong>${row.name}</strong></div>
+            <div class="tiny">${row.category} | ${row.status} | ${row.local_only ? 'local-only' : 'hybrid'}</div>
+            <div>${row.description}</div>
+            <div class="row" style="margin-top:8px;">
+              <button data-skill-status="active" data-skill-id="${row.id}">Activate</button>
+              <button data-skill-status="disabled" data-skill-id="${row.id}" class="warn">Disable</button>
+            </div>
+          `;
+          wrap.appendChild(item);
+        });
+
+        wrap.querySelectorAll('button[data-skill-id]').forEach((btn) => {
+          btn.addEventListener('click', async () => {
+            const id = btn.getAttribute('data-skill-id');
+            const status = btn.getAttribute('data-skill-status');
+            await fetch(`/api/skills/${id}`, {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ status }),
+            });
+            await listSkills();
+          });
+        });
+      }
+
+      async function createSkill() {
+        const name = el('skillName').value.trim();
+        const category = el('skillCategory').value.trim();
+        const description = el('skillDescription').value.trim();
+        if (!name || !category || !description) return;
+
+        let inputSchema = {};
+        let outputSchema = {};
+        let toolContract = {};
+        try {
+          inputSchema = el('skillInputSchema').value.trim() ? JSON.parse(el('skillInputSchema').value) : {};
+          outputSchema = el('skillOutputSchema').value.trim() ? JSON.parse(el('skillOutputSchema').value) : {};
+          toolContract = el('skillToolContract').value.trim() ? JSON.parse(el('skillToolContract').value) : {};
+        } catch (_) {
+          el('skillStatusOut').textContent = 'Invalid JSON in schema or contract fields';
+          return;
+        }
+
+        const resp = await fetch('/api/skills', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name,
+            category,
+            description,
+            status: el('skillStatus').value,
+            local_only: el('skillLocalOnly').value === 'true',
+            input_schema: inputSchema,
+            output_schema: outputSchema,
+            tool_contract: toolContract,
+          }),
+        });
+
+        if (!resp.ok) {
+          el('skillStatusOut').textContent = `Failed: ${await resp.text()}`;
+          return;
+        }
+
+        el('skillStatusOut').textContent = 'Skill registered.';
+        await listSkills();
+        await loadSummary();
+      }
+
+      async function listIntegrations() {
+        const resp = await fetch('/api/integrations');
+        const rows = await resp.json();
+        const wrap = el('integrationList');
+        wrap.innerHTML = '';
+
+        rows.forEach((row) => {
+          const item = document.createElement('div');
+          item.className = 'list-item';
+          const models = (row.models || []).slice(0, 5).join(', ');
+          item.innerHTML = `
+            <div><strong>${row.name}</strong></div>
+            <div class="tiny">${row.provider_kind} | ${row.status} | ${row.auth_type}</div>
+            <div class="tiny mono">${row.base_url || 'no base_url set'}</div>
+            <div class="tiny">Models: ${models || 'none synced yet'}</div>
+            <div class="row" style="margin-top:8px;">
+              <button data-sync-integration="${row.id}">Sync Models</button>
+              <button data-delete-integration="${row.id}" class="warn">Delete</button>
+            </div>
+          `;
+          wrap.appendChild(item);
+        });
+
+        wrap.querySelectorAll('button[data-sync-integration]').forEach((btn) => {
+          btn.addEventListener('click', async () => {
+            const id = btn.getAttribute('data-sync-integration');
+            await fetch(`/api/integrations/${id}/sync-models`, { method: 'POST' });
+            await listIntegrations();
+            await refreshHealth();
+          });
+        });
+
+        wrap.querySelectorAll('button[data-delete-integration]').forEach((btn) => {
+          btn.addEventListener('click', async () => {
+            const id = btn.getAttribute('data-delete-integration');
+            await fetch(`/api/integrations/${id}`, { method: 'DELETE' });
+            await listIntegrations();
+            await refreshHealth();
+          });
+        });
+      }
+
+      async function createIntegration() {
+        const name = el('integrationName').value.trim();
+        const providerKind = el('integrationKind').value.trim();
+        if (!name || !providerKind) return;
+
+        const resp = await fetch('/api/integrations', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name,
+            provider_kind: providerKind,
+            base_url: el('integrationBaseUrl').value.trim() || null,
+            auth_type: el('integrationAuthType').value,
+            api_key: el('integrationApiKey').value.trim() || null,
+            default_model: el('integrationDefaultModel').value.trim() || null,
+            status: el('integrationStatus').value,
+            meta: {},
+          }),
+        });
+
+        if (!resp.ok) {
+          el('integrationStatusOut').textContent = `Failed: ${await resp.text()}`;
+          return;
+        }
+
+        el('integrationStatusOut').textContent = 'Integration added.';
+        await listIntegrations();
+        await refreshHealth();
+      }
+
+      async function loadOauthTemplates() {
+        const resp = await fetch('/api/integrations/oauth-templates');
+        const data = await resp.json();
+        const lines = [];
+        Object.entries(data).forEach(([name, block]) => {
+          lines.push(`${name.toUpperCase()} - ${block.title}`);
+          block.steps.forEach((step, idx) => lines.push(`  ${idx + 1}. ${step}`));
+          lines.push('');
+        });
+        el('oauthTemplates').textContent = lines.join('\n');
+      }
+
+      async function runSensitivePreview() {
+        const text = el('sensitiveInput').value.trim();
+        if (!text) return;
+        const manualTags = el('sensitiveManualTags').value
+          .split(',')
+          .map((x) => x.trim())
+          .filter(Boolean);
+        const manualUntags = el('sensitiveManualUntags').value
+          .split(',')
+          .map((x) => x.trim())
+          .filter(Boolean);
+
+        const resp = await fetch('/api/sensitive/redact-preview', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text, manual_tags: manualTags, manual_untags: manualUntags }),
+        });
+        if (!resp.ok) {
+          el('sensitivePreviewOut').textContent = `Failed: ${await resp.text()}`;
+          return;
+        }
+        const out = await resp.json();
+        const tokenRows = Object.entries(out.approved_tokens || {})
+          .map(([token, value]) => `${token} => ${value}`)
+          .join('\n');
+        el('sensitivePreviewOut').textContent = `Redacted:\n${out.redacted}\n\nDetected: ${out.detected_count}\n${tokenRows || ''}`;
+      }
+
+      async function loadConversationHistory(nextFilter = null) {
+        const resp = await fetch('/api/conversations/sidebar');
+        if (!resp.ok) return;
+        const data = await resp.json();
+        state.conversationBuckets = data.buckets || state.conversationBuckets;
+
+        const allIds = Object.values(state.conversationBuckets).flat().map((conv) => conv.id);
+        if (state.conversationId && !allIds.includes(state.conversationId)) {
+          state.conversationId = null;
+        }
+
+        renderConversationFilters(data.counts || {});
+        if (nextFilter) {
+          state.conversationFilter = nextFilter;
+        }
+        renderConversationList();
+      }
+
+      async function loadConversationMessages(convId) {
+        const resp = await fetch(`/api/conversations/${convId}`);
+        if (!resp.ok) return;
+        const conv = await resp.json();
+        
+        el('messages').innerHTML = '';
+        conv.messages.forEach((msg) => {
+          addMessage(msg.role, msg.content);
+        });
+        el('chatStatus').textContent = `Conversation ${convId} loaded`;
+      }
+
+      function updateSidebarStatus() {
+        const status = el('sidebarStatus');
+        const convText = state.conversationId ? `Chat: ${state.conversationId}` : 'New chat';
+        const modeText = state.uiMode === 'zen' ? 'Mode: Zen' : 'Mode: Big Brain';
+        const filterText = `Bucket: ${state.conversationFilter.replace('_', ' ')}`;
+        status.innerHTML = `${modeText}<br/>${filterText}<br/>${convText}`;
+      }
+
+      async function mutateConversation(action) {
+        const selected = currentConversationRecord();
+        if (!selected) return;
+
+        const filterAfter = {
+          restore: 'active',
+          hide: 'hidden',
+          archive_good: 'archived_good',
+          archive_bad: 'archived_bad',
+        };
+
+        const resp = await fetch(`/api/conversations/${selected.id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action }),
+        });
+        if (!resp.ok) {
+          el('chatStatus').textContent = `Conversation update failed: ${await resp.text()}`;
+          return;
+        }
+
+        await loadConversationHistory(filterAfter[action] || state.conversationFilter);
+      }
+
+      async function deleteSelectedConversation() {
+        const selected = currentConversationRecord();
+        if (!selected) return;
+        if (!confirm(`Delete conversation "${selected.title}" permanently?`)) return;
+
+        const resp = await fetch(`/api/conversations/${selected.id}`, { method: 'DELETE' });
+        if (!resp.ok) {
+          el('chatStatus').textContent = `Conversation delete failed: ${await resp.text()}`;
+          return;
+        }
+
+        state.conversationId = null;
+        el('messages').innerHTML = '';
+        el('chatStatus').textContent = 'Conversation deleted.';
+        await loadConversationHistory('active');
+        await loadSummary();
+      }
+
+      document.querySelectorAll('button[data-nav]').forEach((btn) => {
+        btn.addEventListener('click', () => tabSwitch(btn.dataset.nav));
+      });
+
+      document.querySelectorAll('button[data-conv-filter]').forEach((btn) => {
+        btn.addEventListener('click', () => setConversationFilter(btn.dataset.convFilter));
+      });
+
+      el('newConvSidebarBtn').addEventListener('click', async () => {
+        state.conversationId = null;
+        el('messages').innerHTML = '';
+        el('chatStatus').textContent = 'New conversation started.';
+        await loadConversationHistory();
+        updateSidebarStatus();
+        tabSwitch('deck');
+      });
+      el('archiveGoodBtn').addEventListener('click', () => mutateConversation('archive_good'));
+      el('archiveBadBtn').addEventListener('click', () => mutateConversation('archive_bad'));
+      el('hideConversationBtn').addEventListener('click', () => mutateConversation('hide'));
+      el('restoreConversationBtn').addEventListener('click', () => mutateConversation('restore'));
+      el('deleteConversationBtn').addEventListener('click', deleteSelectedConversation);
+
+      el('provider').addEventListener('change', updateModelsForProvider);
+      el('sendBtn').addEventListener('click', sendChat);
+      el('autoModelToggle').addEventListener('change', async () => {
+        state.autoModel = el('autoModelToggle').checked;
+        await updateModelsForProvider();
+      });
+      el('bigBrainModeBtn').addEventListener('click', () => setUiMode('big-brain'));
+      el('zenModeBtn').addEventListener('click', () => setUiMode('zen'));
+      el('openCredentialsBtn').addEventListener('click', () => tabSwitch('credentials'));
+
+      el('saveNoteBtn').addEventListener('click', saveNote);
+      el('searchBtn').addEventListener('click', searchNotes);
+      el('zenKnowledgeBtn').addEventListener('click', () => runZenAction('note_create', 'zenKnowledgePrompt', 'zenKnowledgeResult'));
+
+      el('createMcpBtn').addEventListener('click', createMcpServer);
+      el('createAndCheckMcpBtn').addEventListener('click', createAndCheckMcpServer);
+      el('mcpSuggestBtn').addEventListener('click', suggestMcpConfig);
+      el('mcpApplySuggestionBtn').addEventListener('click', applyMcpSuggestion);
+      el('mcpLinkCredentialBtn').addEventListener('click', linkCredentialIntoMcpEnv);
+      el('mcpOpenCredentialsBtn').addEventListener('click', () => tabSwitch('credentials'));
+      el('zenMcpBtn').addEventListener('click', () => runZenAction('mcp_create', 'zenMcpPrompt', 'zenMcpResult'));
+
+      el('createWidgetBtn').addEventListener('click', createWidget);
+      el('zenWidgetBtn').addEventListener('click', () => runZenAction('widget_create', 'zenWidgetPrompt', 'zenWidgetResult'));
+
+      el('createAutoTaskBtn').addEventListener('click', createAutomationTask);
+      el('createSkillBtn').addEventListener('click', createSkill);
+      el('zenTaskBtn').addEventListener('click', () => runZenAction('task_create', 'zenTaskPrompt', 'zenTaskResult'));
+      el('zenSkillBtn').addEventListener('click', () => runZenAction('skill_create', 'zenSkillPrompt', 'zenSkillResult'));
+      el('createCredentialBtn').addEventListener('click', createCredential);
+      el('refreshCredentialBtn').addEventListener('click', listCredentials);
+      el('importCredentialEnvBtn').addEventListener('click', importCredentialsEnv);
+      el('launchConnectorBtn').addEventListener('click', () => launchConnector(null, !!el('connectorOpenBrowser').checked, 'connectorStatus'));
+      el('createIntegrationBtn').addEventListener('click', createIntegration);
+      el('integrationUseCredentialBtn').addEventListener('click', useCredentialForIntegration);
+      el('integrationLaunchConnectorBtn').addEventListener('click', () => launchConnector(el('integrationKind').value.trim().toLowerCase(), true, 'integrationStatusOut'));
+      el('integrationOpenCredentialsBtn').addEventListener('click', () => tabSwitch('credentials'));
+      el('sensitivePreviewBtn').addEventListener('click', runSensitivePreview);
+
+      el('browseProjectBtn').addEventListener('click', browseProjectFolder);
+      el('discoverProjectsBtn').addEventListener('click', discoverProjectsFromRoot);
+      el('importProjectPathBtn').addEventListener('click', () => importProjectByPath(el('projectManualPath').value));
+      el('refreshProjectsBtn').addEventListener('click', listProjects);
+      el('refreshProjectScriptsBtn').addEventListener('click', loadProjectScripts);
+      el('runProjectScriptBtn').addEventListener('click', runProjectScript);
+      el('openProjectPreviewBtn').addEventListener('click', openProjectPreview);
+      el('sendProjectChatBtn').addEventListener('click', sendProjectChat);
+
+      Promise.all([
+        loadSummary(),
+        refreshHealth(),
+        listMcpServers(),
+        listWidgets(),
+        listAutomationTasks(),
+        listSkills(),
+        listIntegrations(),
+        listCredentials(),
+        loadCredentialConnectors(),
+        loadHubAccess(),
+        loadOauthTemplates(),
+        loadProjectCapabilities(),
+        listProjects(),
+        loadConversationHistory(),
+      ]).then(() => {
+        tabSwitch('deck');
+        setUiMode('big-brain');
+        updateSidebarStatus();
+      }).catch((err) => {
+        console.error(err);
+      });
+    </script>
+  </body>
+</html>

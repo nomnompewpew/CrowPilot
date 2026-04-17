@@ -1,0 +1,20 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.venv/
+
+# Local env
+.env
+
+# Tooling
+.vscode/
+
+# Runtime scratch
+backend/data/*.db-shm
+backend/data/*.db-wal
+backend/data/tmp/
+
+# Logs
+*.log
