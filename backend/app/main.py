@@ -2,10 +2,12 @@ from __future__ import annotations
 
 import asyncio
 import datetime
+import hashlib
 import json
 import os
 import platform
 import re
+import secrets
 import shlex
 import shutil
 import sqlite3
@@ -25,9 +27,9 @@ from typing import Any, AsyncGenerator
 import httpx
 from cryptography.fernet import Fernet, InvalidToken
 from dotenv import dotenv_values
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, StreamingResponse
+from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 
 from .chunking import split_into_chunks
@@ -50,6 +52,7 @@ from .schemas import (
     CreateConversationRequest,
     IntegrationCreateRequest,
     IntegrationUpdateRequest,
+    LoginRequest,
     McpOnboardRequest,
     McpServerCreateRequest,
     McpServerUpdateRequest,
@@ -438,8 +441,54 @@ async def lifespan(_: FastAPI):
     _normalize_existing_mcp_servers()
     _ensure_builtin_mcp_servers()
     _reload_providers_from_integrations()
+    _seed_default_user()
 
     yield
+
+    if DB_CONN:
+        DB_CONN.close()
+
+
+# ---------------------------------------------------------------------------
+# Auth helpers
+# ---------------------------------------------------------------------------
+
+
+def _hash_password(password: str, salt: str) -> str:
+    return hashlib.pbkdf2_hmac("sha256", password.encode(), salt.encode(), 100_000).hex()
+
+
+def _verify_password(password: str, salt: str, stored_hash: str) -> bool:
+    return _hash_password(password, salt) == stored_hash
+
+
+def _get_session_user(token: str) -> dict | None:
+    if not DB_CONN or not token:
+        return None
+    now = datetime.datetime.now(datetime.timezone.utc).isoformat()
+    row = DB_CONN.execute(
+        """
+        SELECT u.id, u.username, u.role
+        FROM sessions s
+        JOIN users u ON u.id = s.user_id
+        WHERE s.token = ? AND s.expires_at > ?
+        """,
+        (token, now),
+    ).fetchone()
+    return dict(row) if row else None
+
+
+def _seed_default_user() -> None:
+    existing = DB_CONN.execute("SELECT id FROM users WHERE username = 'nomnompewpew'").fetchone()
+    if existing:
+        return
+    salt = secrets.token_hex(16)
+    pw_hash = _hash_password("Di@m0nd$ky", salt)
+    DB_CONN.execute(
+        "INSERT INTO users (username, password_hash, salt, role) VALUES (?, ?, ?, ?)",
+        ("nomnompewpew", pw_hash, salt, "admin"),
+    )
+    DB_CONN.commit()
 
     if DB_CONN:
         DB_CONN.close()
@@ -453,6 +502,81 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+# ---------------------------------------------------------------------------
+# Auth middleware
+# ---------------------------------------------------------------------------
+
+_AUTH_PUBLIC_PREFIXES = (
+    "/api/auth/",
+    "/static/",
+    "/docs",
+    "/openapi",
+    "/redoc",
+)
+_AUTH_PUBLIC_EXACT = {"/", "/favicon.ico", "/mcp"}
+
+
+@app.middleware("http")
+async def auth_middleware(request: Request, call_next):
+    path = request.url.path
+    if path in _AUTH_PUBLIC_EXACT or any(path.startswith(p) for p in _AUTH_PUBLIC_PREFIXES):
+        return await call_next(request)
+    token = request.cookies.get("crowpilot_session")
+    if not token or not _get_session_user(token):
+        return JSONResponse({"error": "Unauthorized"}, status_code=401)
+    return await call_next(request)
+
+
+# ---------------------------------------------------------------------------
+# Auth endpoints
+# ---------------------------------------------------------------------------
+
+
+@app.post("/api/auth/login")
+def auth_login(payload: LoginRequest, response: Response) -> dict:
+    if not DB_CONN:
+        raise HTTPException(status_code=503, detail="Database not ready")
+    user = DB_CONN.execute(
+        "SELECT id, username, password_hash, salt, role FROM users WHERE username = ?",
+        (payload.username,),
+    ).fetchone()
+    if not user or not _verify_password(payload.password, user["salt"], user["password_hash"]):
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+    token = secrets.token_hex(32)
+    expires = (
+        datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(days=7)
+    ).isoformat()
+    DB_CONN.execute(
+        "INSERT INTO sessions (token, user_id, expires_at) VALUES (?, ?, ?)",
+        (token, user["id"], expires),
+    )
+    DB_CONN.commit()
+    response.set_cookie(
+        "crowpilot_session", token, httponly=True, samesite="lax", max_age=604800
+    )
+    return {"ok": True, "username": user["username"], "role": user["role"]}
+
+
+@app.post("/api/auth/logout")
+def auth_logout(request: Request, response: Response) -> dict:
+    token = request.cookies.get("crowpilot_session")
+    if token and DB_CONN:
+        DB_CONN.execute("DELETE FROM sessions WHERE token = ?", (token,))
+        DB_CONN.commit()
+    response.delete_cookie("crowpilot_session")
+    return {"ok": True}
+
+
+@app.get("/api/auth/me")
+def auth_me(request: Request) -> dict:
+    token = request.cookies.get("crowpilot_session")
+    user = _get_session_user(token or "")
+    if not user:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    return {"username": user["username"], "role": user["role"]}
+
 
 static_dir = Path(__file__).parent / "static"
 app.mount("/static", StaticFiles(directory=static_dir), name="static")

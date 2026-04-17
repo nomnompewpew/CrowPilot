@@ -40,6 +40,11 @@ class ChatRequest(BaseModel):
     use_memory: bool = True
 
 
+class LoginRequest(BaseModel):
+    username: str = Field(min_length=1)
+    password: str = Field(min_length=1)
+
+
 class AddNoteRequest(BaseModel):
     title: str = Field(min_length=1)
     body: str = Field(min_length=1)
