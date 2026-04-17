@@ -511,6 +511,10 @@
             <div id="messages" class="messages"></div>
             <label for="prompt">Prompt</label>
             <textarea id="prompt" placeholder="Design a dashboard widget system for model usage analytics."></textarea>
+            <label for="useMemoryToggle" style="display:flex; align-items:center; gap:8px; margin-top:6px;">
+              <input id="useMemoryToggle" type="checkbox" style="width:auto;" checked />
+              Use knowledge memory
+            </label>
             <button id="sendBtn">Send</button>
             <div id="chatStatus" class="status"></div>
           </article>
@@ -576,6 +580,7 @@
 
           <article class="card">
             <h2>MCP Server Registry</h2>
+            <button id="vsCodeConfigBtn" class="alt" style="margin-bottom:10px; width:auto; padding:8px 14px;">Export for VS Code</button>
             <div id="mcpList" class="list"></div>
           </article>
         </div>
@@ -604,6 +609,11 @@
             <textarea id="zenKnowledgePrompt" placeholder="Save a note about the llama.cpp launch profile we verified on port 8082 and mention flash attention is enabled."></textarea>
             <button id="zenKnowledgeBtn">Save From Prompt</button>
             <div id="zenKnowledgeResult" class="zen-result"></div>
+          </article>
+
+          <article class="card" style="grid-column: 1 / -1;">
+            <h2>Saved Notes</h2>
+            <div id="noteListContainer" class="list"></div>
           </article>
 
           <article class="card">
@@ -969,6 +979,10 @@ STRIPE_API_KEY=..."></textarea>
             <p class="tiny">Quick chat in your selected workspace context.</p>
             <label for="projectChatPrompt">Prompt</label>
             <textarea id="projectChatPrompt" placeholder="Build me a clean onboarding landing page and list files to edit."></textarea>
+            <label for="projectIncludeContextToggle" style="display:flex; align-items:center; gap:8px; margin-top:6px;">
+              <input id="projectIncludeContextToggle" type="checkbox" style="width:auto;" />
+              Include project context (README, package.json, file tree)
+            </label>
             <button id="sendProjectChatBtn">Send</button>
             <pre id="projectChatOut" class="mono" style="white-space:pre-wrap; min-height:120px; max-height:280px; overflow:auto; background:#12151e; color:#f4f8ff; border-radius:10px; padding:10px;"></pre>
           </article>
@@ -1000,6 +1014,23 @@ STRIPE_API_KEY=..."></textarea>
       </section>
     </main>
 
+    <dialog id="vsCodeConfigDialog" style="width:min(700px,95vw); border:1px solid var(--border); border-radius:14px; padding:24px; background:var(--surface); color:var(--text);">
+      <h3 style="margin-top:0;">Export MCP Config for VS Code</h3>
+      <p id="vsCodeConfigInstructions" class="tiny" style="margin-bottom:12px;"></p>
+      <label style="font-weight:600;">Option A — Single Relay Entry (HTTP servers only)</label>
+      <p class="tiny" style="margin:4px 0 6px;">Point VS Code at this hub. All HTTP/SSE MCP servers are aggregated.</p>
+      <textarea id="vsCodeRelaySnippet" class="mono" rows="6" style="width:100%; box-sizing:border-box; font-size:0.8rem;" readonly></textarea>
+      <label style="font-weight:600; margin-top:12px; display:block;">Option B — All Servers Individually (includes stdio)</label>
+      <p class="tiny" style="margin:4px 0 6px;">VS Code will launch each stdio server locally as a subprocess.</p>
+      <textarea id="vsCodeAllServersSnippet" class="mono" rows="12" style="width:100%; box-sizing:border-box; font-size:0.8rem;" readonly></textarea>
+      <p class="tiny" style="margin-top:10px;">Relay URL: <code id="vsCodeRelayUrl" style="background:var(--bg); padding:2px 6px; border-radius:4px;"></code></p>
+      <div style="display:flex; gap:8px; margin-top:14px;">
+        <button id="copyRelaySnippetBtn" class="alt">Copy Relay Snippet</button>
+        <button id="copyAllServersSnippetBtn" class="alt">Copy All Servers Snippet</button>
+        <button id="closeVsCodeConfigDialog" style="margin-left:auto;">Close</button>
+      </div>
+    </dialog>
+
     <script>
       const state = {
         conversationId: null,
@@ -1016,6 +1047,7 @@ STRIPE_API_KEY=..."></textarea>
         projectScripts: [],
         projectRuntimes: [],
         selectedRuntimeId: null,
+        noteList: [],
         conversationBuckets: {
           active: [],
           hidden: [],
@@ -1293,6 +1325,7 @@ STRIPE_API_KEY=..."></textarea>
         const provider = el('provider').value;
         const selectedModel = el('model').value.trim();
         const model = state.autoModel && provider === 'copilot_proxy' ? 'auto' : selectedModel;
+        const useMemory = el('useMemoryToggle').checked;
 
         addMessage('user', prompt);
         el('prompt').value = '';
@@ -1307,6 +1340,7 @@ STRIPE_API_KEY=..."></textarea>
             conversation_id: state.conversationId,
             provider,
             model: model || null,
+            use_memory: useMemory,
           }),
         });
 
@@ -1320,6 +1354,7 @@ STRIPE_API_KEY=..."></textarea>
         const reader = resp.body.getReader();
         const decoder = new TextDecoder();
         let buffer = '';
+        let memoryHits = 0;
 
         while (true) {
           const { value, done } = await reader.read();
@@ -1334,6 +1369,7 @@ STRIPE_API_KEY=..."></textarea>
             const payload = JSON.parse(line.slice(6));
             if (payload.type === 'meta') {
               state.conversationId = payload.conversation_id;
+              memoryHits = payload.memory_hits || 0;
             } else if (payload.type === 'token') {
               assistant.textContent += payload.token;
             } else if (payload.type === 'error') {
@@ -1341,7 +1377,8 @@ STRIPE_API_KEY=..."></textarea>
               assistant.textContent += `\n[error] ${payload.error}`;
               el('chatStatus').textContent = 'Error';
             } else if (payload.type === 'done') {
-              el('chatStatus').textContent = `Done. Conversation ${state.conversationId}`;
+              const memBadge = memoryHits > 0 ? ` · 🧠 ${memoryHits} memor${memoryHits === 1 ? 'y' : 'ies'} recalled` : '';
+              el('chatStatus').textContent = `Done. Conversation ${state.conversationId}${memBadge}`;
             }
           });
         }
@@ -1360,6 +1397,55 @@ STRIPE_API_KEY=..."></textarea>
         const out = await resp.json();
         el('searchOut').textContent = `Indexed ${out.chunks_indexed} chunks in note ${out.note_id}`;
         await loadSummary();
+        await loadNoteList();
+      }
+
+      async function loadNoteList() {
+        const resp = await fetch('/api/notes');
+        if (!resp.ok) return;
+        state.noteList = await resp.json();
+        renderNoteList();
+      }
+
+      function renderNoteList() {
+        const target = el('noteListContainer');
+        if (!target) return;
+        target.innerHTML = '';
+        if (!state.noteList.length) {
+          target.innerHTML = '<div class="tiny" style="color:var(--muted);">No notes saved yet. Use Knowledge Capture or Zen Knowledge Capture above.</div>';
+          return;
+        }
+        state.noteList.forEach((note) => {
+          const item = document.createElement('div');
+          item.className = 'list-item';
+          const preview = (note.body || '').slice(0, 140);
+          item.innerHTML = `
+            <div><strong>${note.title}</strong></div>
+            <div class="tiny mono" style="margin-top:4px;">${preview}${note.body.length > 140 ? '...' : ''}</div>
+            <div class="tiny" style="color:var(--muted); margin-top:4px;">${note.created_at}</div>
+            <button data-delete-note="${note.id}" class="warn" style="margin-top:6px; width:auto; padding:4px 10px;">Delete</button>
+          `;
+          target.appendChild(item);
+        });
+        target.querySelectorAll('button[data-delete-note]').forEach((btn) => {
+          btn.addEventListener('click', async () => {
+            const id = btn.getAttribute('data-delete-note');
+            await fetch(`/api/notes/${id}`, { method: 'DELETE' });
+            await loadNoteList();
+            await loadSummary();
+          });
+        });
+      }
+
+      async function fetchVsCodeConfig() {
+        const resp = await fetch('/api/mcp/vscode-config');
+        if (!resp.ok) return;
+        const data = await resp.json();
+        el('vsCodeRelaySnippet').value = data.relay_only_snippet || '';
+        el('vsCodeAllServersSnippet').value = data.all_servers_snippet || '';
+        el('vsCodeRelayUrl').textContent = data.relay_url || '';
+        el('vsCodeConfigInstructions').textContent = data.instructions || '';
+        el('vsCodeConfigDialog').showModal();
       }
 
       async function searchNotes() {
@@ -2140,7 +2226,21 @@ STRIPE_API_KEY=..."></textarea>
         if (!prompt) return;
 
         const project = state.projects.find((p) => p.id === state.selectedProjectId);
-        const scopedPrompt = `Workspace: ${project?.path || 'unknown'}\n\nUser request: ${prompt}`;
+        const includeContext = el('projectIncludeContextToggle').checked;
+
+        let scopedPrompt = `Workspace: ${project?.path || 'unknown'}\n\nUser request: ${prompt}`;
+
+        if (includeContext) {
+          el('projectChatOut').textContent = 'Loading project context...';
+          try {
+            const ctxResp = await fetch(`/api/projects/${state.selectedProjectId}/context-summary`);
+            if (ctxResp.ok) {
+              const ctx = await ctxResp.json();
+              scopedPrompt = `Workspace: ${ctx.path}\n\n${ctx.context}\n\n---\nUser request: ${prompt}`;
+            }
+          } catch (_) {}
+        }
+
         const provider = el('provider').value;
         const selectedModel = el('model').value.trim();
         const model = state.autoModel && provider === 'copilot_proxy' ? 'auto' : selectedModel;
@@ -2657,6 +2757,19 @@ STRIPE_API_KEY=..."></textarea>
       el('searchBtn').addEventListener('click', searchNotes);
       el('zenKnowledgeBtn').addEventListener('click', () => runZenAction('note_create', 'zenKnowledgePrompt', 'zenKnowledgeResult'));
 
+      el('vsCodeConfigBtn').addEventListener('click', fetchVsCodeConfig);
+      el('closeVsCodeConfigDialog').addEventListener('click', () => el('vsCodeConfigDialog').close());
+      el('copyRelaySnippetBtn').addEventListener('click', () => {
+        navigator.clipboard.writeText(el('vsCodeRelaySnippet').value);
+        el('copyRelaySnippetBtn').textContent = 'Copied!';
+        setTimeout(() => { el('copyRelaySnippetBtn').textContent = 'Copy Relay Snippet'; }, 1500);
+      });
+      el('copyAllServersSnippetBtn').addEventListener('click', () => {
+        navigator.clipboard.writeText(el('vsCodeAllServersSnippet').value);
+        el('copyAllServersSnippetBtn').textContent = 'Copied!';
+        setTimeout(() => { el('copyAllServersSnippetBtn').textContent = 'Copy All Servers Snippet'; }, 1500);
+      });
+
       el('createMcpBtn').addEventListener('click', createMcpServer);
       el('createAndCheckMcpBtn').addEventListener('click', createAndCheckMcpServer);
       el('mcpSuggestBtn').addEventListener('click', suggestMcpConfig);
@@ -2706,6 +2819,7 @@ STRIPE_API_KEY=..."></textarea>
         loadProjectCapabilities(),
         listProjects(),
         loadConversationHistory(),
+        loadNoteList(),
       ]).then(() => {
         tabSwitch('deck');
         setUiMode(localStorage.getItem('crowpilot_ui_mode') || 'zen');

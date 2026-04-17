@@ -25,7 +25,7 @@ from typing import Any, AsyncGenerator
 import httpx
 from cryptography.fernet import Fernet, InvalidToken
 from dotenv import dotenv_values
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
@@ -75,6 +75,7 @@ from .schemas import (
 DB_CONN: sqlite3.Connection | None = None
 PROVIDERS: dict[str, OpenAICompatProvider] = {}
 CREDENTIAL_CIPHER: Fernet | None = None
+MCP_TOOL_ROUTE_MAP: dict[str, str] = {}
 PROJECT_RUNTIMES: dict[str, dict[str, Any]] = {}
 PROJECT_RUNTIME_LOCK = threading.Lock()
 
@@ -1363,6 +1364,101 @@ async def _run_protocol_checks_for_server(row: sqlite3.Row) -> tuple[str, str | 
     return status, last_error, report
 
 
+def _fetch_memory_context(query: str, limit: int = 3) -> list[dict]:
+    """Search the notes FTS index for chunks relevant to the query."""
+    try:
+        safe = re.sub(r"[^\w\s]", " ", query).strip()
+        if not safe:
+            return []
+        rows = DB_CONN.execute(
+            """
+            SELECT n.title, nc.chunk_text, bm25(note_chunks_fts) AS score
+            FROM note_chunks_fts
+            JOIN note_chunks nc ON nc.id = note_chunks_fts.rowid
+            JOIN notes n ON n.id = nc.note_id
+            WHERE note_chunks_fts MATCH ?
+            ORDER BY score ASC
+            LIMIT ?
+            """,
+            (safe, limit),
+        ).fetchall()
+        return rows_to_dicts(rows)
+    except Exception:
+        return []
+
+
+async def _relay_list_tools() -> list[dict]:
+    """Fetch tools from all online HTTP MCP servers and update the routing map."""
+    global MCP_TOOL_ROUTE_MAP
+    rows = DB_CONN.execute(
+        "SELECT name, url FROM mcp_servers WHERE transport IN ('http', 'sse') AND status = 'online' AND url IS NOT NULL"
+    ).fetchall()
+
+    all_tools: list[dict] = []
+    new_map: dict[str, str] = {}
+
+    async with httpx.AsyncClient(timeout=5.0) as client:
+        for row in rows:
+            url = row["url"]
+            try:
+                resp = await client.post(
+                    url,
+                    json={"jsonrpc": "2.0", "id": "relay-tools", "method": "tools/list", "params": {}},
+                    headers={"Content-Type": "application/json"},
+                )
+                if resp.status_code == 200:
+                    data = resp.json()
+                    tools = (data.get("result") or {}).get("tools", []) if isinstance(data.get("result"), dict) else []
+                    for tool in tools:
+                        if isinstance(tool, dict) and tool.get("name"):
+                            new_map[tool["name"]] = url
+                            all_tools.append(tool)
+            except Exception:
+                pass
+
+    MCP_TOOL_ROUTE_MAP = new_map
+    return all_tools
+
+
+async def _relay_call_tool(tool_name: str, arguments: dict) -> dict:
+    """Route a tool call to the appropriate backend MCP server."""
+    global MCP_TOOL_ROUTE_MAP
+    server_url = MCP_TOOL_ROUTE_MAP.get(tool_name)
+    if not server_url:
+        # Refresh routing map and retry once
+        await _relay_list_tools()
+        server_url = MCP_TOOL_ROUTE_MAP.get(tool_name)
+
+    if not server_url:
+        return {
+            "content": [{"type": "text", "text": f"Tool '{tool_name}' not found in any connected MCP server."}],
+            "isError": True,
+        }
+
+    try:
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            resp = await client.post(
+                server_url,
+                json={
+                    "jsonrpc": "2.0",
+                    "id": "relay-call",
+                    "method": "tools/call",
+                    "params": {"name": tool_name, "arguments": arguments},
+                },
+                headers={"Content-Type": "application/json"},
+            )
+            if resp.status_code == 200:
+                data = resp.json()
+                if isinstance(data.get("result"), dict):
+                    return data["result"]
+                if data.get("error"):
+                    return {"content": [{"type": "text", "text": json.dumps(data["error"])}], "isError": True}
+    except Exception as exc:
+        return {"content": [{"type": "text", "text": f"Relay error: {exc}"}], "isError": True}
+
+    return {"content": [{"type": "text", "text": "No response from backend server."}], "isError": True}
+
+
 def _discover_local_ipv4() -> list[str]:
     hosts: set[str] = {"127.0.0.1"}
     try:
@@ -1716,10 +1812,23 @@ async def chat_stream(payload: ChatRequest):
     ).fetchall()
     history = [{"role": r["role"], "content": r["content"]} for r in history_rows]
 
+    # Memory context injection — search knowledge base for relevant notes
+    memory_hits = 0
+    if payload.use_memory:
+        memories = _fetch_memory_context(payload.message, limit=3)
+        if memories:
+            memory_hits = len(memories)
+            context_text = "\n\n".join(
+                f"[Memory: {m['title']}]\n{m['chunk_text']}" for m in memories
+            )
+            history = [
+                {"role": "system", "content": f"Relevant context from your knowledge base:\n\n{context_text}"}
+            ] + history
+
     async def event_stream() -> AsyncGenerator[str, None]:
         assistant_parts: list[str] = []
 
-        yield "data: " + json.dumps({"type": "meta", "conversation_id": conversation_id}) + "\n\n"
+        yield "data: " + json.dumps({"type": "meta", "conversation_id": conversation_id, "memory_hits": memory_hits}) + "\n\n"
 
         try:
             async for token in provider.stream_chat(
@@ -3091,3 +3200,190 @@ def sensitive_unredact(payload: SensitiveRedactApplyRequest) -> dict:
     for token, value in payload.approved_tokens.items():
         text = text.replace(token, value)
     return {"text": text}
+
+
+# ---------------------------------------------------------------------------
+# Notes management
+# ---------------------------------------------------------------------------
+
+@app.get("/api/notes")
+def list_notes(limit: int = 200) -> list[dict]:
+    limit = max(1, min(limit, 1000))
+    rows = DB_CONN.execute(
+        "SELECT id, title, body, created_at FROM notes ORDER BY id DESC LIMIT ?",
+        (limit,),
+    ).fetchall()
+    return rows_to_dicts(rows)
+
+
+@app.delete("/api/notes/{note_id}")
+def delete_note(note_id: int) -> dict:
+    cur = DB_CONN.execute("DELETE FROM notes WHERE id = ?", (note_id,))
+    DB_CONN.commit()
+    if cur.rowcount == 0:
+        raise HTTPException(status_code=404, detail="Note not found")
+    return {"deleted": True, "id": note_id}
+
+
+# ---------------------------------------------------------------------------
+# MCP VS Code config export + HTTP relay
+# ---------------------------------------------------------------------------
+
+@app.get("/api/mcp/vscode-config")
+def mcp_vscode_config() -> dict:
+    """Generate a VS Code settings.json snippet for all registered MCP servers."""
+    rows = DB_CONN.execute("SELECT * FROM mcp_servers ORDER BY id ASC").fetchall()
+    servers: dict[str, dict] = {}
+
+    for row in rows:
+        s = _serialize_mcp_row(row)
+        name = s["name"]
+        env = s.get("env") or {}
+
+        if s["transport"] == "stdio":
+            cmd_str = (s.get("command") or "").strip()
+            cmd_parts = shlex.split(cmd_str) if cmd_str else []
+            if not cmd_parts:
+                continue
+            vscode_env: dict[str, str] = {}
+            for k, v in env.items():
+                is_ref = isinstance(v, str) and bool(CRED_REF_PATTERN.match(v.strip()))
+                is_placeholder = isinstance(v, str) and v.strip() in ("<required>", "")
+                vscode_env[k] = f"${{env:{k}}}" if (is_ref or is_placeholder) else v
+            entry: dict = {"type": "stdio", "command": cmd_parts[0], "args": cmd_parts[1:] + (s.get("args") or [])}
+            if vscode_env:
+                entry["env"] = vscode_env
+            servers[name] = entry
+
+        elif s["transport"] in ("http", "sse"):
+            url = s.get("url")
+            if not url:
+                continue
+            servers[name] = {"type": "http", "url": url}
+
+    addresses = _discover_local_ipv4()
+    relay_url = f"http://{addresses[0] if addresses else '127.0.0.1'}:{settings.port}/mcp"
+
+    return {
+        "relay_url": relay_url,
+        "instructions": (
+            "Option A — Paste 'relay_only_snippet' into VS Code settings.json to route all HTTP MCP traffic "
+            "through this CrowPilot hub in a single entry. "
+            "Option B — Paste 'all_servers_snippet' to configure every server individually "
+            "(stdio servers run as local subprocesses inside VS Code)."
+        ),
+        "relay_only_snippet": json.dumps(
+            {"mcp": {"servers": {"crowpilot-relay": {"type": "http", "url": relay_url}}}}, indent=2
+        ),
+        "all_servers_snippet": json.dumps({"mcp": {"servers": servers}}, indent=2),
+    }
+
+
+@app.get("/mcp")
+async def mcp_relay_info() -> dict:
+    return {
+        "name": "crowpilot-relay",
+        "version": "1.0.0",
+        "description": "CrowPilot MCP relay — aggregates HTTP-based MCP servers registered in this hub.",
+        "protocol": "mcp-streamable-http",
+        "tools_from_transport": ["http", "sse"],
+        "note": "stdio servers must be configured individually in VS Code; see /api/mcp/vscode-config.",
+    }
+
+
+@app.post("/mcp")
+async def mcp_relay(request: Request):
+    """MCP Streamable HTTP relay. VS Code can point a single 'http' MCP server entry here."""
+    try:
+        body = await request.json()
+    except Exception:
+        return {"jsonrpc": "2.0", "id": None, "error": {"code": -32700, "message": "Parse error"}}
+
+    method = body.get("method", "")
+    req_id = body.get("id")
+    params = body.get("params") or {}
+
+    # Notifications have no id and require no response body
+    if req_id is None and method.startswith("notifications/"):
+        return {}
+
+    if method == "initialize":
+        return {
+            "jsonrpc": "2.0",
+            "id": req_id,
+            "result": {
+                "protocolVersion": "2024-11-05",
+                "capabilities": {"tools": {}},
+                "serverInfo": {"name": "crowpilot-relay", "version": "1.0.0"},
+            },
+        }
+
+    if method == "ping":
+        return {"jsonrpc": "2.0", "id": req_id, "result": {}}
+
+    if method == "tools/list":
+        tools = await _relay_list_tools()
+        return {"jsonrpc": "2.0", "id": req_id, "result": {"tools": tools}}
+
+    if method == "tools/call":
+        tool_name = (params.get("name") or "").strip()
+        arguments = params.get("arguments") or {}
+        if not tool_name:
+            return {"jsonrpc": "2.0", "id": req_id, "error": {"code": -32602, "message": "Missing tool name"}}
+        result = await _relay_call_tool(tool_name, arguments)
+        return {"jsonrpc": "2.0", "id": req_id, "result": result}
+
+    return {"jsonrpc": "2.0", "id": req_id, "error": {"code": -32601, "message": f"Method not found: {method}"}}
+
+
+# ---------------------------------------------------------------------------
+# Project context summary
+# ---------------------------------------------------------------------------
+
+@app.get("/api/projects/{project_id}/context-summary")
+def get_project_context_summary(project_id: int) -> dict:
+    """Return README, package.json, and top-level file tree for LLM context injection."""
+    _, project_path = _project_row_and_path(project_id)
+
+    parts: list[str] = []
+
+    for readme in ("README.md", "README.txt", "README", "readme.md"):
+        p = project_path / readme
+        if p.exists() and p.is_file():
+            try:
+                parts.append(f"## {readme}\n{p.read_text(encoding='utf-8', errors='replace')[:3000]}")
+            except Exception:
+                pass
+            break
+
+    pkg = project_path / "package.json"
+    if pkg.exists() and pkg.is_file():
+        try:
+            raw = json.loads(pkg.read_text(encoding="utf-8"))
+            keys = ("name", "version", "description", "scripts", "dependencies", "devDependencies")
+            essential = {k: raw[k] for k in keys if k in raw}
+            parts.append(f"## package.json\n{json.dumps(essential, indent=2)[:2000]}")
+        except Exception:
+            pass
+
+    SKIP = {"node_modules", ".git", "__pycache__", "dist", "build", ".next", ".turbo", "coverage"}
+    tree_lines: list[str] = []
+    try:
+        for child in sorted(project_path.iterdir(), key=lambda p: (not p.is_dir(), p.name.lower())):
+            if child.name.startswith(".") or child.name in SKIP:
+                continue
+            tree_lines.append(f"{'📁' if child.is_dir() else '📄'} {child.name}")
+            if child.is_dir() and len(tree_lines) < 60:
+                try:
+                    for sub in sorted(child.iterdir(), key=lambda p: (not p.is_dir(), p.name.lower()))[:10]:
+                        if not sub.name.startswith(".") and sub.name not in SKIP:
+                            tree_lines.append(f"  {'📁' if sub.is_dir() else '📄'} {sub.name}")
+                except PermissionError:
+                    pass
+    except Exception:
+        pass
+
+    parts.append(f"## File Structure\n{chr(10).join(tree_lines[:80])}")
+
+    context = "\n\n".join(parts)
+    return {"project_id": project_id, "path": str(project_path), "context": context}

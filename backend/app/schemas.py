@@ -37,6 +37,7 @@ class ChatRequest(BaseModel):
     model: str | None = None
     max_tokens: int | None = None
     temperature: float | None = None
+    use_memory: bool = True
 
 
 class AddNoteRequest(BaseModel):
