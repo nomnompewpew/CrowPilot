@@ -415,7 +415,7 @@
       }
     </style>
   </head>
-  <body class="big-brain-mode">
+  <body class="zen-mode">
     <aside class="sidebar">
       <div class="sidebar-section">
         <h3>Mode</h3>
@@ -1037,6 +1037,7 @@ STRIPE_API_KEY=..."></textarea>
 
       function setUiMode(mode) {
         state.uiMode = mode;
+        localStorage.setItem('crowpilot_ui_mode', mode);
         document.body.classList.toggle('big-brain-mode', mode === 'big-brain');
         document.body.classList.toggle('zen-mode', mode === 'zen');
         el('bigBrainModeBtn').classList.toggle('active', mode === 'big-brain');
@@ -2707,7 +2708,7 @@ STRIPE_API_KEY=..."></textarea>
         loadConversationHistory(),
       ]).then(() => {
         tabSwitch('deck');
-        setUiMode('big-brain');
+        setUiMode(localStorage.getItem('crowpilot_ui_mode') || 'zen');
         updateSidebarStatus();
       }).catch((err) => {
         console.error(err);
