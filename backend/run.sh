@@ -14,4 +14,17 @@ if [[ ! -f .env ]]; then
   cp .env.example .env
 fi
 
-uvicorn app.main:app --host 127.0.0.1 --port 8787 --reload
+# Load .env so PANTHEON_HOST / PANTHEON_PORT are available as shell variables
+if [[ -f .env ]]; then
+  # export only simple KEY=VALUE lines (skip comments and blanks)
+  set -o allexport
+  # shellcheck disable=SC1091
+  source .env
+  set +o allexport
+fi
+
+HOST="${PANTHEON_HOST:-0.0.0.0}"
+PORT="${PANTHEON_PORT:-8787}"
+
+echo "Starting CrowPilot on ${HOST}:${PORT}"
+uvicorn app.main:app --host "${HOST}" --port "${PORT}" --reload --timeout-graceful-shutdown 3

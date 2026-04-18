@@ -241,6 +241,10 @@ def init_db(conn: sqlite3.Connection) -> None:
     _ensure_column(conn, "conversations", "archive_note", "archive_note TEXT")
     _ensure_column(conn, "conversations", "archived_at", "archived_at TEXT")
     _ensure_column(conn, "mcp_servers", "is_builtin", "is_builtin INTEGER NOT NULL DEFAULT 0")
+    # Passive embed worker — vector storage
+    _ensure_column(conn, "note_chunks", "embedding", "embedding BLOB")
+    # Setup wizard — track per-user completion
+    _ensure_column(conn, "users", "setup_complete", "setup_complete INTEGER NOT NULL DEFAULT 0")
 
     conn.commit()
 

@@ -38,6 +38,8 @@ class ChatRequest(BaseModel):
     max_tokens: int | None = None
     temperature: float | None = None
     use_memory: bool = True
+    secure_mode: bool = False
+    cloud_provider: str | None = None
 
 
 class LoginRequest(BaseModel):
@@ -154,7 +156,7 @@ class SkillUpdateRequest(BaseModel):
 
 
 class ZenActionRequest(BaseModel):
-    domain: Literal["task_create", "skill_create", "note_create", "mcp_create", "widget_create"]
+    domain: Literal["task_create", "skill_create", "note_create", "mcp_create", "widget_create", "credential_create", "integration_create"]
     prompt: str = Field(min_length=1)
     source_text: str | None = None
     provider: str | None = None

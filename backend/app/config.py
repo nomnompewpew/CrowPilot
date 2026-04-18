@@ -10,7 +10,7 @@ load_dotenv()
 @dataclass(frozen=True)
 class Settings:
     db_path: str = os.getenv("PANTHEON_DB_PATH", "./data/pantheon.db")
-    host: str = os.getenv("PANTHEON_HOST", "127.0.0.1")
+    host: str = os.getenv("PANTHEON_HOST", "0.0.0.0")
     port: int = int(os.getenv("PANTHEON_PORT", "8787"))
 
     default_provider: str = os.getenv("PANTHEON_DEFAULT_PROVIDER", "copilot_proxy")
@@ -19,9 +19,14 @@ class Settings:
     copilot_model: str = os.getenv("PANTHEON_COPILOT_MODEL", "gpt-5.3-codex")
     copilot_api_key: str = os.getenv("PANTHEON_COPILOT_API_KEY", "")
 
+    # Local llama.cpp chat model (used for PII scanning in secure mode + direct local chat)
     local_base_url: str = os.getenv("PANTHEON_LOCAL_BASE_URL", "")
     local_model: str = os.getenv("PANTHEON_LOCAL_MODEL", "local-model")
     local_api_key: str = os.getenv("PANTHEON_LOCAL_API_KEY", "")
+
+    # Local embedding model (used for knowledge base semantic search)
+    embedding_base_url: str = os.getenv("PANTHEON_EMBEDDING_BASE_URL", "")
+    embedding_model: str = os.getenv("PANTHEON_EMBEDDING_MODEL", "")
 
     chunk_size: int = int(os.getenv("PANTHEON_CHUNK_SIZE", "700"))
     chunk_overlap: int = int(os.getenv("PANTHEON_CHUNK_OVERLAP", "120"))

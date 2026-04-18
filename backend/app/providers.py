@@ -38,10 +38,16 @@ class OpenAICompatProvider:
         model: str | None = None,
         max_tokens: int | None = None,
         temperature: float | None = None,
-    ) -> AsyncGenerator[str, None]:
+        no_think: bool = False,
+    ) -> AsyncGenerator[tuple[str, str], None]:
+        """Yields (kind, token) tuples where kind is 'content' or 'thinking'."""
+        msgs = list(messages)
+        if no_think and (not msgs or msgs[0].get("role") != "system" or "/no_think" not in msgs[0].get("content", "")):
+            msgs = [{"role": "system", "content": "/no_think"}] + msgs
+
         payload: dict[str, Any] = {
             "model": model or self.cfg.default_model,
-            "messages": messages,
+            "messages": msgs,
             "stream": True,
         }
         if max_tokens is not None:
@@ -74,7 +80,10 @@ class OpenAICompatProvider:
                     delta = choices[0].get("delta", {})
                     token = delta.get("content")
                     if token:
-                        yield token
+                        yield ("content", token)
+                    thinking = delta.get("reasoning_content")
+                    if thinking:
+                        yield ("thinking", thinking)
 
     async def complete_chat(
         self,

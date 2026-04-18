@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>CrowPilot Control Deck</title>
-    <link rel="icon" href="/favicon.ico" sizes="any" />
+    <link rel="icon" href="/favicon.ico?v=20260417" sizes="any" />
     <style>
       @import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;600&display=swap");
 
@@ -246,6 +246,55 @@
       }
       .chip strong { font-size: 1.25rem; font-weight: 700; display: block; color: var(--text); }
       .chip span   { font-size: .73rem; color: var(--text-muted); }
+      .chip.highlight { border-color: var(--border-hi); background: var(--surface-2); }
+      .chip.highlight strong { color: var(--green-hi); }
+      .chip.warn-chip { border-color: var(--amber); }
+      .chip.warn-chip strong { color: var(--amber-hi); }
+      .chip.danger-chip { border-color: var(--red); }
+      .chip.danger-chip strong { color: var(--red-hi); }
+
+      /* ── Server & Logs view ────────────────────────────────────────── */
+      .log-stream {
+        font-family: "IBM Plex Mono", monospace;
+        font-size: .75rem;
+        line-height: 1.55;
+        background: var(--bg);
+        color: #a8c9a0;
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 10px 12px;
+        height: 420px;
+        overflow-y: auto;
+        white-space: pre-wrap;
+        word-break: break-all;
+        scrollbar-width: thin;
+        scrollbar-color: var(--border) transparent;
+      }
+      .log-stream .log-err  { color: var(--red-hi); }
+      .log-stream .log-warn { color: var(--amber-hi); }
+      .log-stream .log-info { color: var(--text); }
+      .log-stream .log-dbg  { color: var(--text-dim); }
+      .stat-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 10px;
+        margin-top: 10px;
+      }
+      .stat-row { display: flex; justify-content: space-between; align-items: baseline; padding: 5px 0; border-bottom: 1px solid var(--border); font-size: .85rem; }
+      .stat-row:last-child { border-bottom: none; }
+      .stat-row .stat-label { color: var(--text-muted); font-size: .77rem; }
+      .stat-row .stat-value { font-family: "IBM Plex Mono", monospace; font-size: .82rem; color: var(--text); }
+      .copy-btn { width: auto; padding: 4px 10px; font-size: .75rem; font-weight: 600; }
+      .url-row { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
+      .url-row code { flex: 1; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 6px 10px; font-family: "IBM Plex Mono", monospace; font-size: .8rem; color: var(--green-hi); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .iface-tag { display: inline-block; background: var(--surface-3); border: 1px solid var(--border-hi); border-radius: 5px; padding: 2px 8px; font-size: .73rem; font-family: "IBM Plex Mono", monospace; margin: 2px 2px 2px 0; color: var(--text); }
+      .progress-bar-wrap { background: var(--border); border-radius: 4px; height: 6px; margin-top: 4px; overflow: hidden; }
+      .progress-bar { height: 100%; border-radius: 4px; background: var(--green); transition: width 600ms ease; }
+      .progress-bar.warn { background: var(--amber); }
+      .progress-bar.danger { background: var(--red); }
+      .thinking-block { margin: 4px 0 6px; border: 1px solid var(--border); border-radius: 6px; font-size: .78rem; background: var(--surface-1); }
+      .thinking-block summary { cursor: pointer; padding: 4px 8px; color: var(--muted); user-select: none; }
+      .thinking-content { margin: 0; padding: 8px; font-family: "IBM Plex Mono", monospace; font-size: .72rem; color: var(--muted); white-space: pre-wrap; word-break: break-word; max-height: 200px; overflow-y: auto; }
 
       /* ── Views ─────────────────────────────────────────────────────── */
       .view { display: none; animation: fadeIn 200ms ease; }
@@ -369,7 +418,7 @@
   <!-- ── Login Overlay ──────────────────────────────────────────────────── -->
   <div id="loginOverlay">
     <div id="loginBox">
-      <img src="/static/crowpilot-logo.png" alt="CrowPilot" />
+      <img src="/static/crowpilot-logo.png?v=20260417" alt="CrowPilot" />
       <h1>CrowPilot</h1>
       <p>Local AI workspace. Sign in to continue.</p>
       <form id="loginForm">
@@ -393,7 +442,7 @@
     <!-- Sidebar -->
     <aside id="sidebar">
       <div class="sb-logo">
-        <img src="/static/crowpilot-logo.png" alt="CrowPilot logo" />
+        <img src="/static/crowpilot-logo.png?v=20260417" alt="CrowPilot logo" />
         <div class="sb-logo-text">
           <span>CrowPilot</span>
           <small>Control Deck</small>
@@ -409,6 +458,7 @@
         <button data-nav="credentials"><span class="nav-icon">🗝</span> Credentials</button>
         <button data-nav="integrations"><span class="nav-icon">🔐</span> Integrations</button>
         <button data-nav="projects"><span class="nav-icon">🏗</span> Projects</button>
+        <button data-nav="server"><span class="nav-icon">🖥</span> Server & Logs</button>
       </nav>
 
       <div class="sb-divider"></div>
@@ -444,6 +494,7 @@
       </div>
 
       <div class="sb-bottom">
+        <div id="embedBadge" style="display:none; font-size:.65rem; color:var(--accent); margin-bottom:5px;">⚙ Embedding…</div>
         <div id="sidebarStatus"></div>
         <button id="logoutBtn">Sign Out</button>
       </div>
@@ -495,10 +546,16 @@
               <div id="messages" class="messages"></div>
               <label for="prompt">Prompt</label>
               <textarea id="prompt" placeholder="Design a dashboard widget system for model usage analytics."></textarea>
-              <label class="inline-check">
-                <input id="useMemoryToggle" type="checkbox" checked />
-                Use knowledge memory
-              </label>
+              <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:6px;">
+                <label class="inline-check">
+                  <input id="useMemoryToggle" type="checkbox" checked />
+                  Use knowledge memory
+                </label>
+                <label class="inline-check" title="Route through local Qwen3-14B for PII scan before sending to cloud">
+                  <input id="secureModeToggle" type="checkbox" />
+                  🔒 Secure Mode
+                </label>
+              </div>
               <button id="sendBtn" style="margin-top:8px;">Send</button>
               <div id="chatStatus" class="status"></div>
             </article>
@@ -507,10 +564,19 @@
 
       <section id="view-mcp" class="view">
         <div class="grid dual">
+
+          <!-- Connect catalog — always visible, drives one-click auth -->
+          <article class="card" style="grid-column: 1 / -1;">
+            <h2>Connect a Service</h2>
+            <p class="tiny">Click Connect on any service. OAuth services open the provider login page. API-key services show a single input. Free services connect instantly.</p>
+            <div id="mcpCatalogGrid" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(220px,1fr)); gap:12px; margin-top:12px;"></div>
+          </article>
+
+          <!-- Manual registration — Big Brain only -->
           <article class="card big-brain-only">
-            <h2>Register MCP Server</h2>
+            <h2>Manual Registration</h2>
             <label for="mcpName">Name</label>
-            <input id="mcpName" placeholder="github-tools" />
+            <input id="mcpName" placeholder="my-server" />
             <label for="mcpTransport">Transport</label>
             <select id="mcpTransport">
               <option value="http">http</option>
@@ -518,7 +584,7 @@
               <option value="stdio">stdio</option>
             </select>
             <label for="mcpUrl">URL (http/sse)</label>
-            <input id="mcpUrl" placeholder="http://127.0.0.1:9001/health" />
+            <input id="mcpUrl" placeholder="http://127.0.0.1:9001/mcp" />
             <label for="mcpCmd">Command (stdio)</label>
             <input id="mcpCmd" placeholder="npx @modelcontextprotocol/server-github" />
             <label for="mcpArgs">Args JSON</label>
@@ -526,52 +592,57 @@
             <label for="mcpEnv">Env JSON</label>
             <textarea id="mcpEnv" class="mono" placeholder='{"GITHUB_TOKEN":"..."}'></textarea>
             <div class="row" style="margin-top:8px;">
-              <div>
-                <label for="mcpEnvVarKey">Env Var Key</label>
-                <input id="mcpEnvVarKey" placeholder="CLOUDFLARE_API_TOKEN" />
-              </div>
-              <div>
-                <label for="mcpCredentialRef">Credential</label>
-                <select id="mcpCredentialRef"></select>
-              </div>
-            </div>
-            <div class="row" style="margin-top:8px;">
-              <button id="mcpLinkCredentialBtn" class="alt">Link Credential Ref</button>
-              <button id="mcpOpenCredentialsBtn">Manage Vault</button>
-            </div>
-            <label for="mcpOnboardPrompt">Onboarding Prompt</label>
-            <textarea id="mcpOnboardPrompt" placeholder="Add GitHub MCP server and include required auth fields."></textarea>
-            <div class="row" style="margin-top:8px;">
-              <button id="mcpSuggestBtn" class="alt">Suggest Config</button>
-              <button id="mcpApplySuggestionBtn">Apply Suggestion</button>
-            </div>
-            <div id="mcpOnboardOut" class="status mono"></div>
-            <div class="row" style="margin-top:8px;">
               <button id="createMcpBtn">Add Server</button>
               <button id="createAndCheckMcpBtn" class="alt">Add + Check</button>
             </div>
             <div id="mcpStatus" class="status"></div>
           </article>
 
-          <article class="card zen-shell zen-only">
-            <h2>Zen MCP Guide</h2>
-            <p class="tiny">Describe the server you want in plain English. Include URLs, commands, or pasted setup snippets if you have them.</p>
-            <label for="zenMcpPrompt">Prompt</label>
-            <textarea id="zenMcpPrompt" placeholder="Add the GitHub MCP server using stdio and the @modelcontextprotocol GitHub package."></textarea>
-            <button id="zenMcpBtn">Create From Prompt</button>
-            <div id="zenMcpResult" class="zen-result"></div>
-          </article>
-
+          <!-- Registry -->
           <article class="card">
-            <h2>MCP Server Registry</h2>
+            <h2>Active Servers</h2>
             <button id="vsCodeConfigBtn" class="alt" style="margin-bottom:10px; width:auto; padding:8px 14px;">Export for VS Code</button>
             <div id="mcpList" class="list"></div>
           </article>
         </div>
       </section>
 
+      <!-- Credential prompt modal for API-key services -->
+      <dialog id="mcpCredDialog" style="background:var(--surface2); border:1px solid var(--border); border-radius:10px; padding:24px; min-width:320px; color:var(--text);">
+        <h3 id="mcpCredDialogTitle" style="margin:0 0 12px;">Connect Service</h3>
+        <p id="mcpCredDialogHint" class="tiny" style="margin-bottom:12px;"></p>
+        <label id="mcpCredDialogLabel" for="mcpCredDialogInput" style="font-size:12px;">API Key</label>
+        <input id="mcpCredDialogInput" type="password" placeholder="Paste key here" style="margin-top:4px; margin-bottom:12px;" />
+        <div class="row">
+          <button id="mcpCredDialogSave">Connect</button>
+          <button id="mcpCredDialogCancel" class="alt">Cancel</button>
+        </div>
+        <div id="mcpCredDialogStatus" class="status tiny" style="margin-top:8px;"></div>
+      </dialog>
+
       <section id="view-knowledge" class="view">
         <div class="grid dual">
+
+          <!-- URL → Knowledge (always visible, no mode gate) -->
+          <article class="card" style="grid-column: 1 / -1;">
+            <h2>Import from URL</h2>
+            <p class="tiny">Paste any URL or search query — fetched via Jina Reader, converted to Markdown, and indexed into your knowledge base instantly.</p>
+            <div class="row" style="align-items:flex-end; gap:8px; flex-wrap:wrap;">
+              <div style="flex:1; min-width:200px;">
+                <label for="jinaUrl">URL or Search Query</label>
+                <input id="jinaUrl" placeholder="https://docs.example.com/guide  or  space exploration news" />
+              </div>
+              <div style="display:flex; gap:6px; align-items:flex-end; padding-bottom:1px;">
+                <label style="display:flex; align-items:center; gap:4px; font-size:12px; cursor:pointer;">
+                  <input id="jinaSearchMode" type="checkbox" style="width:auto; margin:0;" />
+                  Web search
+                </label>
+              </div>
+              <button id="jinaFetchBtn" style="white-space:nowrap; min-width:130px;">Import URL</button>
+            </div>
+            <div id="jinaStatus" class="status mono" style="margin-top:8px;"></div>
+          </article>
+
           <article class="card big-brain-only">
             <h2>Knowledge Capture</h2>
             <label for="noteTitle">Note Title</label>
@@ -834,6 +905,14 @@ STRIPE_API_KEY=..."></textarea>
             <h2>Stored Credentials</h2>
             <div id="credentialList" class="list"></div>
           </article>
+
+          <article class="card zen-shell" style="grid-column: 1 / -1;">
+            <h2>⚡ Zen Credential</h2>
+            <p class="tiny">Describe a credential in plain English and Zen will create the vault entry for you.</p>
+            <textarea id="zenCredentialPrompt" rows="3" placeholder="Add my Cloudflare API token — name it cloudflare-dns, it's an api_key for Cloudflare."></textarea>
+            <button id="zenCredentialBtn">✨ Zen It</button>
+            <div id="zenCredentialStatus" class="status mono"></div>
+          </article>
         </div>
       </section>
 
@@ -891,6 +970,14 @@ STRIPE_API_KEY=..."></textarea>
           <article class="card">
             <h2>Integration Registry</h2>
             <div id="integrationList" class="list"></div>
+          </article>
+
+          <article class="card zen-shell" style="grid-column: 1 / -1;">
+            <h2>⚡ Zen Integration</h2>
+            <p class="tiny">Describe a provider in plain English and Zen will register the integration for you.</p>
+            <textarea id="zenIntegrationPrompt" rows="3" placeholder="Add OpenRouter as an AI provider — I want to use it for cheap routing. My API key is sk-or-xxx."></textarea>
+            <button id="zenIntegrationBtn">✨ Zen It</button>
+            <div id="zenIntegrationStatus" class="status mono"></div>
           </article>
 
           <article class="card zen-shell">
@@ -997,6 +1084,81 @@ STRIPE_API_KEY=..."></textarea>
         </div>
       </section>
 
+      <!-- ── Server & Logs ─────────────────────────────────────────── -->
+      <section id="view-server" class="view">
+        <div class="grid dual">
+
+          <!-- LAN Access card -->
+          <article class="card">
+            <h2>🌐 LAN Access & MCP Relay</h2>
+            <p class="tiny">Share this server across your network. Point VS Code or any MCP client at the relay URL to get all your tools.</p>
+            <div style="margin-top:12px;">
+              <div class="stat-row"><span class="stat-label">Primary LAN IP</span><span id="srvPrimaryIp" class="stat-value">—</span></div>
+              <div class="stat-row"><span class="stat-label">Hostname</span><span id="srvHostname" class="stat-value">—</span></div>
+              <div class="stat-row"><span class="stat-label">Hypervisor</span><span id="srvHypervisor" class="stat-value">—</span></div>
+              <div class="stat-row"><span class="stat-label">QEMU Guest Agent</span><span id="srvGuestAgent" class="stat-value">—</span></div>
+            </div>
+            <h3>UI URL</h3>
+            <div class="url-row">
+              <code id="srvUiUrl">—</code>
+              <button class="copy-btn alt" onclick="copyText('srvUiUrl',this)">Copy</button>
+            </div>
+            <h3>MCP Relay URL <span class="tiny" style="font-weight:400;">— paste into VS Code settings.json</span></h3>
+            <div class="url-row">
+              <code id="srvMcpRelayUrl">—</code>
+              <button class="copy-btn" onclick="copyText('srvMcpRelayUrl',this)">Copy</button>
+            </div>
+            <h3>All Interfaces</h3>
+            <div id="srvInterfaces" style="margin-top:4px;"></div>
+            <div style="margin-top:12px;">
+              <button id="refreshServerStatsBtn" class="alt" style="width:auto; padding:6px 14px;">Refresh Stats</button>
+            </div>
+          </article>
+
+          <!-- System Stats card -->
+          <article class="card">
+            <h2>📊 System Metrics</h2>
+            <h3>CPU</h3>
+            <div id="srvCpuCard">
+              <div class="stat-row"><span class="stat-label">Model</span><span id="srvCpuModel" class="stat-value">—</span></div>
+              <div class="stat-row"><span class="stat-label">Cores</span><span id="srvCpuCores" class="stat-value">—</span></div>
+              <div class="stat-row"><span class="stat-label">Load (1m / 5m / 15m)</span><span id="srvCpuLoad" class="stat-value">—</span></div>
+            </div>
+            <h3>Memory</h3>
+            <div class="stat-row"><span class="stat-label">Total</span><span id="srvMemTotal" class="stat-value">—</span></div>
+            <div class="stat-row"><span class="stat-label">Used / Available</span><span id="srvMemUsed" class="stat-value">—</span></div>
+            <div class="progress-bar-wrap"><div id="srvMemBar" class="progress-bar" style="width:0%"></div></div>
+            <h3>Disk — /</h3>
+            <div class="stat-row"><span class="stat-label">Total</span><span id="srvDiskTotal" class="stat-value">—</span></div>
+            <div class="stat-row"><span class="stat-label">Used / Free</span><span id="srvDiskUsed" class="stat-value">—</span></div>
+            <div class="progress-bar-wrap"><div id="srvDiskBar" class="progress-bar" style="width:0%"></div></div>
+            <h3>Uptime</h3>
+            <div class="stat-row"><span class="stat-label">Running for</span><span id="srvUptime" class="stat-value">—</span></div>
+            <div class="stat-row"><span class="stat-label">OS / Kernel</span><span id="srvKernel" class="stat-value">—</span></div>
+          </article>
+
+          <!-- Live Logs card (full width) -->
+          <article class="card" style="grid-column: 1 / -1;">
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
+              <h2 style="margin:0;">📋 Live Server Logs</h2>
+              <div style="display:flex; gap:8px; align-items:center;">
+                <span id="logStreamStatus" class="tiny" style="color:var(--text-dim);">Connecting…</span>
+                <button id="clearLogsBtn" class="alt" style="width:auto; padding:4px 10px; font-size:.75rem;">Clear</button>
+                <button id="pauseLogsBtn" style="width:auto; padding:4px 10px; font-size:.75rem;">Pause</button>
+                <label style="display:flex; align-items:center; gap:6px; margin:0; font-size:.75rem; color:var(--text-muted); white-space:nowrap;">
+                  <input id="logAutoScrollToggle" type="checkbox" checked style="width:auto;" /> Auto-scroll
+                </label>
+                <label style="display:flex; align-items:center; gap:6px; margin:0; font-size:.75rem; color:var(--text-muted); white-space:nowrap;">
+                  Filter: <input id="logFilter" type="text" placeholder="e.g. ERROR" style="width:120px; padding:3px 7px; font-size:.75rem;" />
+                </label>
+              </div>
+            </div>
+            <div id="logStream" class="log-stream"></div>
+          </article>
+
+        </div>
+      </section>
+
       </main><!-- #mainContent -->
     </div><!-- #mainWrap -->
   </div><!-- #appShell -->
@@ -1035,6 +1197,8 @@ STRIPE_API_KEY=..."></textarea>
         projectRuntimes: [],
         selectedRuntimeId: null,
         noteList: [],
+        serverStats: null,
+        lastSummary: null,
         conversationBuckets: {
           active: [],
           hidden: [],
@@ -1105,6 +1269,7 @@ STRIPE_API_KEY=..."></textarea>
         credentials: 'Credentials Vault',
         integrations: 'Integrations',
         projects: 'Projects',
+        server: 'Server & Logs',
       };
 
       function tabSwitch(tab) {
@@ -1115,6 +1280,140 @@ STRIPE_API_KEY=..."></textarea>
           view.classList.toggle('active', view.id === `view-${tab}`);
         });
         if (el('topBarSection')) el('topBarSection').textContent = NAV_LABELS[tab] || tab;
+        if (tab === 'server') loadServerStats();
+        if (tab === 'mcp') { loadMcpCatalog(); listMcpServers(); }
+      }
+
+      /* ── Copy helper ────────────────────────────────────────────────── */
+      function copyText(elId, btn) {
+        const text = el(elId).textContent.trim();
+        navigator.clipboard.writeText(text).then(() => {
+          const orig = btn.textContent;
+          btn.textContent = 'Copied!';
+          setTimeout(() => { btn.textContent = orig; }, 1500);
+        });
+      }
+
+      /* ── Server Stats ───────────────────────────────────────────────── */
+      async function loadServerStats() {
+        try {
+          const resp = await fetch('/api/system/server-stats');
+          if (!resp.ok) return;
+          const s = await resp.json();
+          const net = s.network || {};
+          const cpu = s.cpu || {};
+          const mem = s.memory || {};
+          const disk = s.disk || {};
+          const qemu = s.qemu || {};
+
+          // LAN access card
+          el('srvPrimaryIp').textContent = net.primary_lan_ip || '—';
+          el('srvHostname').textContent = net.hostname || s.hostname || '—';
+          el('srvHypervisor').textContent = qemu.hypervisor || (qemu.detected ? 'detected' : 'bare-metal / unknown');
+          el('srvGuestAgent').textContent = qemu.guest_agent_available
+            ? `✅ ${qemu.guest_agent_path || 'present'}${qemu.guest_agent_version ? ' v' + qemu.guest_agent_version : ''}`
+            : '—';
+          el('srvUiUrl').textContent = net.ui_url || '—';
+          el('srvMcpRelayUrl').textContent = net.mcp_relay_url || '—';
+
+          const ifaceContainer = el('srvInterfaces');
+          ifaceContainer.innerHTML = '';
+          (net.interfaces || []).forEach((iface) => {
+            if (iface.is_loopback) return;
+            const tag = document.createElement('span');
+            tag.className = 'iface-tag';
+            tag.textContent = `${iface.interface}: ${iface.ip}/${iface.prefix}`;
+            ifaceContainer.appendChild(tag);
+          });
+
+          // Metrics card
+          el('srvCpuModel').textContent = cpu.model || '—';
+          el('srvCpuCores').textContent = cpu.count ? `${cpu.count} logical` : '—';
+          el('srvCpuLoad').textContent = cpu.load_1m != null ? `${cpu.load_1m} / ${cpu.load_5m} / ${cpu.load_15m}` : '—';
+
+          el('srvMemTotal').textContent = mem.total_mb ? `${mem.total_mb} MB` : '—';
+          el('srvMemUsed').textContent = mem.used_mb != null ? `${mem.used_mb} MB used / ${mem.available_mb} MB free (${mem.used_pct}%)` : '—';
+          const memBar = el('srvMemBar');
+          memBar.style.width = `${mem.used_pct || 0}%`;
+          memBar.className = 'progress-bar' + (mem.used_pct > 85 ? ' danger' : mem.used_pct > 65 ? ' warn' : '');
+
+          el('srvDiskTotal').textContent = disk.total_gb ? `${disk.total_gb} GB` : '—';
+          el('srvDiskUsed').textContent = disk.used_gb != null ? `${disk.used_gb} GB used / ${disk.free_gb} GB free (${disk.used_pct}%)` : '—';
+          const diskBar = el('srvDiskBar');
+          diskBar.style.width = `${disk.used_pct || 0}%`;
+          diskBar.className = 'progress-bar' + (disk.used_pct > 85 ? ' danger' : disk.used_pct > 65 ? ' warn' : '');
+
+          el('srvUptime').textContent = (s.uptime || {}).human || '—';
+          el('srvKernel').textContent = `${s.os || ''} ${s.kernel || ''}`.trim() || '—';
+
+          // Update persistent stat strip with hardware info
+          state.serverStats = s;
+          renderStatStrip(state.lastSummary, s);
+        } catch (_) {}
+      }
+
+      /* ── Log Stream ─────────────────────────────────────────────────── */
+      let _logEs = null;
+      let _logPaused = false;
+      let _logLineCount = 0;
+      const MAX_LOG_LINES = 1000;
+
+      function _logLevel(line) {
+        if (/\bERROR\b|\bCRITICAL\b|\bException\b|Traceback/i.test(line)) return 'log-err';
+        if (/\bWARNING\b|\bWARN\b/i.test(line)) return 'log-warn';
+        if (/\bDEBUG\b/i.test(line)) return 'log-dbg';
+        return 'log-info';
+      }
+
+      function appendLogLine(rawLine) {
+        if (_logPaused) return;
+        const filter = el('logFilter').value.trim().toLowerCase();
+        if (filter && !rawLine.toLowerCase().includes(filter)) return;
+
+        const container = el('logStream');
+        const div = document.createElement('div');
+        div.className = _logLevel(rawLine);
+        div.textContent = rawLine;
+        container.appendChild(div);
+        _logLineCount++;
+
+        // Trim excess lines from the top
+        while (_logLineCount > MAX_LOG_LINES && container.firstChild) {
+          container.removeChild(container.firstChild);
+          _logLineCount--;
+        }
+
+        if (el('logAutoScrollToggle').checked) {
+          container.scrollTop = container.scrollHeight;
+        }
+      }
+
+      function startLogStream() {
+        if (_logEs) { _logEs.close(); _logEs = null; }
+        el('logStreamStatus').textContent = 'Connecting…';
+        const es = new EventSource('/api/system/logs/stream');
+        _logEs = es;
+
+        es.onopen = () => {
+          el('logStreamStatus').textContent = '🟢 Live';
+        };
+        es.onmessage = (evt) => {
+          try {
+            const line = JSON.parse(evt.data);
+            appendLogLine(line);
+          } catch (_) {
+            appendLogLine(evt.data);
+          }
+        };
+        es.onerror = () => {
+          el('logStreamStatus').textContent = '🔴 Disconnected — retrying…';
+          // Browser auto-reconnects SSE; update label after a moment
+          setTimeout(() => {
+            if (es.readyState === EventSource.OPEN) {
+              el('logStreamStatus').textContent = '🟢 Live';
+            }
+          }, 3000);
+        };
       }
 
       function setUiMode(mode) {
@@ -1277,18 +1576,59 @@ STRIPE_API_KEY=..."></textarea>
       async function loadSummary() {
         const resp = await fetch('/api/dashboard/summary');
         const data = await resp.json();
+        state.lastSummary = data;
+        renderStatStrip(data, state.serverStats);
+      }
+
+      function renderStatStrip(summary, server) {
         const strip = el('statStrip');
-        const c = data.counts;
+        if (!summary) return;
+        const c = summary.counts || {};
+        const net = (server && server.network) || {};
+        const mem = (server && server.memory) || {};
+        const cpu = (server && server.cpu) || {};
+        const disk = (server && server.disk) || {};
+
+        const memPct = mem.used_pct || 0;
+        const diskPct = disk.used_pct || 0;
+        const memClass = memPct > 85 ? 'danger-chip' : memPct > 65 ? 'warn-chip' : '';
+        const diskClass = diskPct > 85 ? 'danger-chip' : diskPct > 65 ? 'warn-chip' : '';
+
+        // LAN IP chip — clicking opens Server & Logs page
+        const ipChip = net.primary_lan_ip
+          ? `<div class="chip highlight" style="cursor:pointer;" title="Open Server &amp; Logs" onclick="tabSwitch('server')">
+               <strong style="font-size:.9rem;">${net.primary_lan_ip}</strong>
+               <span>LAN IP · click for server</span>
+             </div>`
+          : '';
+
+        const memChip = mem.used_pct != null
+          ? `<div class="chip ${memClass}" title="RAM: ${mem.used_mb}MB / ${mem.total_mb}MB">
+               <strong>${mem.used_pct}%</strong><span>RAM Used</span>
+             </div>` : '';
+
+        const cpuChip = cpu.load_1m != null
+          ? `<div class="chip" title="Load avg 1m/5m/15m">
+               <strong>${cpu.load_1m}</strong><span>CPU Load 1m</span>
+             </div>` : '';
+
+        const diskChip = disk.used_pct != null
+          ? `<div class="chip ${diskClass}" title="Disk: ${disk.used_gb}GB / ${disk.total_gb}GB">
+               <strong>${disk.used_pct}%</strong><span>Disk Used</span>
+             </div>` : '';
+
         strip.innerHTML = `
-          <div class="chip"><strong>${c.conversations}</strong><span>Conversations</span></div>
-          <div class="chip"><strong>${c.messages}</strong><span>Messages</span></div>
-          <div class="chip"><strong>${c.notes}</strong><span>Knowledge Notes</span></div>
-          <div class="chip"><strong>${c.mcp_servers}</strong><span>MCP Servers</span></div>
-          <div class="chip"><strong>${c.widgets}</strong><span>Widgets</span></div>
-          <div class="chip"><strong>${c.automation_tasks || 0}</strong><span>Automation Tasks</span></div>
+          ${ipChip}
+          ${memChip}
+          ${cpuChip}
+          ${diskChip}
+          <div class="chip"><strong>${c.conversations || 0}</strong><span>Conversations</span></div>
+          <div class="chip"><strong>${c.messages || 0}</strong><span>Messages</span></div>
+          <div class="chip"><strong>${c.notes || 0}</strong><span>Knowledge Notes</span></div>
+          <div class="chip"><strong>${c.mcp_servers || 0}</strong><span>MCP Servers</span></div>
+          <div class="chip"><strong>${c.automation_tasks || 0}</strong><span>Tasks</span></div>
           <div class="chip"><strong>${c.skills || 0}</strong><span>Skills</span></div>
           <div class="chip"><strong>${c.integrations || 0}</strong><span>Integrations</span></div>
-          <div class="chip"><strong>${c.credentials || 0}</strong><span>Credentials</span></div>
           <div class="chip"><strong>${c.projects || 0}</strong><span>Projects</span></div>
         `;
       }
@@ -1376,27 +1716,35 @@ STRIPE_API_KEY=..."></textarea>
         const selectedModel = el('model').value.trim();
         const model = state.autoModel && provider === 'copilot_proxy' ? 'auto' : selectedModel;
         const useMemory = el('useMemoryToggle').checked;
+        const secureMode = el('secureModeToggle').checked;
 
         addMessage('user', prompt);
         el('prompt').value = '';
         const assistant = addMessage('assistant', '');
-        el('chatStatus').textContent = 'Streaming...';
+        // thinking container (hidden until thinking tokens arrive)
+        let thinkingEl = null;
+        let thinkingBuf = '';
+        el('chatStatus').textContent = secureMode ? '🔍 Scanning locally…' : 'Streaming…';
+
+        const body = {
+          message: prompt,
+          conversation_id: state.conversationId,
+          provider,
+          model: model || null,
+          use_memory: useMemory,
+          secure_mode: secureMode,
+        };
 
         const resp = await fetch('/api/chat/stream', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            message: prompt,
-            conversation_id: state.conversationId,
-            provider,
-            model: model || null,
-            use_memory: useMemory,
-          }),
+          body: JSON.stringify(body),
         });
 
         if (!resp.ok || !resp.body) {
+          const errText = await resp.text().catch(() => resp.status);
           assistant.classList.add('error');
-          assistant.textContent = `Request failed: ${resp.status}`;
+          assistant.textContent = `Request failed (${resp.status}): ${errText}`;
           el('chatStatus').textContent = 'Error';
           return;
         }
@@ -1416,11 +1764,38 @@ STRIPE_API_KEY=..."></textarea>
           blocks.forEach((block) => {
             const line = block.split('\n').find((l) => l.startsWith('data: '));
             if (!line) return;
-            const payload = JSON.parse(line.slice(6));
+            let payload;
+            try { payload = JSON.parse(line.slice(6)); } catch { return; }
+
             if (payload.type === 'meta') {
               state.conversationId = payload.conversation_id;
               memoryHits = payload.memory_hits || 0;
+            } else if (payload.type === 'status') {
+              el('chatStatus').textContent = payload.text;
+            } else if (payload.type === 'pii_scan') {
+              const n = payload.redacted_count;
+              if (n > 0) {
+                const badge = document.createElement('div');
+                badge.className = 'tiny';
+                badge.style.cssText = 'color:var(--yellow,#e0b854);margin-bottom:4px;';
+                badge.textContent = `🔒 ${n} sensitive value${n === 1 ? '' : 's'} redacted before sending to cloud`;
+                assistant.parentNode.insertBefore(badge, assistant);
+              }
+            } else if (payload.type === 'thinking') {
+              // Show thinking tokens in a collapsible dim section
+              thinkingBuf += payload.token;
+              if (!thinkingEl) {
+                thinkingEl = document.createElement('details');
+                thinkingEl.className = 'thinking-block';
+                thinkingEl.innerHTML = '<summary>Thinking…</summary>';
+                const pre = document.createElement('pre');
+                pre.className = 'thinking-content';
+                thinkingEl.appendChild(pre);
+                assistant.parentNode.insertBefore(thinkingEl, assistant);
+              }
+              thinkingEl.querySelector('pre').textContent = thinkingBuf;
             } else if (payload.type === 'token') {
+              if (thinkingEl) thinkingEl.querySelector('summary').textContent = 'Thought process';
               assistant.textContent += payload.token;
             } else if (payload.type === 'error') {
               assistant.classList.add('error');
@@ -1428,9 +1803,39 @@ STRIPE_API_KEY=..."></textarea>
               el('chatStatus').textContent = 'Error';
             } else if (payload.type === 'done') {
               const memBadge = memoryHits > 0 ? ` · 🧠 ${memoryHits} memor${memoryHits === 1 ? 'y' : 'ies'} recalled` : '';
-              el('chatStatus').textContent = `Done. Conversation ${state.conversationId}${memBadge}`;
+              const secBadge = secureMode ? ' · 🔒 secure' : '';
+              el('chatStatus').textContent = `Done. Conversation ${state.conversationId}${memBadge}${secBadge}`;
             }
           });
+        }
+      }
+
+      async function jinaFetchUrl() {
+        const raw = el('jinaUrl').value.trim();
+        if (!raw) return;
+        const isSearch = el('jinaSearchMode').checked;
+        const btn = el('jinaFetchBtn');
+        btn.disabled = true;
+        btn.textContent = 'Fetching…';
+        el('jinaStatus').textContent = '';
+        try {
+          const resp = await fetch('/api/notes/fetch-url', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ url: raw, search: isSearch }),
+          });
+          const out = await resp.json();
+          if (!resp.ok) {
+            el('jinaStatus').textContent = `Error: ${out.detail || 'fetch failed'}`;
+            return;
+          }
+          el('jinaStatus').textContent = `✓ Imported "${out.title}" — ${out.chunks_indexed} chunks, ${out.chars} chars`;
+          el('jinaUrl').value = '';
+          await loadNoteList();
+          await loadSummary();
+        } finally {
+          btn.disabled = false;
+          btn.textContent = 'Import URL';
         }
       }
 
@@ -1508,6 +1913,106 @@ STRIPE_API_KEY=..."></textarea>
         });
         const out = await resp.json();
         el('searchOut').textContent = out.map((x) => `${x.note_title} [${x.chunk_index}]\n${x.chunk_text.slice(0, 180)}...`).join('\n\n') || 'No matches';
+      }
+
+      // ── MCP Catalog ─────────────────────────────────────────────────────────
+      const AUTH_ICONS = { none: '🆓', api_key: '🔑', bearer: '🔑', oauth: '🔗' };
+      const AUTH_LABELS = { none: 'Free', api_key: 'API Key', bearer: 'Token', oauth: 'OAuth' };
+
+      let _mcpCatalogPending = null; // service key awaiting key input
+
+      async function loadMcpCatalog() {
+        const resp = await fetch('/api/mcp/catalog');
+        if (!resp.ok) return;
+        const items = await resp.json();
+        const grid = el('mcpCatalogGrid');
+        grid.innerHTML = '';
+        items.forEach((item) => {
+          const tile = document.createElement('div');
+          tile.style.cssText = 'background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:14px;display:flex;flex-direction:column;gap:6px;';
+          const connected = item.installed && item.status === 'online';
+          const installed = item.installed;
+          const authIcon = AUTH_ICONS[item.auth_type] || '🔌';
+          const authLabel = AUTH_LABELS[item.auth_type] || item.auth_type;
+          tile.innerHTML = `
+            <div style="display:flex;align-items:center;justify-content:space-between;">
+              <strong style="font-size:13px;">${item.name}</strong>
+              <span class="badge ${connected ? 'ok' : installed ? 'offline' : ''}" style="font-size:10px;">${connected ? 'online' : installed ? 'offline' : authIcon + ' ' + authLabel}</span>
+            </div>
+            <p class="tiny" style="margin:0;color:var(--muted);line-height:1.4;">${item.notes}</p>
+            <button data-service="${item.key}" data-auth="${item.auth_type}" data-env-key="${(item.env_keys || [])[0] || ''}" data-docs="${(item.docs || [])[0] || ''}"
+              class="${connected ? 'alt' : ''}" style="margin-top:auto;">
+              ${connected ? '✓ Connected' : installed ? 'Reconnect' : 'Connect'}
+            </button>
+          `;
+          grid.appendChild(tile);
+        });
+
+        grid.querySelectorAll('button[data-service]').forEach((btn) => {
+          btn.addEventListener('click', () => mcpCatalogConnect(
+            btn.dataset.service,
+            btn.dataset.auth,
+            btn.dataset.envKey,
+            btn.dataset.docs,
+          ));
+        });
+      }
+
+      async function mcpCatalogConnect(service, authType, envKey, docsUrl) {
+        if (authType === 'none') {
+          // Free — connect immediately, no credential needed
+          const btn = el('mcpCatalogGrid').querySelector(`button[data-service="${service}"]`);
+          if (btn) { btn.textContent = 'Connecting…'; btn.disabled = true; }
+          const resp = await fetch('/api/mcp/connect', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ service }),
+          });
+          await loadMcpCatalog();
+          await listMcpServers();
+          await loadSummary();
+          return;
+        }
+
+        if (authType === 'oauth') {
+          // OAuth — open provider login in new tab, then ask for the token
+          if (docsUrl) window.open(docsUrl, '_blank');
+          // Fall through to credential dialog — user pastes the token they just got
+        }
+
+        // Show credential dialog
+        _mcpCatalogPending = { service, envKey };
+        el('mcpCredDialogTitle').textContent = `Connect ${service}`;
+        el('mcpCredDialogHint').textContent = authType === 'oauth'
+          ? `Complete login in the tab that just opened, then paste your token below.`
+          : `Paste your ${envKey || 'API key'} — it is stored encrypted in the vault.`;
+        el('mcpCredDialogLabel').textContent = envKey || 'API Key / Token';
+        el('mcpCredDialogInput').value = '';
+        el('mcpCredDialogStatus').textContent = '';
+        el('mcpCredDialog').showModal();
+      }
+
+      async function mcpCredDialogSubmit() {
+        if (!_mcpCatalogPending) return;
+        const { service, envKey } = _mcpCatalogPending;
+        const value = el('mcpCredDialogInput').value.trim();
+        if (!value) { el('mcpCredDialogStatus').textContent = 'Please paste a value.'; return; }
+        el('mcpCredDialogStatus').textContent = 'Connecting…';
+        const resp = await fetch('/api/mcp/connect', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ service, credential_value: value, env_key: envKey }),
+        });
+        const out = await resp.json();
+        if (!resp.ok) {
+          el('mcpCredDialogStatus').textContent = `Error: ${out.detail || 'failed'}`;
+          return;
+        }
+        el('mcpCredDialog').close();
+        _mcpCatalogPending = null;
+        await loadMcpCatalog();
+        await listMcpServers();
+        await loadSummary();
       }
 
       async function listMcpServers() {
@@ -1632,55 +2137,6 @@ STRIPE_API_KEY=..."></textarea>
         await loadSummary();
       }
 
-      async function suggestMcpConfig() {
-        const prompt = el('mcpOnboardPrompt').value.trim();
-        if (!prompt) return;
-
-        const resp = await fetch('/api/mcp/onboard', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ prompt, include_catalog: false }),
-        });
-
-        if (!resp.ok) {
-          el('mcpOnboardOut').textContent = `Failed: ${await resp.text()}`;
-          return;
-        }
-
-        const out = await resp.json();
-        state.mcpSuggestion = out.primary_suggestion || null;
-
-        const lines = [];
-        lines.push(`Matched: ${(out.matched || []).join(', ') || 'none'}`);
-        lines.push(`Name: ${out.primary_suggestion?.name || 'n/a'}`);
-        lines.push(`Transport: ${out.primary_suggestion?.transport || 'n/a'}`);
-        if (out.primary_suggestion?.url) lines.push(`URL: ${out.primary_suggestion.url}`);
-        if (out.primary_suggestion?.command) lines.push(`Command: ${out.primary_suggestion.command}`);
-        if (out.suggestions?.[0]?.docs?.length) lines.push(`Docs: ${out.suggestions[0].docs.join(' | ')}`);
-        el('mcpOnboardOut').textContent = lines.join('\n');
-      }
-
-      function applyMcpSuggestion() {
-        const s = state.mcpSuggestion;
-        if (!s) {
-          el('mcpOnboardOut').textContent = 'No suggestion to apply. Use Suggest Config first.';
-          return;
-        }
-
-        el('mcpName').value = s.name || '';
-        el('mcpTransport').value = s.transport || 'http';
-        el('mcpUrl').value = s.url || '';
-        el('mcpCmd').value = s.command || '';
-        el('mcpArgs').value = JSON.stringify(s.args || [], null, 2);
-        el('mcpEnv').value = JSON.stringify(s.env || {}, null, 2);
-        el('mcpOnboardOut').textContent = 'Suggestion applied to MCP form fields.';
-      }
-
-      function currentCredentialRefToken() {
-        const sel = el('mcpCredentialRef');
-        if (!sel || !sel.value) return null;
-        return `{{cred:${sel.value}}}`;
-      }
 
       function parseJsonOrEmpty(raw, statusElId, label) {
         const text = (raw || '').trim();
@@ -1696,7 +2152,7 @@ STRIPE_API_KEY=..."></textarea>
       }
 
       function populateCredentialSelectors() {
-        const options = ['mcpCredentialRef', 'integrationCredentialRef'];
+        const options = ['integrationCredentialRef'];
         options.forEach((id) => {
           const node = el(id);
           if (!node) return;
@@ -1876,20 +2332,6 @@ STRIPE_API_KEY=..."></textarea>
         el(outElement).textContent = lines.join('\n');
       }
 
-      function linkCredentialIntoMcpEnv() {
-        const envKey = el('mcpEnvVarKey').value.trim();
-        const credentialName = el('mcpCredentialRef').value;
-        if (!envKey || !credentialName) {
-          el('mcpStatus').textContent = 'Set env key and credential first.';
-          return;
-        }
-
-        const env = parseJsonOrEmpty(el('mcpEnv').value, 'mcpStatus', 'env');
-        if (env === null) return;
-        env[envKey] = `{{cred:${credentialName}}}`;
-        el('mcpEnv').value = JSON.stringify(env, null, 2);
-        el('mcpStatus').textContent = `Linked ${envKey} -> {{cred:${credentialName}}}`;
-      }
 
       function useCredentialForIntegration() {
         const credentialName = el('integrationCredentialRef').value;
@@ -2815,6 +3257,8 @@ STRIPE_API_KEY=..."></textarea>
         el('zenModeBtn').addEventListener('click', () => setUiMode('zen'));
         el('openCredentialsBtn').addEventListener('click', () => tabSwitch('credentials'));
 
+        el('jinaFetchBtn').addEventListener('click', jinaFetchUrl);
+        el('jinaUrl').addEventListener('keydown', (e) => { if (e.key === 'Enter') jinaFetchUrl(); });
         el('saveNoteBtn').addEventListener('click', saveNote);
         el('searchBtn').addEventListener('click', searchNotes);
         el('zenKnowledgeBtn').addEventListener('click', () => runZenAction('note_create', 'zenKnowledgePrompt', 'zenKnowledgeResult'));
@@ -2832,11 +3276,9 @@ STRIPE_API_KEY=..."></textarea>
 
         el('createMcpBtn').addEventListener('click', createMcpServer);
         el('createAndCheckMcpBtn').addEventListener('click', createAndCheckMcpServer);
-        el('mcpSuggestBtn').addEventListener('click', suggestMcpConfig);
-        el('mcpApplySuggestionBtn').addEventListener('click', applyMcpSuggestion);
-        el('mcpLinkCredentialBtn').addEventListener('click', linkCredentialIntoMcpEnv);
-        el('mcpOpenCredentialsBtn').addEventListener('click', () => tabSwitch('credentials'));
-        el('zenMcpBtn').addEventListener('click', () => runZenAction('mcp_create', 'zenMcpPrompt', 'zenMcpResult'));
+        el('mcpCredDialogSave').addEventListener('click', mcpCredDialogSubmit);
+        el('mcpCredDialogCancel').addEventListener('click', () => { el('mcpCredDialog').close(); _mcpCatalogPending = null; });
+        el('mcpCredDialogInput').addEventListener('keydown', (e) => { if (e.key === 'Enter') mcpCredDialogSubmit(); });
 
         el('createWidgetBtn').addEventListener('click', createWidget);
         el('zenWidgetBtn').addEventListener('click', () => runZenAction('widget_create', 'zenWidgetPrompt', 'zenWidgetResult'));
@@ -2864,8 +3306,25 @@ STRIPE_API_KEY=..."></textarea>
         el('openProjectPreviewBtn').addEventListener('click', openProjectPreview);
         el('sendProjectChatBtn').addEventListener('click', sendProjectChat);
 
+        el('refreshServerStatsBtn').addEventListener('click', loadServerStats);
+        el('clearLogsBtn').addEventListener('click', () => {
+          el('logStream').innerHTML = '';
+          _logLineCount = 0;
+        });
+        el('pauseLogsBtn').addEventListener('click', (e) => {
+          _logPaused = !_logPaused;
+          e.target.textContent = _logPaused ? 'Resume' : 'Pause';
+          e.target.className = _logPaused ? 'alt' : '';
+        });
+        el('logFilter').addEventListener('input', () => {
+          // Filter only affects new lines; clear and let stream refill
+        });
+
+        startLogStream();
+
         Promise.all([
           loadSummary(),
+          loadServerStats(),
           refreshHealth(),
           listMcpServers(),
           listWidgets(),
@@ -2884,13 +3343,107 @@ STRIPE_API_KEY=..."></textarea>
           tabSwitch('deck');
           setUiMode(localStorage.getItem('crowpilot_ui_mode') || 'zen');
           updateSidebarStatus();
+          initWizard();
+          startEmbedBadge();
         }).catch((err) => {
           console.error(err);
         });
       }
 
+      /* ── Embed Status Badge ────────────────────────────────────────── */
+      function startEmbedBadge() {
+        const badge = el('embedBadge');
+        if (!badge) return;
+        setInterval(async () => {
+          try {
+            const r = await fetch('/api/memory/queue-size');
+            if (!r.ok) return;
+            const d = await r.json();
+            badge.style.display = (d.pending > 0) ? 'block' : 'none';
+            badge.textContent = `⚙ Embedding… (${d.pending} left)`;
+          } catch { /* ignore */ }
+        }, 3000);
+      }
+
+      /* ── Setup Wizard ──────────────────────────────────────────────── */
+      async function initWizard() {
+        try {
+          const r = await fetch('/api/wizard/status');
+          if (!r.ok) return;
+          const d = await r.json();
+          if (d.setup_complete) return;          // already done
+          const incomplete = d.steps.filter(s => !s.ok);
+          if (incomplete.length === 0) return;  // all checks pass
+          showWizard(d.steps);
+        } catch { /* non-fatal */ }
+      }
+
+      function showWizard(steps) {
+        const dlg = el('wizardOverlay');
+        const list = el('wizardStepList');
+        list.innerHTML = steps.map(s =>
+          `<li style="padding:6px 0; ${s.ok ? '' : 'color:var(--yellow,#e0b854)'}">${s.ok ? '✅' : '⚠️'} <strong>${s.name}</strong> — ${s.detail}</li>`
+        ).join('');
+        dlg.showModal();
+      }
+
+      el('wizardCloseBtn')?.addEventListener('click', async () => {
+        el('wizardOverlay')?.close();
+        try { await fetch('/api/wizard/complete', { method: 'POST' }); } catch {}
+      });
+
+      /* ── Zen Credential ────────────────────────────────────────────── */
+      el('zenCredentialBtn')?.addEventListener('click', async () => {
+        const prompt = (el('zenCredentialPrompt')?.value || '').trim();
+        if (!prompt) return;
+        const st = el('zenCredentialStatus');
+        st.textContent = 'Thinking…';
+        try {
+          const r = await fetch('/api/zen/act', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ domain: 'credential_create', prompt }),
+          });
+          const d = await r.json();
+          if (!r.ok) { st.textContent = `Error: ${d.detail || r.status}`; return; }
+          st.textContent = `✅ Created "${d.record?.name}". ${d.summary}`;
+          el('zenCredentialPrompt').value = '';
+          if (typeof loadCredentialList === 'function') loadCredentialList();
+        } catch (e) { st.textContent = `Error: ${e.message}`; }
+      });
+
+      /* ── Zen Integration ───────────────────────────────────────────── */
+      el('zenIntegrationBtn')?.addEventListener('click', async () => {
+        const prompt = (el('zenIntegrationPrompt')?.value || '').trim();
+        if (!prompt) return;
+        const st = el('zenIntegrationStatus');
+        st.textContent = 'Thinking…';
+        try {
+          const r = await fetch('/api/zen/act', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ domain: 'integration_create', prompt }),
+          });
+          const d = await r.json();
+          if (!r.ok) { st.textContent = `Error: ${d.detail || r.status}`; return; }
+          st.textContent = `✅ Created "${d.record?.name}". ${d.summary}`;
+          el('zenIntegrationPrompt').value = '';
+          if (typeof loadIntegrationList === 'function') loadIntegrationList();
+        } catch (e) { st.textContent = `Error: ${e.message}`; }
+      });
+
       /* Bootstrap */
       checkAuth();
     </script>
+
+  <!-- Setup Wizard Overlay -->
+  <dialog id="wizardOverlay" style="border:none; border-radius:12px; padding:28px 32px; max-width:520px; width:90%; background:var(--bg2); color:var(--text);">
+    <h2 style="margin:0 0 8px;">🧙 Setup Wizard</h2>
+    <p style="margin:0 0 16px; color:var(--text-dim); font-size:.85rem;">Complete these steps to get the most out of Pantheon.</p>
+    <ul id="wizardStepList" style="list-style:none; padding:0; margin:0 0 20px; display:flex; flex-direction:column; gap:10px;"></ul>
+    <div style="display:flex; justify-content:flex-end; gap:10px;">
+      <button id="wizardCloseBtn">Mark Complete &amp; Close</button>
+    </div>
+  </dialog>
   </body>
 </html>
