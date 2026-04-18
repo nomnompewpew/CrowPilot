@@ -10,6 +10,7 @@ from ..schemas import (
     CopilotTaskCreateRequest,
     CopilotTaskUpdateRequest,
 )
+from ..services.memory import enqueue_message, BACKGROUND
 from ..services.serializers import serialize_automation_task_row, serialize_copilot_task_row
 from ..state import g
 
@@ -54,7 +55,12 @@ def create_copilot_task(payload: CopilotTaskCreateRequest) -> dict:
         (payload.title.strip(), payload.description.strip(), json.dumps(payload.context)),
     )
     g.db.commit()
-    row = g.db.execute("SELECT * FROM copilot_tasks WHERE id = ?", (cur.lastrowid,)).fetchone()
+    task_id = cur.lastrowid
+    row = g.db.execute("SELECT * FROM copilot_tasks WHERE id = ?", (task_id,)).fetchone()
+    enqueue_message(
+        f"{payload.title.strip()}\n{payload.description.strip()}",
+        "task", task_id, 0, BACKGROUND,
+    )
     return serialize_copilot_task_row(row)
 
 
@@ -115,7 +121,12 @@ def create_automation_task(payload: AutomationTaskCreateRequest) -> dict:
         ),
     )
     g.db.commit()
-    row = g.db.execute("SELECT * FROM automation_tasks WHERE id = ?", (cur.lastrowid,)).fetchone()
+    task_id = cur.lastrowid
+    row = g.db.execute("SELECT * FROM automation_tasks WHERE id = ?", (task_id,)).fetchone()
+    enqueue_message(
+        f"{payload.title.strip()}\n{payload.objective.strip()}",
+        "task", task_id, 0, BACKGROUND,
+    )
     return serialize_automation_task_row(row)
 
 

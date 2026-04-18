@@ -11,7 +11,14 @@ from ..catalogs import MCP_ONBOARDING_CATALOG
 from ..schemas import McpOnboardRequest, McpServerCreateRequest, McpServerUpdateRequest
 from ..services.mcp import derive_onboarding_from_prompt, insert_mcp_server_with_unique_name
 from ..services.mcp_relay import relay_call_tool, relay_list_tools, run_protocol_checks
-from ..services.native_tools import NATIVE_TOOLS, NATIVE_TOOL_NAMES, call_native_tool
+from ..services.native_tools import (
+    ASYNC_NATIVE_TOOL_NAMES,
+    ASYNC_NATIVE_TOOLS,
+    NATIVE_TOOLS,
+    NATIVE_TOOL_NAMES,
+    call_async_native_tool,
+    call_native_tool,
+)
 from ..services.serializers import serialize_mcp_row
 from ..services.credential_vault import encrypt_secret
 from ..state import g
@@ -311,6 +318,16 @@ async def mcp_relay_sse(request: Request) -> StreamingResponse:
 
 @router.post("/mcp")
 async def mcp_relay(request: Request):
+    # Optional bearer token guard — only enforced when PANTHEON_MCP_TOKEN is set.
+    if settings.mcp_token:
+        auth_header = request.headers.get("Authorization", "")
+        if auth_header != f"Bearer {settings.mcp_token}":
+            return {
+                "jsonrpc": "2.0",
+                "id": None,
+                "error": {"code": -32001, "message": "Unauthorized — valid MCP token required"},
+            }
+
     try:
         body = await request.json()
     except Exception:
@@ -341,17 +358,20 @@ async def mcp_relay(request: Request):
         # Native tools always come first so the AI always has memory + task primitives.
         external_tools = await relay_list_tools()
         # Deduplicate: external tools with the same name as a native tool are shadowed.
-        seen = set(NATIVE_TOOL_NAMES)
+        seen = set(NATIVE_TOOL_NAMES) | set(ASYNC_NATIVE_TOOL_NAMES)
         deduped_external = [t for t in external_tools if t.get("name") not in seen]
-        return {"jsonrpc": "2.0", "id": req_id, "result": {"tools": NATIVE_TOOLS + deduped_external}}
+        all_tools = NATIVE_TOOLS + ASYNC_NATIVE_TOOLS + deduped_external
+        return {"jsonrpc": "2.0", "id": req_id, "result": {"tools": all_tools}}
 
     if method == "tools/call":
         tool_name = (params.get("name") or "").strip()
         arguments = params.get("arguments") or {}
         if not tool_name:
             return {"jsonrpc": "2.0", "id": req_id, "error": {"code": -32602, "message": "Missing tool name"}}
-        # Route native tools locally; everything else goes to the relay.
-        if tool_name in NATIVE_TOOL_NAMES:
+        # Route: async native → sync native → external relay
+        if tool_name in ASYNC_NATIVE_TOOL_NAMES:
+            result = await call_async_native_tool(tool_name, arguments)
+        elif tool_name in NATIVE_TOOL_NAMES:
             result = call_native_tool(tool_name, arguments)
         else:
             result = await relay_call_tool(tool_name, arguments)

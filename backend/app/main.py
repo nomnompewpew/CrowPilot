@@ -18,15 +18,18 @@ from .services.mcp import ensure_builtin_mcp_servers, normalize_existing_mcp_ser
 from .services.memory import embed_worker, stop_embed_worker
 from .services.providers import reload_providers_from_integrations
 from .state import g
+from .utils import discover_local_ipv4
 
 from .routers import (
     auth,
     chat,
     conversations,
     credentials,
+    db_connections,
     integrations,
     knowledge,
     mcp,
+    nomad,
     projects,
     sensitive,
     skills,
@@ -61,12 +64,27 @@ async def lifespan(_: FastAPI):
 
 app = FastAPI(title="CrowPilot API", lifespan=lifespan)
 
+# ── CORS: allow only the server itself and VS Code webviews ───────────────────
+# "vscode-webview://" is the origin of VS Code's webview panel (local installs).
+# For remote tunnel access, the tunnel proxy rewrites origins — we add the
+# loopback/LAN origins so the browser-side UI still works when accessed directly.
+_cors_origins = [
+    f"http://127.0.0.1:{settings.port}",
+    f"http://localhost:{settings.port}",
+    "vscode-webview://",            # VS Code webview panels
+    "vscode-file://vscode-app",     # VS Code desktop file origin
+]
+# Also allow LAN IPs so you can open the UI from a phone/tablet on the same network
+for _lan_ip in discover_local_ipv4():
+    _cors_origins.append(f"http://{_lan_ip}:{settings.port}")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=_cors_origins,
+    allow_origin_regex=r"https://[a-zA-Z0-9\-]+\.tunnel\.vscode\.dev",  # VS Code remote tunnels
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allow_headers=["Content-Type", "Authorization", "X-Requested-With", "Accept"],
 )
 
 app.middleware("http")(auth_middleware)
@@ -92,6 +110,8 @@ for _router_module in [
     chat,
     knowledge,
     mcp,
+    nomad,
+    db_connections,
     widgets,
     tasks,
     skills,

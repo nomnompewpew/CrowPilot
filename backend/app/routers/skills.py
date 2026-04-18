@@ -6,6 +6,7 @@ import sqlite3
 from fastapi import APIRouter, HTTPException
 
 from ..schemas import SkillCreateRequest, SkillUpdateRequest
+from ..services.memory import enqueue_message, BACKGROUND
 from ..services.serializers import serialize_skill_row
 from ..state import g
 
@@ -43,7 +44,12 @@ def create_skill(payload: SkillCreateRequest) -> dict:
         ),
     )
     g.db.commit()
-    row = g.db.execute("SELECT * FROM skills WHERE id = ?", (cur.lastrowid,)).fetchone()
+    skill_id = cur.lastrowid
+    row = g.db.execute("SELECT * FROM skills WHERE id = ?", (skill_id,)).fetchone()
+    enqueue_message(
+        f"{payload.name.strip()} ({payload.category.strip()})\n{payload.description.strip()}",
+        "skill", skill_id, 0, BACKGROUND,
+    )
     return serialize_skill_row(row)
 
 

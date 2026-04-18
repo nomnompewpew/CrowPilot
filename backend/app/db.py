@@ -232,6 +232,62 @@ def init_db(conn: sqlite3.Connection) -> None:
             created_at TEXT NOT NULL DEFAULT (datetime('now')),
             FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
         );
+
+        -- Universal passive-embed store for all non-note sources
+        -- (messages, tasks, skills, zim articles, external DB rows, etc.)
+        CREATE TABLE IF NOT EXISTS memory_chunks (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            source_type TEXT NOT NULL,
+            source_id INTEGER NOT NULL,
+            chunk_index INTEGER NOT NULL DEFAULT 0,
+            chunk_text TEXT NOT NULL,
+            embedding BLOB,
+            created_at TEXT NOT NULL DEFAULT (datetime('now')),
+            UNIQUE(source_type, source_id, chunk_index)
+        );
+
+        -- Key/value store for runtime-editable settings (e.g. Corbin prompt)
+        CREATE TABLE IF NOT EXISTS settings (
+            key TEXT PRIMARY KEY,
+            value TEXT NOT NULL,
+            updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+
+        -- ZIM file registry (Project Nomad integration)
+        CREATE TABLE IF NOT EXISTS zim_files (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            path TEXT NOT NULL UNIQUE,
+            filesize_bytes INTEGER NOT NULL DEFAULT 0,
+            article_count INTEGER NOT NULL DEFAULT 0,
+            indexed_chunks INTEGER NOT NULL DEFAULT 0,
+            status TEXT NOT NULL DEFAULT 'registered',
+            last_error TEXT,
+            created_at TEXT NOT NULL DEFAULT (datetime('now')),
+            updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+
+        -- External database connections for RAG (Postgres, MySQL, SQLite, pgvector, etc.)
+        -- Passwords / connection secrets are stored in the credential vault (credentials table).
+        -- credential_id references credentials.id; leave NULL to use a raw DSN stored encrypted
+        -- in dsn_encrypted (Fernet, same key as credential vault).
+        CREATE TABLE IF NOT EXISTS db_connections (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL UNIQUE,
+            db_type TEXT NOT NULL,
+            host TEXT,
+            port INTEGER,
+            database_name TEXT,
+            username TEXT,
+            credential_id INTEGER,
+            dsn_encrypted TEXT,
+            schema_json TEXT NOT NULL DEFAULT '{}',
+            status TEXT NOT NULL DEFAULT 'untested',
+            last_error TEXT,
+            last_tested_at TEXT,
+            created_at TEXT NOT NULL DEFAULT (datetime('now')),
+            updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+        );
         """
     )
 
