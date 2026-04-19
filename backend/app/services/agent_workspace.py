@@ -38,8 +38,9 @@ _HARDWARE_PROFILES = {
             "summary": "CPU-first deployment with deferred background embedding work.",
             "scan": {
                 "base_url": "http://127.0.0.1:8083/v1",
-                "model": "PII-Redact-General-Q8_0.gguf",
-                "reason": "Dedicated redaction model already documented in CrowPilot as Pi-friendly.",
+                "model": "Llama-3.2-1B-Instruct-Q4_0_4_4.gguf",
+                "prompt_mode": "instruction",
+                "reason": "Drop-in llama.cpp scanner that actually ships as GGUF and stays light enough for Pi-class hardware.",
             },
             "embedding": {
                 "base_url": "http://127.0.0.1:8081/v1",
@@ -58,8 +59,9 @@ _HARDWARE_PROFILES = {
             "summary": "Good default for mixed local and proxied workloads.",
             "scan": {
                 "base_url": "http://127.0.0.1:8083/v1",
-                "model": "PII-Redact-General-Q8_0.gguf",
-                "reason": "Strong dedicated scanner with minimal impact on chat routing.",
+                "model": "Llama-3.2-1B-Instruct-Q4_0_4_4.gguf",
+                "prompt_mode": "instruction",
+                "reason": "Keeps scanner latency low without requiring a non-llama.cpp serving stack.",
             },
             "embedding": {
                 "base_url": "http://127.0.0.1:8081/v1",
@@ -77,8 +79,9 @@ _HARDWARE_PROFILES = {
             "summary": "Keep the higher-quality local stack hot at all times.",
             "scan": {
                 "base_url": "http://127.0.0.1:8083/v1",
-                "model": "PII-Redact-General-Q8_0.gguf",
-                "reason": "Dedicated security pass still keeps redaction off the main chat model.",
+                "model": "Llama-3.2-1B-Instruct-Q4_0_4_4.gguf",
+                "prompt_mode": "instruction",
+                "reason": "Still small enough that there is no reason to waste the main chat model on redaction.",
             },
             "embedding": {
                 "base_url": "http://127.0.0.1:8081/v1",
@@ -170,7 +173,8 @@ _ENV_FILES = {
     "desktop.env.example": """PANTHEON_AGENT_HOME=../.corbin
 PANTHEON_RUNTIME_PROFILE=desktop
 PANTHEON_SCAN_BASE_URL=http://127.0.0.1:8083/v1
-PANTHEON_SCAN_MODEL=PII-Redact-General-Q8_0.gguf
+PANTHEON_SCAN_MODEL=Llama-3.2-1B-Instruct-Q4_0_4_4.gguf
+PANTHEON_SCAN_PROMPT_MODE=instruction
 PANTHEON_EMBEDDING_BASE_URL=http://127.0.0.1:8081/v1
 PANTHEON_EMBEDDING_MODEL=Qwen3-Embedding-0.6B-Q8_0.gguf
 PANTHEON_EMBED_MODE=realtime
@@ -178,7 +182,8 @@ PANTHEON_EMBED_MODE=realtime
     "raspberry-pi.env.example": """PANTHEON_AGENT_HOME=../.corbin
 PANTHEON_RUNTIME_PROFILE=raspberry-pi
 PANTHEON_SCAN_BASE_URL=http://127.0.0.1:8083/v1
-PANTHEON_SCAN_MODEL=PII-Redact-General-Q8_0.gguf
+PANTHEON_SCAN_MODEL=Llama-3.2-1B-Instruct-Q4_0_4_4.gguf
+PANTHEON_SCAN_PROMPT_MODE=instruction
 PANTHEON_EMBEDDING_BASE_URL=http://127.0.0.1:8081/v1
 PANTHEON_EMBEDDING_MODEL=nomic-embed-text-v1.5.Q8_0.gguf
 PANTHEON_EMBED_MODE=overnight
@@ -186,7 +191,8 @@ PANTHEON_EMBED_MODE=overnight
     "workstation.env.example": """PANTHEON_AGENT_HOME=../.corbin
 PANTHEON_RUNTIME_PROFILE=workstation
 PANTHEON_SCAN_BASE_URL=http://127.0.0.1:8083/v1
-PANTHEON_SCAN_MODEL=PII-Redact-General-Q8_0.gguf
+PANTHEON_SCAN_MODEL=Llama-3.2-1B-Instruct-Q4_0_4_4.gguf
+PANTHEON_SCAN_PROMPT_MODE=instruction
 PANTHEON_EMBEDDING_BASE_URL=http://127.0.0.1:8081/v1
 PANTHEON_EMBEDDING_MODEL=Qwen3-Embedding-0.6B-Q8_0.gguf
 PANTHEON_EMBED_MODE=realtime

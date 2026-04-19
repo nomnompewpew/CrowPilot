@@ -24,16 +24,17 @@ class Settings:
     local_model: str = os.getenv("PANTHEON_LOCAL_MODEL", "local-model")
     local_api_key: str = os.getenv("PANTHEON_LOCAL_API_KEY", "")
 
-    # Security gate model — dedicated lightweight scanner, separate from the chat model.
-    # Best default: OpenPipe/PII-Redact-General (Llama 3.2 1B fine-tune).
-    #   F1 ≈1.00 for passwords/API keys, 99.8% IP recall, 100% SSN recall, 128k ctx.
-    #   CPU-only, ~600MB RAM. Runs on a Pi or Orange Pi.
-    #   GGUF: https://huggingface.co/OpenPipe/PII-Redact-General
-    # If left blank, falls back to local_base_url / local_model (uses your chat model).
-    # Fine-tuned models do not need a system prompt — the gate handles this automatically.
+    # Security gate model — separate lightweight scanner, independent from the main chat model.
+    # Drop-in llama.cpp default: Llama-3.2-1B-Instruct GGUF with prompt-driven redaction.
+    #   Repo: https://huggingface.co/bartowski/Llama-3.2-1B-Instruct-GGUF
+    #   Recommended Pi quant: Llama-3.2-1B-Instruct-Q4_0_4_4.gguf
+    # Optional dedicated fine-tune: OpenPipe/PII-Redact-General, but that repo ships
+    # safetensors rather than GGUF, so it needs a different serving stack.
+    # If left blank, falls back to local_base_url / local_model.
     scan_base_url: str = os.getenv("PANTHEON_SCAN_BASE_URL", "")
     scan_model: str = os.getenv("PANTHEON_SCAN_MODEL", "")
     scan_api_key: str = os.getenv("PANTHEON_SCAN_API_KEY", "")
+    scan_prompt_mode: str = os.getenv("PANTHEON_SCAN_PROMPT_MODE", "auto")
 
     # Local embedding model (used for knowledge base semantic search)
     embedding_base_url: str = os.getenv("PANTHEON_EMBEDDING_BASE_URL", "")

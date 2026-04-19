@@ -6,24 +6,21 @@ Stage 1 — Regex (always runs, synchronous, zero cost):
   GitHub tokens, AWS keys, generic key=value patterns, etc.
 
 Stage 2 — Local model scan (async):
-  Recommended: OpenPipe/PII-Redact-General (Llama 3.2 1B fine-tune).
-  Purpose-built for credential/secret detection — SSNs 100%, IPs 99.8%,
-  API keys/passwords F1≈1.00. Runs on CPU-only hardware (Pi/Orange Pi)
-  at ~128k context. Falls back to the local chat model if not configured.
+  Drop-in llama.cpp default: Llama-3.2-1B-Instruct GGUF using the scan system
+  prompt below. Small enough for Pi-class hardware and easy to serve.
 
-  GGUF download: https://huggingface.co/OpenPipe/PII-Redact-General
-  Serve:  llama-server -m PII-Redact-General-Q8_0.gguf --port 8083 -c 8192
+  GGUF download: https://huggingface.co/bartowski/Llama-3.2-1B-Instruct-GGUF
+  Serve:  llama-server -m Llama-3.2-1B-Instruct-Q4_0_4_4.gguf --port 8083 -c 8192
   Set:    PANTHEON_SCAN_BASE_URL=http://127.0.0.1:8083/v1
-          PANTHEON_SCAN_MODEL=PII-Redact-General-Q8_0.gguf
+          PANTHEON_SCAN_MODEL=Llama-3.2-1B-Instruct-Q4_0_4_4.gguf
+          PANTHEON_SCAN_PROMPT_MODE=instruction
 
-  Output format: PII-Redact outputs [TYPE_LABEL] bracket notation
-  (e.g. [EMAIL_ADDRESS], [PASSWORD], [API_KEY]). The normalizer at the
-  edge converts these to our internal {{TYPE_N}} placeholder format so
-  the rest of the system (DB, UI, approval flow) stays consistent.
+  Optional dedicated fine-tune: OpenPipe/PII-Redact-General. That repo does not
+  currently ship a GGUF, so it needs a different serving stack. When used, set
+  PANTHEON_SCAN_PROMPT_MODE=dedicated. Its [TYPE_LABEL] bracket notation still
+  normalizes to our internal {{TYPE_N}} placeholders at the edge.
 
-  Fine-tuned models do NOT use a system prompt — sending one can hurt
-  accuracy. A system prompt is only used when falling back to the general
-  local chat model (no dedicated scan model configured).
+  Dedicated fine-tunes do NOT use a system prompt. General instruction models do.
 
 Design principles:
   - Never skip Stage 1. It costs nothing and catches obvious tokens.
@@ -202,15 +199,22 @@ def _regex_scan(text: str) -> tuple[str, int]:
 
 # ── Stage 2: model ────────────────────────────────────────────────────────────
 
-def _get_scan_provider() -> tuple[OpenAICompatProvider, bool] | tuple[None, None]:
-    """
-    Return (provider, is_dedicated) or (None, None) if no model is configured.
+def _resolve_scan_prompt_mode(model_name: str, requested: str) -> str:
+    mode = (requested or "auto").strip().lower()
+    if mode in {"instruction", "dedicated"}:
+        return mode
+    name = (model_name or "").strip().lower()
+    if "pii-redact" in name or "redact-general" in name:
+        return "dedicated"
+    return "instruction"
 
-    is_dedicated=True  → a specific PANTHEON_SCAN_* model is configured.
-                         PII-Redact fine-tunes fall into this category.
-                         These do NOT use a system prompt.
-    is_dedicated=False → falling back to the local chat model.
-                         General instruction models need the system prompt.
+
+def _get_scan_provider() -> tuple[OpenAICompatProvider, str] | tuple[None, None]:
+    """
+    Return (provider, prompt_mode) or (None, None) if no model is configured.
+
+    prompt_mode='dedicated'   → fine-tuned scanner, no system prompt.
+    prompt_mode='instruction' → general instruction model, use system prompt.
     """
     if settings.scan_base_url and settings.scan_model:
         from ..providers import ProviderConfig
@@ -220,7 +224,10 @@ def _get_scan_provider() -> tuple[OpenAICompatProvider, bool] | tuple[None, None
             api_key=settings.scan_api_key,
             default_model=settings.scan_model,
         )
-        return OpenAICompatProvider(cfg), True
+        return OpenAICompatProvider(cfg), _resolve_scan_prompt_mode(
+            settings.scan_model,
+            settings.scan_prompt_mode,
+        )
 
     if settings.local_base_url and settings.local_model:
         from ..providers import ProviderConfig
@@ -230,7 +237,7 @@ def _get_scan_provider() -> tuple[OpenAICompatProvider, bool] | tuple[None, None
             api_key=settings.local_api_key,
             default_model=settings.local_model,
         )
-        return OpenAICompatProvider(cfg), False
+        return OpenAICompatProvider(cfg), "instruction"
 
     return None, None
 
@@ -238,17 +245,15 @@ def _get_scan_provider() -> tuple[OpenAICompatProvider, bool] | tuple[None, None
 async def _model_scan(
     provider: OpenAICompatProvider,
     text: str,
-    is_dedicated: bool,
+    prompt_mode: str,
 ) -> tuple[str, int]:
     """
     Run one LLM scan pass.
 
-    is_dedicated=True  → fine-tuned model (PII-Redact): send raw text, no
-                         system prompt. The model knows its job.
-    is_dedicated=False → general instruction model: needs the system prompt
-                         to understand what to do and /no_think for Qwen3.
+    prompt_mode='dedicated'   → fine-tuned scanner: send raw text, no system prompt.
+    prompt_mode='instruction' → general instruction model: use system prompt.
     """
-    if is_dedicated:
+    if prompt_mode == "dedicated":
         messages = [{"role": "user", "content": text}]
     else:
         messages = [
@@ -342,4 +347,3 @@ async def scan_message(provider: OpenAICompatProvider, text: str) -> tuple[str, 
     """Legacy shim — use scan_and_redact() for new code."""
     result = await scan_and_redact(text)
     return result.text, result.count
-

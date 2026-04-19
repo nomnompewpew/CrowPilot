@@ -17,6 +17,7 @@ backend/data/*.db-shm
 backend/data/*.db-wal
 backend/data/*.key
 backend/data/tmp/
+backend/models/
 
 # Logs
 *.log
