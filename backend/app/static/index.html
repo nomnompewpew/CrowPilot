@@ -52,6 +52,7 @@
         <button data-nav="credentials"><span class="nav-icon">🗝</span> Credentials</button>
         <button data-nav="integrations"><span class="nav-icon">🔐</span> Integrations</button>
         <button data-nav="projects"><span class="nav-icon">🏗</span> Projects</button>
+        <button data-nav="copilot-history"><span class="nav-icon">🗂</span> Copilot History</button>
         <button data-nav="server"><span class="nav-icon">🖥</span> Server & Logs</button>
       </nav>
 
@@ -679,6 +680,30 @@ STRIPE_API_KEY=..."></textarea>
 
       </section>
 
+      <!-- ── Copilot History ──────────────────────────────────────── -->
+      <section id="view-copilot-history" class="view">
+        <div class="ch-header">
+          <h2 style="margin:0">🗂 Copilot CLI Session Archive</h2>
+          <div class="ch-controls">
+            <input type="text" id="chSearchInput" placeholder="Search sessions…" class="ch-search">
+            <button id="chScanBtn" class="alt">↻ Scan Now</button>
+          </div>
+        </div>
+        <div id="chSessionGrid" class="ch-grid"></div>
+        <!-- Session detail panel -->
+        <dialog id="chDetailDialog" class="ch-dialog">
+          <div class="ch-dialog-header">
+            <div>
+              <h3 id="chDetailTitle" style="margin:0 0 4px"></h3>
+              <p id="chDetailMeta" class="tiny" style="margin:0; color:var(--text-muted)"></p>
+            </div>
+            <button id="chDetailClose" class="alt ch-close-btn">✕</button>
+          </div>
+          <p id="chDetailSummary" class="ch-detail-summary"></p>
+          <div id="chDetailTranscript" class="ch-transcript"></div>
+        </dialog>
+      </section>
+
       <!-- ── Server & Logs ─────────────────────────────────────────── -->
       <section id="view-server" class="view">
         <div class="grid dual">
@@ -787,6 +812,7 @@ STRIPE_API_KEY=..."></textarea>
   <script src="/static/js/skills.js"></script>
   <script src="/static/js/integrations.js"></script>
   <script src="/static/js/conversations.js"></script>
+  <script src="/static/js/copilot_history.js"></script>
   <script src="/static/js/app.js"></script>
 
   <!-- Setup Wizard Overlay -->

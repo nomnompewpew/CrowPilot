@@ -106,6 +106,7 @@ function initApp() {
   });
 
   startLogStream();
+  initCopilotHistory();
 
   Promise.all([
     loadSummary(),

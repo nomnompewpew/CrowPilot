@@ -288,6 +288,35 @@ def init_db(conn: sqlite3.Connection) -> None:
             created_at TEXT NOT NULL DEFAULT (datetime('now')),
             updated_at TEXT NOT NULL DEFAULT (datetime('now'))
         );
+
+        -- Copilot CLI session archive — parsed from ~/.copilot/session-state/
+        CREATE TABLE IF NOT EXISTS copilot_cli_sessions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            session_id TEXT UNIQUE NOT NULL,
+            title TEXT,
+            workspace TEXT,
+            repository TEXT,
+            branch TEXT,
+            cli_summary TEXT,
+            ai_summary TEXT,
+            user_messages INTEGER DEFAULT 0,
+            assistant_turns INTEGER DEFAULT 0,
+            tool_calls INTEGER DEFAULT 0,
+            transcript TEXT,
+            session_created_at TEXT,
+            session_updated_at TEXT,
+            embedded INTEGER NOT NULL DEFAULT 0,
+            last_scanned_at TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+
+        CREATE TABLE IF NOT EXISTS copilot_cli_session_chunks (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            session_id TEXT NOT NULL,
+            chunk_index INTEGER NOT NULL,
+            chunk_text TEXT NOT NULL,
+            embedding BLOB,
+            UNIQUE(session_id, chunk_index)
+        );
         """
     )
 
