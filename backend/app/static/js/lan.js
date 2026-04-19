@@ -145,6 +145,8 @@ async function lanHarvestCopilot(deviceId) {
     _setLanResult(deviceId, `<span class="err tiny">Import failed: ${esc(e.message)}</span>`);
   }
 }
+
+async function lanFetchExtensions(deviceId) {
   _setLanResult(deviceId, '<span class="tiny">Fetching extensions…</span>');
   const resp = await fetch(`/api/lan/devices/${deviceId}/extensions`);
   const data = await resp.json();
