@@ -268,25 +268,26 @@ nav.sb-nav button.active {
   flex: 1; font-size: .78rem; font-weight: 700; letter-spacing: .09em;
   text-transform: uppercase; color: var(--text-muted);
 }
-.topbar-controls { display: flex; align-items: center; gap: 8px; }
+.topbar-controls { display: flex; align-items: center; gap: 4px; }
 .mode-pill {
-  padding: 4px 11px; border: 1px solid var(--border-hi); border-radius: 999px;
-  background: transparent; color: var(--text-muted);
-  font-family: inherit; font-size: .77rem; font-weight: 600;
-  cursor: pointer; transition: all 130ms;
+  padding: 3px 10px; border: none; border-bottom: 2px solid transparent; border-radius: 0;
+  background: transparent; color: var(--text-dim);
+  font-family: inherit; font-size: .72rem; font-weight: 600; letter-spacing: .04em;
+  cursor: pointer; transition: color 130ms, border-color 130ms;
 }
-.mode-pill.active { background: var(--green-glow); border-color: var(--green); color: var(--green-hi); }
-.mode-pill:hover:not(.active) { background: var(--surface-2); color: var(--text); }
+.mode-pill.active { color: var(--green-hi); border-bottom-color: var(--green); }
+.mode-pill:hover:not(.active) { color: var(--text-muted); }
 .topbar-action {
-  padding: 4px 11px; background: var(--surface-2); border: 1px solid var(--border-hi);
-  border-radius: 7px; color: var(--text-muted);
-  font-family: inherit; font-size: .77rem; font-weight: 600;
-  cursor: pointer; transition: all 130ms;
+  padding: 3px 9px; background: transparent; border: none;
+  color: var(--text-dim);
+  font-family: inherit; font-size: .72rem; font-weight: 600;
+  cursor: pointer; transition: color 130ms;
 }
-.topbar-action:hover { background: var(--surface-3); color: var(--text); }
+.topbar-action:hover { color: var(--text); }
 #topBarUser {
-  font-size: .77rem; color: var(--text-muted); padding: 4px 9px;
-  background: var(--surface); border: 1px solid var(--border); border-radius: 6px;
+  font-size: .72rem; color: var(--text-dim); padding: 0 6px;
+  border-left: 1px solid var(--border); margin-left: 4px; height: 16px;
+  display: flex; align-items: center;
 }
 
 /* ── Mode Banner (hidden, state tracked by JS) ─────────────────── */
