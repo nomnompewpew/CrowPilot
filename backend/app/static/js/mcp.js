@@ -40,8 +40,13 @@ async function loadMcpCatalog() {
       ? `<span class="badge ${online ? 'ok' : 'offline'}">${online ? 'online' : 'offline'}</span>`
       : `<span class="badge" style="opacity:.6;">${authIcon} ${authLabel}</span>`;
 
+    // Local vs remote indicator
+    const localBadge = item.pip_package
+      ? `<span class="badge" title="Runs locally via pip install ${item.pip_package}" style="opacity:.7;">📦 local</span>`
+      : '';
+
     // Action buttons
-    const connectBtn = `<button data-service="${item.key}" data-auth="${item.auth_type}" data-env-key="${envKey}" data-docs="${docsUrl}"
+    const connectBtn = `<button data-service="${item.key}" data-auth="${item.auth_type}" data-env-key="${envKey}" data-docs="${docsUrl}" data-pip="${item.pip_package || ''}"
       class="${online ? 'alt' : ''}" style="flex:2;">${online ? '✓ Connected' : srv ? 'Reconnect' : 'Connect'}</button>`;
     const checkBtn  = srv ? `<button data-check="${srv.id}" class="alt">Check</button>` : '';
     const delBtn    = srv && !srv.is_builtin ? `<button data-delete="${srv.id}" class="warn">Delete</button>` : '';
@@ -50,7 +55,7 @@ async function loadMcpCatalog() {
     tile.innerHTML = `
       <div class="mcp-tile-header">
         <span class="mcp-tile-name">${item.name}</span>
-        ${badgeHtml}
+        <span style="display:flex;gap:4px;align-items:center;">${localBadge}${badgeHtml}</span>
       </div>
       <p class="mcp-tile-desc">${item.notes}</p>
       <div class="mcp-tile-actions">
@@ -64,7 +69,7 @@ async function loadMcpCatalog() {
   // Wire connect buttons
   grid.querySelectorAll('button[data-service]').forEach((btn) => {
     btn.addEventListener('click', () => mcpCatalogConnect(
-      btn.dataset.service, btn.dataset.auth, btn.dataset.envKey, btn.dataset.docs,
+      btn.dataset.service, btn.dataset.auth, btn.dataset.envKey, btn.dataset.docs, btn.dataset.pip,
     ));
   });
 
@@ -91,7 +96,7 @@ async function loadMcpCatalog() {
   _renderCustomServers(allServers);
 }
 
-async function mcpCatalogConnect(service, authType, envKey, docsUrl) {
+async function mcpCatalogConnect(service, authType, envKey, docsUrl, pipPackage) {
   if (authType === 'none') {
     const btn = el('mcpCatalogGrid').querySelector(`button[data-service="${service}"]`);
     if (btn) { btn.textContent = 'Connecting…'; btn.disabled = true; }
@@ -106,7 +111,7 @@ async function mcpCatalogConnect(service, authType, envKey, docsUrl) {
     return;
   }
 
-  _mcpCatalogPending = { service, envKey, docsUrl };
+  _mcpCatalogPending = { service, envKey, docsUrl, pipPackage };
 
   // Title + label
   el('mcpCredDialogTitle').textContent = `Connect ${service}`;
@@ -116,9 +121,10 @@ async function mcpCatalogConnect(service, authType, envKey, docsUrl) {
 
   // Hint text
   const isOauth = authType === 'oauth';
+  const pipHint = pipPackage ? ` Will auto-install \`${pipPackage}\` and run locally.` : '';
   el('mcpCredDialogHint').textContent = isOauth
-    ? `Complete OAuth in the tab that opens, copy the token you receive, and paste it below.`
-    : `Paste your ${envKey || 'API key'} — stored encrypted in the vault, never sent to the cloud.`;
+    ? `Complete OAuth in the tab that opens, copy the token you receive, and paste it below.${pipHint}`
+    : `Paste your ${envKey || 'API key'} — stored encrypted in the vault, never sent to the cloud.${pipHint}`;
 
   // Show / hide the "Get your key" button
   const getKeyBtn = el('mcpCredDialogGetKey');
@@ -135,10 +141,12 @@ async function mcpCatalogConnect(service, authType, envKey, docsUrl) {
 
 async function mcpCredDialogSubmit() {
   if (!_mcpCatalogPending) return;
-  const { service, envKey } = _mcpCatalogPending;
+  const { service, envKey, docsUrl } = _mcpCatalogPending;
   const value = el('mcpCredDialogInput').value.trim();
   if (!value) { el('mcpCredDialogStatus').textContent = 'Please paste a value.'; return; }
-  el('mcpCredDialogStatus').textContent = 'Connecting…';
+  el('mcpCredDialogStatus').textContent = _mcpCatalogPending.pipPackage
+    ? `Installing ${_mcpCatalogPending.pipPackage} and connecting…`
+    : 'Connecting…';
   const resp = await fetch('/api/mcp/connect', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

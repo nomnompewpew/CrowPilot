@@ -198,6 +198,7 @@ def mcp_catalog() -> list[dict]:
             "notes": entry.get("notes", ""),
             "capabilities": entry.get("capabilities", []),
             "docs": entry.get("docs", []),
+            "pip_package": entry.get("pip_package"),
             "env_keys": env_keys,
             "installed": entry["name"] in installed,
             "status": installed.get(entry["name"], "not_installed"),
@@ -219,6 +220,14 @@ async def mcp_connect(payload: dict) -> dict:
     entry = MCP_ONBOARDING_CATALOG[service]
     credential_value = (payload.get("credential_value") or "").strip()
     env_key = (payload.get("env_key") or "").strip()
+
+    # Auto-install pip package if the catalog entry specifies one
+    pip_package = entry.get("pip_package")
+    if pip_package:
+        import subprocess, sys
+        from pathlib import Path
+        pip_bin = str(Path(sys.executable).parent / "pip")
+        subprocess.run([pip_bin, "install", pip_package, "-q"], check=False, timeout=120)
 
     # If a credential is provided, save it to the vault and build the env ref
     env = {}
