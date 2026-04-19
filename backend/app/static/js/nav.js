@@ -8,6 +8,7 @@ const NAV_LABELS = {
   credentials: 'Credentials Vault',
   integrations: 'Integrations',
   projects: 'Projects',
+  'copilot-history': 'Copilot History',
   server: 'Server & Logs',
 };
 

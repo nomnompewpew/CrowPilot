@@ -101,8 +101,6 @@
       <header id="topBar">
         <div id="topBarSection">Command Deck</div>
         <div class="topbar-controls">
-          <button id="bigBrainModeBtn" class="mode-pill">Big Brain</button>
-          <button id="zenModeBtn" class="mode-pill active">Zen</button>
           <button id="openCredentialsBtn" class="topbar-action">🗝 Vault</button>
           <div id="topBarUser">—</div>
         </div>
@@ -118,40 +116,20 @@
       <!-- Main content -->
       <main id="mainContent">
 
-        <div id="statStrip" class="stat-strip"></div>
-
         <section id="view-deck" class="view active">
-          <div class="grid two">
-            <article class="card big-brain-only">
-              <h2>Provider Routing</h2>
-              <label for="provider">Provider</label>
-              <select id="provider"></select>
-              <label for="model">Model</label>
-              <select id="model"></select>
-              <label class="inline-check">
-                <input id="autoModelToggle" type="checkbox" />
-                Use Auto model selection (Copilot-style)
-              </label>
-              <div id="healthOut" class="status mono"></div>
-            </article>
-
-            <article class="card">
-              <h2>Streaming Chat</h2>
-              <div class="zen-only tiny" style="margin-bottom:10px;">Zen keeps chat on rails. Just ask and CrowPilot routes behind the scenes.</div>
-              <div id="messages" class="messages"></div>
-              <label for="prompt">Prompt</label>
-              <textarea id="prompt" placeholder="Design a dashboard widget system for model usage analytics."></textarea>
-              <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:6px;">
-                <label class="inline-check">
-                  <input id="useMemoryToggle" type="checkbox" checked />
-                  Use knowledge memory
-                </label>
-
-              </div>
-              <button id="sendBtn" style="margin-top:8px;">Send</button>
-              <div id="chatStatus" class="status"></div>
-            </article>
-          </div>
+          <div id="statStrip" class="stat-strip"></div>
+          <article class="card big-brain-only">
+            <h2>Provider Routing</h2>
+            <label for="provider">Provider</label>
+            <select id="provider"></select>
+            <label for="model">Model</label>
+            <select id="model"></select>
+            <label class="inline-check">
+              <input id="autoModelToggle" type="checkbox" />
+              Use Auto model selection (Copilot-style)
+            </label>
+            <div id="healthOut" class="status mono"></div>
+          </article>
         </section>
 
       <section id="view-mcp" class="view">
@@ -781,6 +759,32 @@ STRIPE_API_KEY=..."></textarea>
 
       </main><!-- #mainContent -->
     </div><!-- #mainWrap -->
+
+    <!-- ── Right Panel: persistent chat ──────────────────────── -->
+    <aside id="rightPanel">
+      <div id="rightPanelHeader">
+        <span id="rightPanelTitle">Chat</span>
+        <div style="display:flex;gap:6px;align-items:center;">
+          <button id="bigBrainModeBtn" class="mode-pill">Big Brain</button>
+          <button id="zenModeBtn" class="mode-pill active">Zen</button>
+        </div>
+      </div>
+      <div id="statStrip" class="stat-strip"></div>
+      <div id="messages" class="messages rp-messages"></div>
+      <div id="rpInputArea">
+        <div class="zen-only rp-zen-note tiny">Zen mode — CrowPilot routes behind the scenes.</div>
+        <textarea id="prompt" placeholder="Ask anything…"></textarea>
+        <div class="rp-controls">
+          <label class="inline-check" style="font-size:.75rem;">
+            <input id="useMemoryToggle" type="checkbox" checked />
+            Memory
+          </label>
+          <button id="sendBtn">Send</button>
+        </div>
+        <div id="chatStatus" class="status" style="font-size:.75rem;margin-top:4px;"></div>
+      </div>
+    </aside>
+
   </div><!-- #appShell -->
 
   <dialog id="vsCodeConfigDialog" style="width:min(600px,95vw); border:1px solid var(--border-hi); border-radius:var(--radius-lg); padding:24px; background:var(--surface); color:var(--text);">
