@@ -128,14 +128,15 @@
         <section id="view-deck" class="view active">
           <div id="statStrip" class="stat-strip"></div>
           <article class="card big-brain-only">
-            <h2>Provider Routing</h2>
+            <h2>Default Provider &amp; Model</h2>
+            <p class="tiny" style="margin:0 0 8px;">Sets the fallback used on every page load. Override per-message in the chat panel.</p>
             <label for="provider">Provider</label>
             <select id="provider"></select>
             <label for="model">Model</label>
             <select id="model"></select>
             <label class="inline-check">
               <input id="autoModelToggle" type="checkbox" />
-              Use Auto model selection (Copilot-style)
+              Lock to Auto (let server pick best model)
             </label>
             <div id="healthOut" class="status mono"></div>
           </article>

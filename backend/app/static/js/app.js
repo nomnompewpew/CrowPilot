@@ -19,13 +19,16 @@ function initApp() {
     if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) sendChat();
   });
   el('provider').addEventListener('change', async () => {
-    // Sync deck provider → right-panel chatProvider
+    // Deck provider change → sync right-panel chatProvider and reload models
     if (el('chatProvider')) el('chatProvider').value = el('provider').value;
     state.autoModel = el('autoModelToggle') ? el('autoModelToggle').checked : false;
     await updateModelsForProvider();
   });
   el('autoModelToggle').addEventListener('change', async () => {
     state.autoModel = el('autoModelToggle').checked;
+    // Reflect in chatModel: check → set Auto, uncheck → keep current
+    if (state.autoModel && el('chatModel')) el('chatModel').value = 'auto';
+    if (state.autoModel && el('model')) el('model').value = 'auto';
     await updateModelsForProvider();
   });
 

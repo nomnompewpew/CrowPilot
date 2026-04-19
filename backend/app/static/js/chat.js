@@ -253,56 +253,45 @@ async function refreshHealth() {
   const data = await resp.json();
   state.providers = data.providers || {};
 
-  // Populate the Command Deck provider select (big-brain-only, kept for compat)
-  const deckSelect = el('provider');
-  if (deckSelect) {
-    deckSelect.innerHTML = '';
-    Object.keys(state.providers).forEach((name) => {
-      const opt = document.createElement('option');
-      opt.value = name;
-      opt.textContent = name;
-      deckSelect.appendChild(opt);
-    });
-  }
+  // Populate BOTH provider selects with all available providers
+  const allProviderNames = Object.keys(state.providers);
 
-  // Populate the right-panel provider picker
-  const chatProviderSel = el('chatProvider');
-  if (chatProviderSel) {
-    const prev = chatProviderSel.value;
-    chatProviderSel.innerHTML = '';
-    Object.keys(state.providers).forEach((name) => {
+  [el('provider'), el('chatProvider')].forEach((sel) => {
+    if (!sel) return;
+    const prev = sel.value;
+    sel.innerHTML = '';
+    allProviderNames.forEach((name) => {
       const opt = document.createElement('option');
       opt.value = name;
       opt.textContent = name;
-      chatProviderSel.appendChild(opt);
+      sel.appendChild(opt);
     });
-    // Restore selection or pick default
-    const preferred = prev || settings.default_provider || Object.keys(state.providers)[0];
-    if (preferred && state.providers[preferred]) chatProviderSel.value = preferred;
-  }
+    // Restore previous selection or pick first available
+    if (prev && state.providers[prev]) sel.value = prev;
+    else if (allProviderNames.length) sel.value = allProviderNames[0];
+  });
 
   await updateModelsForProvider();
   el('healthOut').textContent = JSON.stringify(state.providers, null, 2);
 }
 
 async function updateModelsForProvider() {
-  // Source of truth = #chatProvider (right panel). Sync to deck #provider for compat.
-  const chatProviderSel = el('chatProvider');
+  // The deck #provider is the canonical default; right-panel #chatProvider mirrors it
+  // unless the user has explicitly changed it.
   const deckProviderSel = el('provider');
-  const provider = (chatProviderSel && chatProviderSel.value) ||
-                   (deckProviderSel && deckProviderSel.value) || '';
+  const chatProviderSel = el('chatProvider');
+  const provider = (deckProviderSel && deckProviderSel.value) ||
+                   (chatProviderSel && chatProviderSel.value) || '';
   if (!provider) return;
 
-  if (deckProviderSel && deckProviderSel.value !== provider) deckProviderSel.value = provider;
+  // Keep both in sync
+  if (chatProviderSel && chatProviderSel.value !== provider) chatProviderSel.value = provider;
 
   // Auto model toggle in Command Deck (big-brain)
   const autoToggle = el('autoModelToggle');
   if (autoToggle) {
-    autoToggle.disabled = provider !== 'copilot_proxy';
-    if (provider !== 'copilot_proxy' && autoToggle.checked) {
-      autoToggle.checked = false;
-      state.autoModel = false;
-    }
+    autoToggle.disabled = false; // allow on any provider
+    if (autoToggle.checked) state.autoModel = true;
   }
 
   try {
@@ -311,43 +300,33 @@ async function updateModelsForProvider() {
     const defaultModel = data.default_model || '';
     const models = (data.ok && data.models.length) ? data.models : (defaultModel ? [defaultModel] : []);
 
-    // Populate right-panel chatModel
-    const chatModelSel = el('chatModel');
-    if (chatModelSel) {
-      const prev = chatModelSel.value;
-      chatModelSel.innerHTML = '<option value="auto">Auto</option>';
+    // Helper: build options with Auto first, then all models (default marked ✦)
+    const buildOpts = (sel, prevVal) => {
+      if (!sel) return;
+      sel.innerHTML = '';
+      // Auto is always first
+      const autoOpt = document.createElement('option');
+      autoOpt.value = 'auto';
+      autoOpt.textContent = 'Auto';
+      sel.appendChild(autoOpt);
+      // All available models
       models.forEach((m) => {
         const opt = document.createElement('option');
         opt.value = m;
         opt.textContent = m === defaultModel ? `${m} ✦` : m;
-        chatModelSel.appendChild(opt);
+        sel.appendChild(opt);
       });
-      // Restore or keep Auto
-      if (prev && prev !== 'auto' && models.includes(prev)) {
-        chatModelSel.value = prev;
+      // Restore previous selection; default to 'auto'
+      if (prevVal && (prevVal === 'auto' || models.includes(prevVal))) {
+        sel.value = prevVal;
       } else {
-        chatModelSel.value = 'auto';
+        sel.value = 'auto';
       }
-    }
+    };
 
-    // Also populate deck #model for compat
-    const deckModelSel = el('model');
-    if (deckModelSel) {
-      deckModelSel.innerHTML = '';
-      if (defaultModel) {
-        const opt = document.createElement('option');
-        opt.value = defaultModel;
-        opt.textContent = `${defaultModel} (default)`;
-        opt.selected = true;
-        deckModelSel.appendChild(opt);
-      }
-      models.filter((m) => m !== defaultModel).forEach((m) => {
-        const opt = document.createElement('option');
-        opt.value = m;
-        opt.textContent = m;
-        deckModelSel.appendChild(opt);
-      });
-    }
+    buildOpts(el('model'), el('model') ? el('model').value : 'auto');
+    buildOpts(el('chatModel'), el('chatModel') ? el('chatModel').value : 'auto');
+
   } catch (err) {
     console.error('Failed to load models:', err);
   }
@@ -357,10 +336,22 @@ async function sendChat() {
   const prompt = el('prompt').value.trim();
   if (!prompt) return;
 
-  // Provider + model from right-panel selectors (fall back to deck selectors)
-  const provider = (el('chatProvider') && el('chatProvider').value) || el('provider').value;
-  const rawModel = (el('chatModel') && el('chatModel').value) || el('model').value;
-  const model = rawModel === 'auto' ? null : rawModel;   // null = server uses default_model
+  // Right-panel picker is the in-chat override; deck selects are the persisted default.
+  // If the right-panel shows "auto" for model, fall through to the deck selection.
+  const chatProviderSel = el('chatProvider');
+  const chatModelSel = el('chatModel');
+  const deckProviderSel = el('provider');
+  const deckModelSel = el('model');
+
+  const provider = (chatProviderSel && chatProviderSel.value) ||
+                   (deckProviderSel && deckProviderSel.value) || '';
+
+  const chatModelVal = chatModelSel ? chatModelSel.value : 'auto';
+  const deckModelVal = deckModelSel ? deckModelSel.value : 'auto';
+  // If chat picker is "auto", use deck model as the specific fallback (unless deck is also "auto")
+  const resolvedModel = chatModelVal !== 'auto'
+    ? chatModelVal
+    : (deckModelVal !== 'auto' ? deckModelVal : null);  // null = server picks default
 
   const useMemory = el('useMemoryToggle').checked;
   const agentMode = state.agentMode === true;
@@ -377,7 +368,7 @@ async function sendChat() {
     message: prompt,
     conversation_id: state.conversationId,
     provider,
-    model,
+    model: resolvedModel,
     use_memory: useMemory,
     secure_mode: secureMode,
     project_id: state.activeProjectId || null,
