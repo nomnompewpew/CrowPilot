@@ -3,8 +3,8 @@ function setUiMode(mode) {
   localStorage.setItem('crowpilot_ui_mode', mode);
   document.body.classList.toggle('big-brain-mode', mode === 'big-brain');
   document.body.classList.toggle('zen-mode', mode === 'zen');
-  el('bigBrainModeBtn').classList.toggle('active', mode === 'big-brain');
-  el('zenModeBtn').classList.toggle('active', mode === 'zen');
+  el('bigBrainModeBtn').classList.toggle('tb-active', mode === 'big-brain');
+  el('zenModeBtn').classList.toggle('tb-active', mode === 'zen');
   el('modeTitle').textContent = mode === 'zen' ? 'Zen Mode' : 'Big Brain Mode';
   el('modeNote').textContent = mode === 'zen'
     ? 'Prompt-driven rails with minimal controls. CrowPilot interprets your intent and fills the structured parts for you.'
