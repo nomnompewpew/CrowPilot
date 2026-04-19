@@ -245,8 +245,8 @@ async def mcp_connect(payload: dict) -> dict:
         else:
             from ..services.credential_vault import encrypt_secret
             g.db.execute(
-                "INSERT INTO credentials(name, secret_encrypted) VALUES (?, ?)",
-                (f"{service}-key", encrypt_secret(credential_value)),
+                "INSERT INTO credentials(name, credential_type, secret_encrypted) VALUES (?, ?, ?)",
+                (f"{service}-key", "api_key", encrypt_secret(credential_value)),
             )
         g.db.commit()
         cred_row = g.db.execute(
