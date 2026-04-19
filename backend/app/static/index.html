@@ -103,6 +103,8 @@
         <div class="topbar-controls">
           <button id="openCredentialsBtn" class="topbar-action">🗝 Vault</button>
           <div id="topBarUser">—</div>
+          <button id="bigBrainModeBtn" class="mode-pill">Big Brain</button>
+          <button id="zenModeBtn" class="mode-pill active">Zen</button>
         </div>
       </header>
 
@@ -646,12 +648,9 @@ STRIPE_API_KEY=..."></textarea>
         <!-- ── Main: preview as full-height focus ─────────────────── -->
         <div class="projects-preview">
           <div class="projects-preview-bar">
-            <select id="projectPreviewHost" style="width:auto;min-width:120px;"></select>
-            <span style="color:var(--muted,#666);">:</span>
-            <select id="projectPreviewPort" style="width:auto;min-width:80px;"></select>
-            <input id="projectPreviewPath" placeholder="/" value="/" style="width:80px;" />
+            <input id="projectPreviewUrl" type="text" placeholder="http://localhost:3000/" style="flex:1;min-width:0;" />
+            <button id="autoDetectPreviewBtn" class="alt" title="Auto-detect from project scripts & runtimes">⚡ Detect</button>
             <button id="openProjectPreviewBtn">▶ Load</button>
-            <span id="projectPreviewInfo" class="tiny mono" style="flex:1;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;"></span>
           </div>
           <iframe id="projectPreviewFrame" title="Project preview" style="flex:1;width:100%;border:none;background:#fff;"></iframe>
         </div>
@@ -764,10 +763,6 @@ STRIPE_API_KEY=..."></textarea>
     <aside id="rightPanel">
       <div id="rightPanelHeader">
         <span id="rightPanelTitle">Chat</span>
-        <div style="display:flex;gap:6px;align-items:center;">
-          <button id="bigBrainModeBtn" class="mode-pill">Big Brain</button>
-          <button id="zenModeBtn" class="mode-pill active">Zen</button>
-        </div>
       </div>
       <div id="statStrip" class="stat-strip"></div>
       <div id="messages" class="messages rp-messages"></div>

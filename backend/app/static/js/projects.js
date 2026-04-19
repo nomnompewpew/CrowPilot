@@ -101,79 +101,40 @@ function renderProjectRuntimes() {
   });
 }
 
-function renderPreviewHosts() {
-  const hostSelect = el('projectPreviewHost');
-  if (!hostSelect) return;
-  const hosts = state.projectCapabilities?.preview_allowed_hosts || ['localhost', '127.0.0.1'];
-  hostSelect.innerHTML = '';
-  hosts.forEach((host) => {
-    const opt = document.createElement('option');
-    opt.value = host;
-    opt.textContent = host;
-    hostSelect.appendChild(opt);
-  });
-}
-
-function renderPreviewPorts() {
-  // Internal CrowPilot ports — never show these in the project preview picker
+function autoDetectPreviewUrl() {
   const INTERNAL_PORTS = new Set(['8787', '8080', '8081', '8082', '8083']);
-  const ports = new Set(['3000', '4321', '5173', '5000', '8000']);
 
-  // Pull port from the selected project's saved dev_url
+  // 1. Prefer project's saved dev_url
   const selectedProject = state.projects.find((p) => p.id === state.selectedProjectId);
   if (selectedProject?.dev_url) {
-    try {
-      const m = selectedProject.dev_url.match(/:(\d{2,5})\b/);
-      if (m) ports.add(m[1]);
-    } catch (_) {}
+    el('projectPreviewUrl').value = selectedProject.dev_url;
+    return;
   }
 
-  // Pull ports from script raw commands (e.g. "next dev --port 3001")
-  (state.projectScripts || []).forEach((script) => {
-    const raw = String(script.raw || '');
-    const matches = raw.matchAll(/(?:--port|-p)\s+(\d{2,5})|:(\d{4,5})\b/g);
-    for (const m of matches) {
-      const port = m[1] || m[2];
-      if (port) ports.add(port);
-    }
-    // also scan inline numbers that look like port args
-    const numMatch = raw.match(/\b(\d{4,5})\b/g);
-    if (numMatch) numMatch.forEach((p) => ports.add(p));
-  });
-
-  // Pull ports from running runtimes
-  state.projectRuntimes.forEach((runtime) => {
-    (runtime.command || []).forEach((token) => {
+  // 2. Try running runtimes first (highest confidence)
+  for (const runtime of (state.projectRuntimes || [])) {
+    for (const token of (runtime.command || [])) {
       const m = String(token).match(/\b(\d{4,5})\b/);
-      if (m) ports.add(m[1]);
-    });
-  });
+      if (m && !INTERNAL_PORTS.has(m[1])) {
+        el('projectPreviewUrl').value = `http://localhost:${m[1]}/`;
+        return;
+      }
+    }
+  }
 
-  // Strip internal ports
-  INTERNAL_PORTS.forEach((p) => ports.delete(p));
-
-  const select = el('projectPreviewPort');
-  if (!select) return;
-  const current = select.value;
-  select.innerHTML = '';
-  Array.from(ports).sort((a, b) => Number(a) - Number(b)).forEach((port) => {
-    const opt = document.createElement('option');
-    opt.value = port;
-    opt.textContent = port;
-    select.appendChild(opt);
-  });
-
-  // Prefer the project's saved dev_url port, then previously selected, then first
-  if (selectedProject?.dev_url) {
-    const m = selectedProject.dev_url.match(/:(\d{2,5})\b/);
-    if (m && ports.has(m[1])) {
-      select.value = m[1];
+  // 3. Try script raw commands for explicit --port flags
+  for (const script of (state.projectScripts || [])) {
+    const raw = String(script.raw || '');
+    const m = raw.match(/(?:--port|-p)\s+(\d{2,5})/);
+    if (m && !INTERNAL_PORTS.has(m[1])) {
+      el('projectPreviewUrl').value = `http://localhost:${m[1]}/`;
       return;
     }
   }
-  if (current && ports.has(current)) {
-    select.value = current;
-  }
+
+  // 4. Nothing found — leave placeholder visible
+  el('projectPreviewUrl').value = '';
+  el('projectStatusOut').textContent = 'No running port detected. Type a URL manually.';
 }
 
 async function loadProjectCapabilities() {
@@ -193,7 +154,6 @@ async function loadProjectCapabilities() {
     data.copilot_cli?.configured ? `Configured command: ${data.copilot_cli.configured}` : '',
     data.copilot_cli?.reason ? `Reason: ${data.copilot_cli.reason}` : '',
   ].filter(Boolean).join('\n');
-  renderPreviewHosts();
 }
 
 async function listProjects() {
@@ -266,6 +226,8 @@ async function selectProject(projectId) {
   const selected = state.projects.find((p) => p.id === projectId);
   if (selected) {
     el('projectManualPath').value = selected.path;
+    // Pre-fill URL from saved dev_url immediately; runtimes will refine it
+    if (selected.dev_url) el('projectPreviewUrl').value = selected.dev_url;
   }
   await Promise.all([loadProjectScripts(), listProjectRuntimes()]);
 }
@@ -328,7 +290,7 @@ async function listProjectRuntimes() {
   const out = await resp.json();
   state.projectRuntimes = out.runtimes || [];
   renderProjectRuntimes();
-  renderPreviewPorts();
+  autoDetectPreviewUrl();
 
   if (state.selectedRuntimeId) {
     await loadProjectRuntimeLogs(state.selectedRuntimeId);
@@ -348,38 +310,30 @@ async function loadProjectRuntimeLogs(runtimeId) {
 }
 
 function buildProjectPreviewUrl() {
-  const host = el('projectPreviewHost').value;
-  const port = el('projectPreviewPort').value;
-  const path = (el('projectPreviewPath').value || '/').trim();
-  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
-  return `http://${host}:${port}${normalizedPath}`;
+  const raw = (el('projectPreviewUrl').value || '').trim();
+  if (!raw) return null;
+  if (/^https?:\/\//i.test(raw)) return raw;
+  return `http://${raw}`;
 }
 
 async function openProjectPreview() {
-  if (!state.selectedProjectId) {
-    el('projectStatusOut').textContent = 'Select a project first.';
-    return;
-  }
-  const host = el('projectPreviewHost').value;
-  const allowedHosts = state.projectCapabilities?.preview_allowed_hosts || ['localhost', '127.0.0.1'];
-  if (!allowedHosts.includes(host)) {
-    el('projectStatusOut').textContent = `Host not allowed. Choose one of: ${allowedHosts.join(', ')}`;
-    return;
-  }
   const url = buildProjectPreviewUrl();
-  const frame = el('projectPreviewFrame');
-  frame.src = url;
-
-  const resp = await fetch(`/api/projects/${state.selectedProjectId}/preview`, {
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ dev_url: url }),
-  });
-  if (!resp.ok) {
-    el('projectStatusOut').textContent = `Preview save failed: ${await resp.text()}`;
+  if (!url) {
+    el('projectStatusOut').textContent = 'Enter a URL first, or click ⚡ Detect.';
     return;
   }
-  el('projectPreviewInfo').textContent = `Previewing ${url}`;
+  el('projectPreviewFrame').src = url;
+
+  if (state.selectedProjectId) {
+    const resp = await fetch(`/api/projects/${state.selectedProjectId}/preview`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ dev_url: url }),
+    });
+    if (!resp.ok) {
+      el('projectStatusOut').textContent = `Preview save failed: ${await resp.text()}`;
+    }
+  }
 }
 
 async function sendProjectChat() {

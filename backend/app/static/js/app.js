@@ -89,6 +89,8 @@ function initApp() {
   el('refreshProjectScriptsBtn').addEventListener('click', loadProjectScripts);
   el('runProjectScriptBtn').addEventListener('click', runProjectScript);
   el('openProjectPreviewBtn').addEventListener('click', openProjectPreview);
+  el('autoDetectPreviewBtn').addEventListener('click', autoDetectPreviewUrl);
+  el('projectPreviewUrl').addEventListener('keydown', (e) => { if (e.key === 'Enter') openProjectPreview(); });
   el('sendProjectChatBtn').addEventListener('click', sendProjectChat);
 
   el('refreshServerStatsBtn').addEventListener('click', loadServerStats);
