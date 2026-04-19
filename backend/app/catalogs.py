@@ -31,8 +31,8 @@ MCP_ONBOARDING_CATALOG: dict[str, dict] = {
         "env": {"CLOUDFLARE_API_TOKEN": "<required>"},
         "auth_type": "bearer",
         "auth_env_key": "CLOUDFLARE_API_TOKEN",
-        "docs": ["https://developers.cloudflare.com/agents/model-context-protocol/mcp-servers-for-cloudflare/", "https://dash.cloudflare.com/profile/api-tokens"],
-        "notes": "Workers, Pages, D1, R2, KV, Queues, Durable Objects. Create a scoped API token at dash.cloudflare.com/profile/api-tokens.",
+        "docs": ["https://dash.cloudflare.com/profile/api-tokens"],
+        "notes": "Workers, Pages, D1, R2, KV, Queues, Durable Objects. Token must have: Account → Cloudflare Workers AI (Read) + any resource scopes you need.",
         "capabilities": ["cloudflare workers", "pages", "d1 database", "r2 storage", "kv store", "queues"],
     },
     "stripe": {

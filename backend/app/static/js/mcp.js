@@ -50,7 +50,17 @@ async function loadMcpCatalog() {
       class="${online ? 'alt' : ''}" style="flex:2;">${online ? '✓ Connected' : srv ? 'Reconnect' : 'Connect'}</button>`;
     const checkBtn  = srv ? `<button data-check="${srv.id}" class="alt">Check</button>` : '';
     const delBtn    = srv && !srv.is_builtin ? `<button data-delete="${srv.id}" class="warn">Delete</button>` : '';
-    const errorHtml = srv?.last_error ? `<div class="mcp-tile-error">${srv.last_error.slice(0, 120)}</div>` : '';
+
+    // Parse JSON error bodies into readable messages
+    let errorMsg = srv?.last_error || '';
+    if (errorMsg) {
+      try {
+        const parsed = JSON.parse(errorMsg.match(/(\{.*\})/s)?.[1] || errorMsg);
+        if (parsed.error_description) errorMsg = parsed.error_description;
+        else if (parsed.error) errorMsg = parsed.error;
+      } catch {}
+    }
+    const errorHtml = errorMsg ? `<div class="mcp-tile-error">${errorMsg.slice(0, 160)}</div>` : '';
 
     tile.innerHTML = `
       <div class="mcp-tile-header">
