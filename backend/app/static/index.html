@@ -159,16 +159,27 @@
       <section id="view-mcp" class="view">
         <div class="grid dual">
 
-          <!-- Connect catalog — always visible, drives one-click auth -->
+          <!-- Unified service catalog + management -->
           <article class="card" style="grid-column: 1 / -1;">
-            <h2>Connect a Service</h2>
-            <p class="tiny">Click Connect on any service. OAuth services open the provider login page. API-key services show a single input. Free services connect instantly.</p>
-            <div id="mcpCatalogGrid" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(220px,1fr)); gap:12px; margin-top:12px;"></div>
+            <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; margin-bottom:8px;">
+              <div>
+                <h2 style="margin:0;">MCP Services</h2>
+                <p class="tiny" style="margin:4px 0 0;">Connect services — API-key and OAuth services prompt for a credential. Free services connect instantly.</p>
+              </div>
+              <button id="vsCodeConfigBtn" class="alt" style="width:auto; padding:8px 14px;">Export for VS Code</button>
+            </div>
+            <div id="mcpCatalogGrid" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(240px,1fr)); gap:12px; margin-top:14px;"></div>
+          </article>
+
+          <!-- Custom (non-catalog) servers — shown only when they exist -->
+          <article class="card" id="mcpCustomCard" style="grid-column: 1 / -1; display:none;">
+            <h2>Custom Servers</h2>
+            <div id="mcpList" class="list"></div>
           </article>
 
           <!-- Manual registration — Big Brain only -->
           <article class="card big-brain-only">
-            <h2>Manual Registration</h2>
+            <h2>Add Custom Server</h2>
             <label for="mcpName">Name</label>
             <input id="mcpName" placeholder="my-server" />
             <label for="mcpTransport">Transport</label>
@@ -190,13 +201,6 @@
               <button id="createAndCheckMcpBtn" class="alt">Add + Check</button>
             </div>
             <div id="mcpStatus" class="status"></div>
-          </article>
-
-          <!-- Registry -->
-          <article class="card">
-            <h2>Active Servers</h2>
-            <button id="vsCodeConfigBtn" class="alt" style="margin-bottom:10px; width:auto; padding:8px 14px;">Export for VS Code</button>
-            <div id="mcpList" class="list"></div>
           </article>
         </div>
       </section>

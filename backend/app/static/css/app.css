@@ -409,7 +409,24 @@ dialog {
   width: min(440px, 95vw);
   color: var(--text);
   box-shadow: 0 8px 40px rgba(0,0,0,.5);
+  margin: auto;
 }
+.mcp-tile {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.mcp-tile.installed { border-color: var(--green); }
+.mcp-tile-header { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+.mcp-tile-name { font-size: .9rem; font-weight: 600; }
+.mcp-tile-desc { font-size: .75rem; color: var(--text-muted); line-height: 1.4; flex: 1; }
+.mcp-tile-actions { display: flex; gap: 6px; flex-wrap: wrap; margin-top: auto; }
+.mcp-tile-actions button { flex: 1; min-width: 60px; padding: 5px 8px; font-size: .75rem; }
+.mcp-tile-error { font-size: .7rem; color: var(--red, #f55); font-family: monospace; margin-top: 2px; }
 dialog::backdrop {
   background: rgba(0, 0, 0, .65);
   backdrop-filter: blur(2px);
