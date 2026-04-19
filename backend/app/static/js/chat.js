@@ -12,6 +12,39 @@ function setUiMode(mode) {
   updateSidebarStatus();
 }
 
+function toggleAgentMode() {
+  state.agentMode = !state.agentMode;
+  const btn = el('agentModeBtn');
+  if (btn) btn.classList.toggle('active', state.agentMode);
+  el('chatStatus').textContent = state.agentMode
+    ? '⚙ Agent mode on — Corbin can read/write files & run commands'
+    : '';
+}
+
+function toggleVsCodeView() {
+  state.vsCodeViewActive = !state.vsCodeViewActive;
+  const appBody = el('appBody');
+  const vsPanel = el('vsCodeView');
+  const btn = el('vsCodeViewBtn');
+  const frame = el('vsCodeFrame');
+
+  if (state.vsCodeViewActive) {
+    // Load vscode.dev if not already loaded
+    if (!frame.src || frame.src === window.location.href) {
+      frame.src = 'https://vscode.dev';
+    }
+    appBody.style.display = 'none';
+    vsPanel.style.display = 'flex';
+    btn.classList.add('tb-active');
+    el('topBarSection').textContent = 'VS Code Editor';
+  } else {
+    vsPanel.style.display = 'none';
+    appBody.style.display = '';
+    btn.classList.remove('tb-active');
+    el('topBarSection').textContent = 'Command Deck';
+  }
+}
+
 function currentConversationRecord() {
   return Object.values(state.conversationBuckets)
     .flat()
@@ -220,73 +253,103 @@ async function refreshHealth() {
   const data = await resp.json();
   state.providers = data.providers || {};
 
-  const select = el('provider');
-  select.innerHTML = ''; // Clear existing options
-  Object.keys(state.providers).forEach((name) => {
-    const opt = document.createElement('option');
-    opt.value = name;
-    opt.textContent = name;
-    select.appendChild(opt);
-  });
+  // Populate the Command Deck provider select (big-brain-only, kept for compat)
+  const deckSelect = el('provider');
+  if (deckSelect) {
+    deckSelect.innerHTML = '';
+    Object.keys(state.providers).forEach((name) => {
+      const opt = document.createElement('option');
+      opt.value = name;
+      opt.textContent = name;
+      deckSelect.appendChild(opt);
+    });
+  }
 
-  // Populate models for the currently selected provider
+  // Populate the right-panel provider picker
+  const chatProviderSel = el('chatProvider');
+  if (chatProviderSel) {
+    const prev = chatProviderSel.value;
+    chatProviderSel.innerHTML = '';
+    Object.keys(state.providers).forEach((name) => {
+      const opt = document.createElement('option');
+      opt.value = name;
+      opt.textContent = name;
+      chatProviderSel.appendChild(opt);
+    });
+    // Restore selection or pick default
+    const preferred = prev || settings.default_provider || Object.keys(state.providers)[0];
+    if (preferred && state.providers[preferred]) chatProviderSel.value = preferred;
+  }
+
   await updateModelsForProvider();
-
   el('healthOut').textContent = JSON.stringify(state.providers, null, 2);
 }
 
 async function updateModelsForProvider() {
-  const provider = el('provider').value;
+  // Source of truth = #chatProvider (right panel). Sync to deck #provider for compat.
+  const chatProviderSel = el('chatProvider');
+  const deckProviderSel = el('provider');
+  const provider = (chatProviderSel && chatProviderSel.value) ||
+                   (deckProviderSel && deckProviderSel.value) || '';
   if (!provider) return;
 
+  if (deckProviderSel && deckProviderSel.value !== provider) deckProviderSel.value = provider;
+
+  // Auto model toggle in Command Deck (big-brain)
   const autoToggle = el('autoModelToggle');
-  autoToggle.disabled = provider !== 'copilot_proxy';
-  if (provider !== 'copilot_proxy' && autoToggle.checked) {
-    autoToggle.checked = false;
-    state.autoModel = false;
+  if (autoToggle) {
+    autoToggle.disabled = provider !== 'copilot_proxy';
+    if (provider !== 'copilot_proxy' && autoToggle.checked) {
+      autoToggle.checked = false;
+      state.autoModel = false;
+    }
   }
 
   try {
     const resp = await fetch(`/api/models?provider=${encodeURIComponent(provider)}`);
     const data = await resp.json();
+    const defaultModel = data.default_model || '';
+    const models = (data.ok && data.models.length) ? data.models : (defaultModel ? [defaultModel] : []);
 
-    const select = el('model');
-    select.innerHTML = ''; // Clear existing options
-
-    if (data.ok && data.models.length > 0) {
-      // Add default model first if available
-      if (data.default_model) {
+    // Populate right-panel chatModel
+    const chatModelSel = el('chatModel');
+    if (chatModelSel) {
+      const prev = chatModelSel.value;
+      chatModelSel.innerHTML = '<option value="auto">Auto</option>';
+      models.forEach((m) => {
         const opt = document.createElement('option');
-        opt.value = data.default_model;
-        opt.textContent = data.default_model + ' (default)';
-        opt.selected = true;
-        select.appendChild(opt);
-      }
-
-      // Add other models
-      data.models.forEach((model) => {
-        if (model !== data.default_model) {
-          const opt = document.createElement('option');
-          opt.value = model;
-          opt.textContent = model;
-          select.appendChild(opt);
-        }
+        opt.value = m;
+        opt.textContent = m === defaultModel ? `${m} ✦` : m;
+        chatModelSel.appendChild(opt);
       });
-    } else if (data.default_model) {
-      // Fallback: at least show the default model
-      const opt = document.createElement('option');
-      opt.value = data.default_model;
-      opt.textContent = data.default_model + ' (default)';
-      opt.selected = true;
-      select.appendChild(opt);
+      // Restore or keep Auto
+      if (prev && prev !== 'auto' && models.includes(prev)) {
+        chatModelSel.value = prev;
+      } else {
+        chatModelSel.value = 'auto';
+      }
     }
 
-    if (state.autoModel && provider === 'copilot_proxy') {
-      el('model').value = 'auto';
+    // Also populate deck #model for compat
+    const deckModelSel = el('model');
+    if (deckModelSel) {
+      deckModelSel.innerHTML = '';
+      if (defaultModel) {
+        const opt = document.createElement('option');
+        opt.value = defaultModel;
+        opt.textContent = `${defaultModel} (default)`;
+        opt.selected = true;
+        deckModelSel.appendChild(opt);
+      }
+      models.filter((m) => m !== defaultModel).forEach((m) => {
+        const opt = document.createElement('option');
+        opt.value = m;
+        opt.textContent = m;
+        deckModelSel.appendChild(opt);
+      });
     }
   } catch (err) {
     console.error('Failed to load models:', err);
-    // Fallback: keep what was there
   }
 }
 
@@ -294,29 +357,31 @@ async function sendChat() {
   const prompt = el('prompt').value.trim();
   if (!prompt) return;
 
-  const provider = el('provider').value;
-  const selectedModel = el('model').value.trim();
-  const model = state.autoModel && provider === 'copilot_proxy' ? 'auto' : selectedModel;
+  // Provider + model from right-panel selectors (fall back to deck selectors)
+  const provider = (el('chatProvider') && el('chatProvider').value) || el('provider').value;
+  const rawModel = (el('chatModel') && el('chatModel').value) || el('model').value;
+  const model = rawModel === 'auto' ? null : rawModel;   // null = server uses default_model
+
   const useMemory = el('useMemoryToggle').checked;
-  const secureMode = true; // always scan via local model before cloud
+  const agentMode = state.agentMode === true;
+  const secureMode = true;
 
   addMessage('user', prompt);
   el('prompt').value = '';
   const assistant = addMessage('assistant', '');
-  // thinking container (hidden until thinking tokens arrive)
   let thinkingEl = null;
   let thinkingBuf = '';
-  el('chatStatus').textContent = secureMode ? '🔍 Scanning locally…' : 'Streaming…';
+  el('chatStatus').textContent = agentMode ? '⚙ Agent mode — scanning…' : (secureMode ? '🔍 Scanning locally…' : 'Streaming…');
 
   const body = {
     message: prompt,
     conversation_id: state.conversationId,
     provider,
-    model: model || null,
+    model,
     use_memory: useMemory,
     secure_mode: secureMode,
     project_id: state.activeProjectId || null,
-    enable_tools: true,
+    enable_tools: agentMode,
   };
 
   const resp = await fetch('/api/chat/stream', {

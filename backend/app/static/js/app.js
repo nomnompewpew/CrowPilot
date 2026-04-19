@@ -19,7 +19,9 @@ function initApp() {
     if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) sendChat();
   });
   el('provider').addEventListener('change', async () => {
-    state.autoModel = el('autoModelToggle').checked;
+    // Sync deck provider → right-panel chatProvider
+    if (el('chatProvider')) el('chatProvider').value = el('provider').value;
+    state.autoModel = el('autoModelToggle') ? el('autoModelToggle').checked : false;
     await updateModelsForProvider();
   });
   el('autoModelToggle').addEventListener('change', async () => {
@@ -40,7 +42,16 @@ function initApp() {
 
   el('bigBrainModeBtn').addEventListener('click', () => setUiMode('big-brain'));
   el('zenModeBtn').addEventListener('click', () => setUiMode('zen'));
+  el('vsCodeViewBtn').addEventListener('click', toggleVsCodeView);
   el('openCredentialsBtn').addEventListener('click', () => tabSwitch('credentials'));
+
+  // Right-panel model picker
+  if (el('chatProvider')) {
+    el('chatProvider').addEventListener('change', () => updateModelsForProvider());
+  }
+  if (el('agentModeBtn')) {
+    el('agentModeBtn').addEventListener('click', toggleAgentMode);
+  }
 
   el('jinaFetchBtn').addEventListener('click', jinaFetchUrl);
   el('jinaUrl').addEventListener('keydown', (e) => { if (e.key === 'Enter') jinaFetchUrl(); });

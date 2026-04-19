@@ -48,8 +48,14 @@
         <span id="topBarUser" class="tb-ctrl tb-user">—</span>
         <button id="bigBrainModeBtn" class="tb-ctrl">Big Brain</button>
         <button id="zenModeBtn" class="tb-ctrl tb-active">Zen</button>
+        <button id="vsCodeViewBtn" class="tb-ctrl" title="Toggle vscode.dev embedded editor">Code</button>
       </div>
     </header>
+
+    <!-- ── vscode.dev full-screen panel (hidden by default) ────── -->
+    <div id="vsCodeView" style="display:none; flex:1; overflow:hidden; width:100%;">
+      <iframe id="vsCodeFrame" src="" allow="clipboard-read; clipboard-write" style="width:100%; height:100%; border:none;"></iframe>
+    </div>
 
     <!-- ── App Body ─────────────────────────────────────────────── -->
     <div id="appBody">
@@ -739,6 +745,11 @@ STRIPE_API_KEY=..."></textarea>
       <div id="rpInputArea">
         <div class="zen-only rp-zen-note tiny">Zen mode — CrowPilot routes behind the scenes.</div>
         <textarea id="prompt" placeholder="Ask anything…"></textarea>
+        <div id="rpModelRow">
+          <select id="chatProvider" title="Provider"></select>
+          <select id="chatModel" title="Model"><option value="auto">Auto</option></select>
+          <button id="agentModeBtn" class="rp-mode-btn" title="Toggle Agent Mode (Corbin reads/writes files)">Agent</button>
+        </div>
         <div class="rp-controls">
           <label class="inline-check" style="font-size:.75rem;">
             <input id="useMemoryToggle" type="checkbox" checked />

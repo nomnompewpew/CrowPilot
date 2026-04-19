@@ -7,6 +7,8 @@ const state = {
   uiMode: 'zen',
   conversationFilter: 'active',
   autoModel: false,
+  agentMode: false,
+  vsCodeViewActive: false,
   mcpSuggestion: null,
   credentials: [],
   connectors: {},

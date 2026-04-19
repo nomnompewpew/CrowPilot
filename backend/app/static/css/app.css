@@ -248,6 +248,35 @@ nav.sb-nav button.active {
 .rp-controls button { width: auto; padding: 7px 18px; }
 .rp-zen-note { color: var(--text-dim); margin-bottom: 2px; font-size: .72rem; }
 
+/* ── Right panel model picker row ─────────────────────────── */
+#rpModelRow {
+  display: flex; align-items: center; gap: 5px;
+  padding: 3px 0 1px;
+}
+#rpModelRow select {
+  flex: 1; min-width: 0; font-size: .72rem;
+  height: 26px; padding: 0 4px;
+  background: var(--surface-2); border: 1px solid var(--border);
+  color: var(--text); border-radius: var(--radius);
+  cursor: pointer;
+}
+#chatProvider { max-width: 110px; flex: 0 0 110px; }
+.rp-mode-btn {
+  width: auto; flex-shrink: 0;
+  font-size: .7rem; padding: 3px 8px; height: 26px;
+  background: var(--surface-2); border: 1px solid var(--border);
+  color: var(--text-muted); border-radius: var(--radius); cursor: pointer;
+  white-space: nowrap; transition: color .15s, border-color .15s, background .15s;
+}
+.rp-mode-btn.active {
+  color: var(--green-hi);
+  border-color: color-mix(in srgb, var(--green-hi) 40%, transparent);
+  background: color-mix(in srgb, var(--green-hi) 8%, transparent);
+}
+
+/* ── vscode.dev full-screen panel ──────────────────────────── */
+#vsCodeView { display: none; flex: 1; overflow: hidden; width: 100%; }
+
 /* ── Topbar ────────────────────────────────────────────────────── */
 #topBar {
   width: 100%; height: var(--tb-h); flex-shrink: 0;
