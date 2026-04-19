@@ -27,4 +27,4 @@ HOST="${PANTHEON_HOST:-0.0.0.0}"
 PORT="${PANTHEON_PORT:-8787}"
 
 echo "Starting CrowPilot on ${HOST}:${PORT}"
-uvicorn app.main:app --host "${HOST}" --port "${PORT}" --reload --timeout-graceful-shutdown 3
+uvicorn app.main:app --host "${HOST}" --port "${PORT}" --reload --timeout-graceful-shutdown 1 --reload-delay 2

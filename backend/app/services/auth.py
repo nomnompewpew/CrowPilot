@@ -21,7 +21,7 @@ def get_session_user(token: str) -> dict | None:
     now = datetime.datetime.now(datetime.timezone.utc).isoformat()
     row = g.db.execute(
         """
-        SELECT u.id, u.username, u.role
+        SELECT u.id, u.username, u.role, u.salt, u.password_hash
         FROM sessions s
         JOIN users u ON u.id = s.user_id
         WHERE s.token = ? AND s.expires_at > ?

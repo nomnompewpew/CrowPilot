@@ -141,13 +141,13 @@ function startEmbedBadge() {
   if (!badge) return;
   setInterval(async () => {
     try {
-      const r = await fetch('/api/memory/queue-size');
+      const r = await fetch('/api/memory/queue-size', { signal: AbortSignal.timeout(2000) });
       if (!r.ok) return;
       const d = await r.json();
       badge.style.display = (d.pending > 0) ? 'block' : 'none';
       badge.textContent = `⚙ Embedding… (${d.pending} left)`;
     } catch { /* ignore */ }
-  }, 3000);
+  }, 5000);
 }
 
 /* ── Setup Wizard ──────────────────────────────────────────────── */
