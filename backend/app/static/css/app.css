@@ -415,7 +415,8 @@ nav.sb-nav button.active {
 .projects-sidebar input, .projects-sidebar select, .projects-sidebar textarea {
   font-size: 12px;
 }
-.projects-sidebar button { font-size: 12px; padding: 6px 10px; }
+.projects-sidebar button { font-size: 12px; padding: 6px 10px; width: auto; }
+.projects-sidebar .row button { flex: 1; width: auto; }
 
 .projects-preview {
   flex: 1;
@@ -433,16 +434,27 @@ nav.sb-nav button.active {
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
 }
-.projects-preview-bar select,
 .projects-preview-bar input {
-  font-size: 12px;
-  padding: 4px 8px;
-  height: 30px;
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  padding: 6px 10px;
+  height: 32px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+}
+.projects-preview-bar input:focus {
+  outline: none;
+  border-color: var(--green);
 }
 .projects-preview-bar button {
   font-size: 12px;
-  padding: 5px 12px;
+  padding: 5px 14px;
   white-space: nowrap;
+  width: auto;
+  flex-shrink: 0;
 }
 
 /* ── Grid ──────────────────────────────────────────────────────── */
