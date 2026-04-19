@@ -5,16 +5,279 @@ These tools expose the app's own capabilities (knowledge base, task queue) direc
 through the /mcp relay endpoint.  They appear first in tools/list so the AI always
 has memory and task-management primitives regardless of which external servers are
 connected.
+
+Agent tools (fs_list, fs_read, fs_write, shell_exec) are separate — they are passed
+directly to the model in the chat agentic loop, not exposed via MCP.
 """
 from __future__ import annotations
 
 import re
+import subprocess
+from pathlib import Path
 
 import httpx
 
 from ..chunking import split_into_chunks
 from ..config import settings
 from ..state import g
+
+# ---------------------------------------------------------------------------
+# Agent filesystem / shell tools — security-scoped to home + /tmp
+# ---------------------------------------------------------------------------
+
+_HOME = Path.home()
+_BLOCKED = ("/proc", "/sys", "/dev", "/run/secrets")
+
+
+def _safe_path(raw: str, must_exist: bool = False) -> tuple[Path | None, str | None]:
+    if not raw or not raw.strip():
+        return None, "path is required"
+    try:
+        p = Path(raw).expanduser().resolve()
+    except Exception as exc:
+        return None, f"invalid path: {exc}"
+    sp = str(p)
+    if not any(sp.startswith(root) for root in (str(_HOME), "/tmp", "/home")):
+        return None, f"path must be under home directory or /tmp (got {sp})"
+    for blocked in _BLOCKED:
+        if sp.startswith(blocked):
+            return None, f"access denied: {blocked}"
+    if must_exist and not p.exists():
+        return None, f"path does not exist: {p}"
+    return p, None
+
+
+def _fs_list(args: dict) -> str:
+    raw = (args.get("path") or str(_HOME)).strip()
+    p, err = _safe_path(raw, must_exist=True)
+    if err:
+        return f"Error: {err}"
+    if p.is_file():
+        return f"{p} is a file — use fs_read to read it."
+    try:
+        entries = sorted(p.iterdir(), key=lambda e: (not e.is_dir(), e.name.lower()))
+    except PermissionError:
+        return f"Permission denied: {p}"
+    if not entries:
+        return f"{p}/  (empty directory)"
+    lines = [f"{p}/"]
+    for e in entries[:300]:
+        tag = "/" if e.is_dir() else ""
+        size_str = ""
+        if e.is_file():
+            try:
+                size_str = f"  {e.stat().st_size:,}B"
+            except Exception:
+                pass
+        lines.append(f"  {'[dir] ' if e.is_dir() else '      '}{e.name}{tag}{size_str}")
+    if len(entries) > 300:
+        lines.append(f"  ... and {len(entries) - 300} more entries")
+    return "\n".join(lines)
+
+
+def _fs_read(args: dict) -> str:
+    raw = (args.get("path") or "").strip()
+    p, err = _safe_path(raw, must_exist=True)
+    if err:
+        return f"Error: {err}"
+    if not p.is_file():
+        return f"Error: {p} is not a file"
+    try:
+        with open(p, "rb") as f:
+            sample = f.read(512)
+        if b"\x00" in sample:
+            return f"Error: {p} appears to be a binary file"
+    except PermissionError:
+        return f"Permission denied: {p}"
+    try:
+        text = p.read_text(errors="replace")
+    except Exception as exc:
+        return f"Error reading {p}: {exc}"
+    all_lines = text.splitlines(keepends=True)
+    total = len(all_lines)
+    start = max(0, int(args.get("start_line") or 1) - 1)
+    end = min(total, int(args.get("end_line") or total))
+    selected = all_lines[start:end]
+    MAX_LINES = 500
+    MAX_BYTES = 40_000
+    truncated = False
+    if len(selected) > MAX_LINES:
+        selected = selected[:MAX_LINES]
+        truncated = True
+    result = "".join(selected)
+    if len(result) > MAX_BYTES:
+        result = result[:MAX_BYTES]
+        truncated = True
+    shown_end = min(start + MAX_LINES, end)
+    header = f"# {p}  (lines {start + 1}–{shown_end} of {total})\n"
+    suffix = "\n... (truncated)" if truncated else ""
+    return f"```\n{header}{result}{suffix}\n```"
+
+
+def _fs_write(args: dict) -> str:
+    raw = (args.get("path") or "").strip()
+    content = args.get("content", "")
+    mode = (args.get("mode") or "overwrite").strip().lower()
+    p, err = _safe_path(raw, must_exist=False)
+    if err:
+        return f"Error: {err}"
+    try:
+        p.parent.mkdir(parents=True, exist_ok=True)
+        if mode == "append":
+            with open(p, "a") as f:
+                f.write(content)
+            return f"✓ Appended {len(content):,} bytes to {p}"
+        else:
+            p.write_text(content)
+            return f"✓ Wrote {len(content):,} bytes to {p}"
+    except PermissionError:
+        return f"Permission denied: {p}"
+    except Exception as exc:
+        return f"Error writing {p}: {exc}"
+
+
+def _shell_exec(args: dict) -> str:
+    command = (args.get("command") or "").strip()
+    if not command:
+        return "Error: command is required"
+    raw_cwd = (args.get("cwd") or str(_HOME)).strip()
+    cwd_path, err = _safe_path(raw_cwd, must_exist=True)
+    if err:
+        return f"Error (cwd): {err}"
+    try:
+        result = subprocess.run(
+            command,
+            shell=True,
+            cwd=str(cwd_path),
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+        parts = [f"$ {command}", f"exit: {result.returncode}"]
+        if result.stdout:
+            out = result.stdout
+            if len(out) > 12_000:
+                out = out[:12_000] + "\n... (stdout truncated)"
+            parts.append("stdout:\n" + out.rstrip())
+        if result.stderr:
+            serr = result.stderr
+            if len(serr) > 6_000:
+                serr = serr[:6_000] + "\n... (stderr truncated)"
+            parts.append("stderr:\n" + serr.rstrip())
+        return "\n".join(parts)
+    except subprocess.TimeoutExpired:
+        return f"Error: command timed out after 30 seconds\n$ {command}"
+    except Exception as exc:
+        return f"Error running command: {exc}"
+
+
+_AGENT_HANDLERS: dict[str, callable] = {
+    "fs_list": _fs_list,
+    "fs_read": _fs_read,
+    "fs_write": _fs_write,
+    "shell_exec": _shell_exec,
+}
+
+# OpenAI function-calling format — passed as `tools` to the model in chat.py
+AGENT_TOOLS_OPENAI: list[dict] = [
+    {
+        "type": "function",
+        "function": {
+            "name": "fs_list",
+            "description": (
+                "List files and directories at a path on the server filesystem. "
+                "Use this to explore project structure before reading files."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "path": {
+                        "type": "string",
+                        "description": "Absolute path to list. Must be under the home directory.",
+                    }
+                },
+                "required": ["path"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "fs_read",
+            "description": (
+                "Read the contents of a file on the server. "
+                "Optionally specify start_line and end_line (1-based) to read a slice."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "path": {"type": "string", "description": "Absolute path to the file."},
+                    "start_line": {"type": "integer", "description": "1-based start line (optional)."},
+                    "end_line": {"type": "integer", "description": "1-based end line inclusive (optional)."},
+                },
+                "required": ["path"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "fs_write",
+            "description": (
+                "Write or overwrite a file on the server with the given content. "
+                "Creates parent directories if needed. Use mode=append to add to existing files."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "path": {"type": "string", "description": "Absolute path to write."},
+                    "content": {"type": "string", "description": "Full file content to write."},
+                    "mode": {
+                        "type": "string",
+                        "enum": ["overwrite", "append"],
+                        "description": "Write mode. Default overwrite.",
+                    },
+                },
+                "required": ["path", "content"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "shell_exec",
+            "description": (
+                "Execute a shell command in the given working directory. "
+                "Returns stdout and stderr. Hard 30-second timeout. "
+                "Use this to run tests, install packages, check git status, etc."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "command": {"type": "string", "description": "Shell command to run."},
+                    "cwd": {
+                        "type": "string",
+                        "description": "Working directory. Must be under home. Defaults to home directory.",
+                    },
+                },
+                "required": ["command"],
+            },
+        },
+    },
+]
+
+AGENT_TOOL_NAMES: frozenset[str] = frozenset(_AGENT_HANDLERS)
+
+
+def call_agent_tool(tool_name: str, arguments: dict) -> str:
+    """Dispatch an agent tool call. Returns plain string result."""
+    handler = _AGENT_HANDLERS.get(tool_name)
+    if not handler:
+        return f"Unknown agent tool: {tool_name}"
+    try:
+        return handler(arguments)
+    except Exception as exc:
+        return f"Tool error in {tool_name}: {exc}"
 
 # ---------------------------------------------------------------------------
 # Tool descriptors (returned verbatim in tools/list responses)

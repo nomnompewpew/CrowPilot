@@ -315,6 +315,8 @@ async function sendChat() {
     model: model || null,
     use_memory: useMemory,
     secure_mode: secureMode,
+    project_id: state.activeProjectId || null,
+    enable_tools: true,
   };
 
   const resp = await fetch('/api/chat/stream', {
@@ -376,6 +378,16 @@ async function sendChat() {
           assistant.parentNode.insertBefore(thinkingEl, assistant);
         }
         thinkingEl.querySelector('pre').textContent = thinkingBuf;
+      } else if (payload.type === 'tool_call') {
+        const callEl = document.createElement('div');
+        callEl.className = 'tool-call-badge';
+        callEl.textContent = `⚙ ${payload.tool}(${JSON.stringify(payload.args || {}).slice(0, 80)})`;
+        assistant.parentNode.insertBefore(callEl, assistant);
+      } else if (payload.type === 'tool_result') {
+        const resEl = document.createElement('details');
+        resEl.className = 'tool-result-block';
+        resEl.innerHTML = `<summary>↳ ${payload.tool} result</summary><pre>${payload.result}</pre>`;
+        assistant.parentNode.insertBefore(resEl, assistant);
       } else if (payload.type === 'token') {
         if (thinkingEl) thinkingEl.querySelector('summary').textContent = 'Thought process';
         assistant.textContent += payload.token;

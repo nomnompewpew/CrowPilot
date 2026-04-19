@@ -217,6 +217,7 @@ async function browseProjectFolder() {
 
 async function selectProject(projectId) {
   state.selectedProjectId = projectId;
+  state.activeProjectId = projectId;  // inject as Corbin context automatically
   // Sync the dropdown
   const sel = el('projectSelect');
   if (sel) sel.value = projectId;

@@ -85,6 +85,45 @@ class OpenAICompatProvider:
                     if thinking:
                         yield ("thinking", thinking)
 
+    async def complete_with_tools(
+        self,
+        messages: list[dict],
+        tools: list[dict],
+        model: str | None = None,
+        max_tokens: int | None = None,
+        temperature: float | None = None,
+    ) -> dict:
+        """Non-streaming call with tool definitions. Returns the full message dict including tool_calls."""
+        payload: dict[str, Any] = {
+            "model": model or self.cfg.default_model,
+            "messages": messages,
+            "tools": tools,
+            "stream": False,
+        }
+        if max_tokens is not None:
+            payload["max_tokens"] = max_tokens
+        if temperature is not None:
+            payload["temperature"] = temperature
+
+        async with httpx.AsyncClient(timeout=120.0) as client:
+            resp = await client.post(
+                f"{self.cfg.base_url}/chat/completions",
+                headers=self._headers(),
+                json=payload,
+            )
+            resp.raise_for_status()
+            parsed = resp.json()
+
+        choices = parsed.get("choices", [])
+        if not choices:
+            return {"role": "assistant", "content": "", "tool_calls": None}
+        message = choices[0].get("message", {})
+        return {
+            "role": "assistant",
+            "content": message.get("content") or "",
+            "tool_calls": message.get("tool_calls"),
+        }
+
     async def complete_chat(
         self,
         messages: list[dict[str, str]],

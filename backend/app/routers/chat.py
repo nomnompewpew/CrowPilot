@@ -13,10 +13,14 @@ from ..schemas import ChatRequest
 from ..services.corbin import get_system_prompt
 from ..services.knowledge import fetch_memory_context
 from ..services.memory import enqueue_message, REALTIME, BACKGROUND
+from ..services.native_tools import AGENT_TOOLS_OPENAI, call_agent_tool
 from ..services.security_gate import scan_and_redact
 from ..state import g
 
 router = APIRouter(prefix="/api/chat", tags=["chat"])
+
+# ── Agentic loop config ───────────────────────────────────────────────────────
+_MAX_AGENT_ITERATIONS = 20
 
 # ── Pending approval registry ─────────────────────────────────────────────────
 # Maps short-lived token → asyncio.Event. Set by POST /approve/{token}.
@@ -150,6 +154,25 @@ async def chat_stream(payload: ChatRequest):
     corbin_prompt = {"role": "system", "content": get_system_prompt()}
     history = [corbin_prompt] + history
 
+    # ── Project context injection ──────────────────────────────────────────
+    # When a project is selected, inject path + shallow file tree so Corbin
+    # knows exactly where it's working without the user having to repeat it.
+    if payload.project_id:
+        proj_row = g.db.execute(
+            "SELECT name, path FROM projects WHERE id = ?", (payload.project_id,)
+        ).fetchone()
+        if proj_row and proj_row["path"]:
+            from ..services.native_tools import _fs_list  # local import to avoid circularity
+            tree = _fs_list({"path": proj_row["path"]})
+            proj_ctx = (
+                f"Active project: {proj_row['name']}\n"
+                f"Project path: {proj_row['path']}\n\n"
+                f"File tree:\n{tree}\n\n"
+                f"Use fs_read to read files, fs_write to edit them, and shell_exec to run commands. "
+                f"All paths must be absolute. The project root is {proj_row['path']}."
+            )
+            history = [corbin_prompt, {"role": "system", "content": proj_ctx}] + history[1:]
+
     # ── Stream generator ───────────────────────────────────────────────────
     async def event_stream() -> AsyncGenerator[str, None]:
         approval_token = None
@@ -211,26 +234,80 @@ async def chat_stream(payload: ChatRequest):
             else:
                 yield "data: " + json.dumps({"type": "status", "text": "✅ No secrets detected — sending."}) + "\n\n"
 
-        # ── Send to provider ───────────────────────────────────────────────
         # Replace last history entry with the safe (possibly redacted) version
         send_history = history[:-1] + [{"role": "user", "content": safe_text}]
 
-        assistant_parts: list[str] = []
-        try:
-            async for kind, token in provider.stream_chat(
-                messages=send_history,
-                model=None if payload.model == "auto" else payload.model,
-                max_tokens=payload.max_tokens,
-                temperature=payload.temperature,
-                no_think=is_local_only,
-            ):
-                if kind == "content":
-                    assistant_parts.append(token)
-                    yield "data: " + json.dumps({"type": "token", "token": token}) + "\n\n"
-                elif kind == "thinking":
-                    yield "data: " + json.dumps({"type": "thinking", "token": token}) + "\n\n"
+        # ── Agentic tool loop or plain stream ─────────────────────────────
+        # Local-only providers get plain streaming (no tool loop overhead).
+        # Cloud providers run the full agentic loop when enable_tools is True.
+        use_tools = (not is_local_only) and payload.enable_tools
 
-            assistant_text = "".join(assistant_parts).strip()
+        if use_tools:
+            agent_history = list(send_history)
+            for iteration in range(_MAX_AGENT_ITERATIONS):
+                try:
+                    response_msg = await provider.complete_with_tools(
+                        messages=agent_history,
+                        tools=AGENT_TOOLS_OPENAI,
+                        model=None if payload.model == "auto" else payload.model,
+                        max_tokens=payload.max_tokens,
+                        temperature=payload.temperature,
+                    )
+                except Exception as exc:
+                    yield "data: " + json.dumps({"type": "error", "error": str(exc)}) + "\n\n"
+                    return
+
+                tool_calls = response_msg.get("tool_calls") or []
+
+                if not tool_calls:
+                    # Final text response — yield as tokens
+                    assistant_text = (response_msg.get("content") or "").strip()
+                    if assistant_text:
+                        yield "data: " + json.dumps({"type": "token", "token": assistant_text}) + "\n\n"
+                    break
+
+                # Append assistant message (may have partial content + tool_calls)
+                agent_history.append({
+                    "role": "assistant",
+                    "content": response_msg.get("content") or "",
+                    "tool_calls": tool_calls,
+                })
+
+                # Execute each tool call and stream status to UI
+                for tc in tool_calls:
+                    fn = tc.get("function", {})
+                    tool_name = fn.get("name", "unknown")
+                    try:
+                        tool_args = json.loads(fn.get("arguments") or "{}")
+                    except json.JSONDecodeError:
+                        tool_args = {}
+
+                    yield "data: " + json.dumps({
+                        "type": "tool_call",
+                        "tool": tool_name,
+                        "args": tool_args,
+                    }) + "\n\n"
+
+                    # Run in executor to avoid blocking the event loop (shell_exec is blocking)
+                    tool_result = await asyncio.get_event_loop().run_in_executor(
+                        None, call_agent_tool, tool_name, tool_args
+                    )
+
+                    yield "data: " + json.dumps({
+                        "type": "tool_result",
+                        "tool": tool_name,
+                        "result": tool_result[:500],  # preview in SSE; full result goes to model
+                    }) + "\n\n"
+
+                    agent_history.append({
+                        "role": "tool",
+                        "tool_call_id": tc.get("id", ""),
+                        "content": tool_result,
+                    })
+            else:
+                # Hit max iterations
+                assistant_text = "I reached the maximum number of tool calls. Please review the steps above."
+
             asst_cur = g.db.execute(
                 "INSERT INTO messages(conversation_id, role, content, provider, model) VALUES (?, ?, ?, ?, ?)",
                 (conversation_id, "assistant", assistant_text, provider_name,
@@ -238,15 +315,42 @@ async def chat_stream(payload: ChatRequest):
             )
             asst_msg_id = asst_cur.lastrowid
             g.db.commit()
-
-            # Passively embed the assistant response at background priority —
-            # it's less urgent than the user's own words.
             if assistant_text:
                 enqueue_message(assistant_text, "message", asst_msg_id, 0, BACKGROUND)
-
             yield "data: " + json.dumps({"type": "done"}) + "\n\n"
-        except Exception as exc:
-            yield "data: " + json.dumps({"type": "error", "error": str(exc)}) + "\n\n"
+
+        else:
+            # Plain streaming — no tool loop
+            assistant_parts: list[str] = []
+            try:
+                async for kind, token in provider.stream_chat(
+                    messages=send_history,
+                    model=None if payload.model == "auto" else payload.model,
+                    max_tokens=payload.max_tokens,
+                    temperature=payload.temperature,
+                    no_think=is_local_only,
+                ):
+                    if kind == "content":
+                        assistant_parts.append(token)
+                        yield "data: " + json.dumps({"type": "token", "token": token}) + "\n\n"
+                    elif kind == "thinking":
+                        yield "data: " + json.dumps({"type": "thinking", "token": token}) + "\n\n"
+
+                assistant_text = "".join(assistant_parts).strip()
+                asst_cur = g.db.execute(
+                    "INSERT INTO messages(conversation_id, role, content, provider, model) VALUES (?, ?, ?, ?, ?)",
+                    (conversation_id, "assistant", assistant_text, provider_name,
+                     payload.model or provider.cfg.default_model),
+                )
+                asst_msg_id = asst_cur.lastrowid
+                g.db.commit()
+
+                if assistant_text:
+                    enqueue_message(assistant_text, "message", asst_msg_id, 0, BACKGROUND)
+
+                yield "data: " + json.dumps({"type": "done"}) + "\n\n"
+            except Exception as exc:
+                yield "data: " + json.dumps({"type": "error", "error": str(exc)}) + "\n\n"
 
     return StreamingResponse(event_stream(), media_type="text/event-stream")
 

@@ -359,6 +359,10 @@ nav.sb-nav button.active {
 .thinking-block { margin: 4px 0 6px; border: 1px solid var(--border); border-radius: 6px; font-size: .78rem; background: var(--surface-1); }
 .thinking-block summary { cursor: pointer; padding: 4px 8px; color: var(--muted); user-select: none; }
 .thinking-content { margin: 0; padding: 8px; font-family: "IBM Plex Mono", monospace; font-size: .72rem; color: var(--muted); white-space: pre-wrap; word-break: break-word; max-height: 200px; overflow-y: auto; }
+.tool-call-badge { font-family: "IBM Plex Mono", monospace; font-size: .72rem; color: var(--green-hi); background: color-mix(in srgb, var(--green-hi) 8%, transparent); border: 1px solid color-mix(in srgb, var(--green-hi) 25%, transparent); border-radius: 4px; padding: 2px 7px; margin: 3px 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tool-result-block { margin: 3px 0 6px; border: 1px solid var(--border); border-radius: 6px; font-size: .78rem; background: var(--surface-1); }
+.tool-result-block summary { cursor: pointer; padding: 4px 8px; color: var(--muted); user-select: none; }
+.tool-result-block pre { margin: 0; padding: 8px; font-family: "IBM Plex Mono", monospace; font-size: .72rem; color: var(--text-dim); white-space: pre-wrap; word-break: break-word; max-height: 200px; overflow-y: auto; }
 
 /* ── Views ─────────────────────────────────────────────────────── */
 .view { display: none; animation: fadeIn 200ms ease; }

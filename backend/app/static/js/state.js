@@ -12,6 +12,7 @@ const state = {
   connectors: {},
   projects: [],
   selectedProjectId: null,
+  activeProjectId: null,   // project currently injected as Corbin context
   projectCapabilities: null,
   projectScripts: [],
   projectRuntimes: [],

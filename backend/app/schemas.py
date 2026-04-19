@@ -40,6 +40,8 @@ class ChatRequest(BaseModel):
     use_memory: bool = True
     secure_mode: bool = False
     cloud_provider: str | None = None
+    project_id: int | None = None
+    enable_tools: bool = True
 
 
 class LoginRequest(BaseModel):
