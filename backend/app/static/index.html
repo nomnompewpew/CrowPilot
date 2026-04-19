@@ -603,88 +603,80 @@ STRIPE_API_KEY=..."></textarea>
         </div>
       </section>
 
-      <section id="view-projects" class="view">
-        <div class="grid dual">
-          <article class="card">
-            <h2>Workspace</h2>
-            <p class="tiny">Choose an existing folder and lock it in as your active workspace.</p>
-            <div class="row" style="margin-top:8px;">
-              <button id="browseProjectBtn">Browse</button>
-              <button id="discoverProjectsBtn" class="alt">Import Root Folders</button>
-              <button id="refreshProjectsBtn" class="alt">Refresh Projects</button>
-            </div>
-            <label for="projectManualPath">Manual Folder Path</label>
-            <div class="row">
-              <input id="projectManualPath" placeholder="/home/user/projects/my-monorepo" />
-              <button id="importProjectPathBtn" class="alt">Use Path</button>
-            </div>
-            <div id="projectCapabilityOut" class="tiny mono" style="margin-top:8px;"></div>
-            <div id="selectedProjectMeta" class="tiny mono" style="margin-top:8px;"></div>
-            <div id="projectStatusOut" class="status mono"></div>
-          </article>
+      <section id="view-projects" class="view projects-layout">
 
-          <article class="card">
-            <h2>Workspaces</h2>
-            <div id="projectList" class="list"></div>
-          </article>
+        <!-- ── Left sidebar: all controls ─────────────────────────── -->
+        <aside class="projects-sidebar">
 
-          <article class="card">
-            <h2>Monorepo Scripts</h2>
-            <label for="projectAllowSystemAccess" style="display:flex; align-items:center; gap:8px; margin-top:8px;">
-              <input id="projectAllowSystemAccess" type="checkbox" style="width:auto;" />
-              Allow local script execution
-            </label>
-            <div class="row">
-              <div>
-                <label for="projectScriptSelect">Available Scripts</label>
-                <select id="projectScriptSelect"></select>
+          <details open>
+            <summary><strong>Workspace</strong></summary>
+            <div style="padding:10px 0 4px;">
+              <div class="row" style="flex-wrap:wrap;gap:6px;">
+                <button id="browseProjectBtn" style="flex:1;">Browse</button>
+                <button id="discoverProjectsBtn" class="alt" style="flex:1;">Import Roots</button>
+                <button id="refreshProjectsBtn" class="alt" style="flex:1;">Refresh</button>
               </div>
-              <div style="display:flex; align-items:flex-end; gap:8px;">
-                <button id="refreshProjectScriptsBtn" class="alt">Refresh Scripts</button>
-                <button id="runProjectScriptBtn">Run Selected</button>
+              <label style="margin-top:8px;">Manual Path</label>
+              <div class="row" style="gap:6px;">
+                <input id="projectManualPath" placeholder="/home/user/myapp" style="flex:1;" />
+                <button id="importProjectPathBtn" class="alt">Use</button>
               </div>
+              <div id="projectCapabilityOut" class="tiny mono" style="margin-top:6px;"></div>
+              <div id="selectedProjectMeta" class="tiny mono"></div>
+              <div id="projectStatusOut" class="status mono"></div>
             </div>
-            <div id="projectRuntimeList" class="list" style="margin-top:10px;"></div>
-            <pre id="projectRuntimeLogs" class="mono" style="white-space:pre-wrap; min-height:120px; max-height:240px; overflow:auto; background:#12151e; color:#f4f8ff; border-radius:10px; padding:10px;">No runtime logs yet.</pre>
-          </article>
+          </details>
 
-          <article class="card">
-            <h2>Workspace Chat</h2>
-            <p class="tiny">Quick chat in your selected workspace context.</p>
-            <label for="projectChatPrompt">Prompt</label>
-            <textarea id="projectChatPrompt" placeholder="Build me a clean onboarding landing page and list files to edit."></textarea>
-            <label for="projectIncludeContextToggle" style="display:flex; align-items:center; gap:8px; margin-top:6px;">
-              <input id="projectIncludeContextToggle" type="checkbox" style="width:auto;" />
-              Include project context (README, package.json, file tree)
-            </label>
-            <button id="sendProjectChatBtn">Send</button>
-            <pre id="projectChatOut" class="mono" style="white-space:pre-wrap; min-height:120px; max-height:280px; overflow:auto; background:#12151e; color:#f4f8ff; border-radius:10px; padding:10px;"></pre>
-          </article>
+          <details>
+            <summary><strong>Workspaces</strong></summary>
+            <div id="projectList" class="list" style="padding:6px 0;"></div>
+          </details>
 
-          <article class="card" style="grid-column: 1 / -1;">
-            <h2>Preview</h2>
-            <p class="tiny">Pick a local host and port from running scripts to preview apps safely.</p>
-            <div class="row">
-              <div>
-                <label for="projectPreviewHost">Host</label>
-                <select id="projectPreviewHost"></select>
+          <details>
+            <summary><strong>Scripts</strong></summary>
+            <div style="padding:10px 0 4px;">
+              <label style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+                <input id="projectAllowSystemAccess" type="checkbox" style="width:auto;" />
+                Allow local execution
+              </label>
+              <div class="row" style="flex-wrap:wrap;gap:6px;">
+                <select id="projectScriptSelect" style="flex:1;"></select>
+                <button id="refreshProjectScriptsBtn" class="alt">↺</button>
+                <button id="runProjectScriptBtn">▶ Run</button>
               </div>
-              <div>
-                <label for="projectPreviewPort">Port</label>
-                <select id="projectPreviewPort"></select>
-              </div>
-              <div>
-                <label for="projectPreviewPath">Path</label>
-                <input id="projectPreviewPath" placeholder="/" value="/" />
-              </div>
-              <div style="display:flex; align-items:flex-end;">
-                <button id="openProjectPreviewBtn">Open Viewer</button>
-              </div>
+              <div id="projectRuntimeList" class="list" style="margin-top:8px;"></div>
+              <pre id="projectRuntimeLogs" class="mono" style="white-space:pre-wrap;height:140px;overflow:auto;background:#12151e;color:#f4f8ff;border-radius:8px;padding:8px;margin-top:6px;font-size:11px;">No runtime logs yet.</pre>
             </div>
-            <div id="projectPreviewInfo" class="tiny mono" style="margin-top:8px;"></div>
-            <iframe id="projectPreviewFrame" title="Project preview" style="width:100%; min-height:480px; border:1px solid var(--border); border-radius:var(--radius); margin-top:10px; background:#fff;"></iframe>
-          </article>
+          </details>
+
+          <details>
+            <summary><strong>Workspace Chat</strong></summary>
+            <div style="padding:10px 0 4px;">
+              <textarea id="projectChatPrompt" rows="4" placeholder="Build me a landing page…" style="font-size:13px;"></textarea>
+              <label style="display:flex;align-items:center;gap:8px;margin-top:6px;">
+                <input id="projectIncludeContextToggle" type="checkbox" style="width:auto;" />
+                Include project context
+              </label>
+              <button id="sendProjectChatBtn" style="margin-top:6px;">Send</button>
+              <pre id="projectChatOut" class="mono" style="white-space:pre-wrap;height:200px;overflow:auto;background:#12151e;color:#f4f8ff;border-radius:8px;padding:8px;margin-top:6px;font-size:11px;"></pre>
+            </div>
+          </details>
+
+        </aside>
+
+        <!-- ── Main: preview as full-height focus ─────────────────── -->
+        <div class="projects-preview">
+          <div class="projects-preview-bar">
+            <select id="projectPreviewHost" style="width:auto;min-width:120px;"></select>
+            <span style="color:var(--muted,#666);">:</span>
+            <select id="projectPreviewPort" style="width:auto;min-width:80px;"></select>
+            <input id="projectPreviewPath" placeholder="/" value="/" style="width:80px;" />
+            <button id="openProjectPreviewBtn">▶ Load</button>
+            <span id="projectPreviewInfo" class="tiny mono" style="flex:1;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;"></span>
+          </div>
+          <iframe id="projectPreviewFrame" title="Project preview" style="flex:1;width:100%;border:none;background:#fff;"></iframe>
         </div>
+
       </section>
 
       <!-- ── Server & Logs ─────────────────────────────────────────── -->
