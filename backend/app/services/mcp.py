@@ -116,6 +116,74 @@ def ensure_builtin_mcp_servers() -> None:
         g.db.commit()
 
 
+def import_vscode_mcp_servers() -> int:
+    """Read VS Code's user mcp.json and register any new stdio/http servers into Pantheon.
+
+    Skips servers already in the DB by name. Returns count of newly added servers.
+    """
+    import os
+    from pathlib import Path
+
+    # Common locations for VS Code / VS Code Server user mcp.json
+    candidates = [
+        Path.home() / ".vscode-server/data/User/mcp.json",
+        Path.home() / ".config/Code/User/mcp.json",
+        Path.home() / ".config/Code - OSS/User/mcp.json",
+        Path(os.environ.get("VSCODE_APPDATA", "")) / "User/mcp.json" if os.environ.get("VSCODE_APPDATA") else None,
+    ]
+
+    mcp_json = None
+    for path in candidates:
+        if path and path.exists():
+            try:
+                mcp_json = json.loads(path.read_text())
+                break
+            except Exception:
+                continue
+
+    if not mcp_json:
+        return 0
+
+    servers = mcp_json.get("servers", {})
+    if not servers:
+        return 0
+
+    # Names already in the catalog — don't import those (user manages them via Connect)
+    catalog_names = {entry["name"] for entry in MCP_ONBOARDING_CATALOG.values()}
+    # Names already in DB
+    existing_names = {
+        row["name"]
+        for row in g.db.execute("SELECT name FROM mcp_servers").fetchall()
+    }
+
+    added = 0
+    for name, cfg in servers.items():
+        if name in catalog_names or name in existing_names:
+            continue
+
+        vsc_type = cfg.get("type", "stdio")
+        transport = "http" if vsc_type in ("http", "sse") else "stdio"
+        command = cfg.get("command")
+        args = cfg.get("args") or []
+        url = cfg.get("url")
+        env = cfg.get("env") or {}
+
+        # Build args_json — command + args as list for stdio
+        g.db.execute(
+            """
+            INSERT INTO mcp_servers(name, transport, url, command, args_json, env_json, status)
+            VALUES (?, ?, ?, ?, ?, ?, 'unknown')
+            """,
+            (name, transport, url, command, json.dumps(args), json.dumps(env)),
+        )
+        added += 1
+
+    if added:
+        g.db.commit()
+
+    return added
+
+
 def insert_mcp_server_with_unique_name(parsed: dict):
     """Insert an MCP server row, appending a numeric suffix if the name conflicts."""
     import sqlite3

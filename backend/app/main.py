@@ -14,7 +14,7 @@ from .db import get_connection, init_db
 from .middleware.auth import auth_middleware
 from .services.auth import seed_default_user
 from .services.log_handler import install_log_capture
-from .services.mcp import ensure_builtin_mcp_servers, normalize_existing_mcp_servers
+from .services.mcp import ensure_builtin_mcp_servers, normalize_existing_mcp_servers, import_vscode_mcp_servers
 from .services.memory import embed_worker, stop_embed_worker
 from .services.providers import reload_providers_from_integrations
 from .state import g
@@ -48,6 +48,7 @@ async def lifespan(_: FastAPI):
     init_db(g.db)
     normalize_existing_mcp_servers()
     ensure_builtin_mcp_servers()
+    import_vscode_mcp_servers()
     reload_providers_from_integrations()
     seed_default_user()
     # Start passive embed background worker
