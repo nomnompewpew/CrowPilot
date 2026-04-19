@@ -123,7 +123,7 @@ async function mcpCatalogConnect(service, authType, envKey, docsUrl) {
   // Show / hide the "Get your key" button
   const getKeyBtn = el('mcpCredDialogGetKey');
   if (docsUrl) {
-    getKeyBtn.style.display = '';
+    getKeyBtn.style.display = 'inline-flex';
     getKeyBtn.textContent = isOauth ? '🔗 Open login page →' : '🔑 Get your key →';
     getKeyBtn.onclick = () => window.open(docsUrl, '_blank');
   } else {
