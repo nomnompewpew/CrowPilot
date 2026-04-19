@@ -239,13 +239,13 @@ async def mcp_connect(payload: dict) -> dict:
         if existing:
             from ..services.credential_vault import encrypt_secret
             g.db.execute(
-                "UPDATE credentials SET secret_enc = ?, updated_at = datetime('now') WHERE id = ?",
+                "UPDATE credentials SET secret_encrypted = ?, updated_at = datetime('now') WHERE id = ?",
                 (encrypt_secret(credential_value), existing["id"]),
             )
         else:
             from ..services.credential_vault import encrypt_secret
             g.db.execute(
-                "INSERT INTO credentials(name, secret_enc) VALUES (?, ?)",
+                "INSERT INTO credentials(name, secret_encrypted) VALUES (?, ?)",
                 (f"{service}-key", encrypt_secret(credential_value)),
             )
         g.db.commit()
