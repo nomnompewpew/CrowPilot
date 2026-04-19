@@ -10,6 +10,7 @@ const NAV_LABELS = {
   projects: 'Projects',
   'copilot-history': 'Copilot History',
   server: 'Server & Logs',
+  lan: 'Network',
 };
 
 function tabSwitch(tab) {
@@ -22,6 +23,7 @@ function tabSwitch(tab) {
   if (el('topBarSection')) el('topBarSection').textContent = NAV_LABELS[tab] || tab;
   if (tab === 'server') loadServerStats();
   if (tab === 'mcp') { loadMcpCatalog(); listMcpServers(); }
+  if (tab === 'lan') loadLanDevices();
 }
 
 /* ── Copy helper ────────────────────────────────────────────────── */

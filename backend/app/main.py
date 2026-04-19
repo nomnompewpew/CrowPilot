@@ -31,6 +31,7 @@ from .routers import (
     db_connections,
     integrations,
     knowledge,
+    lan,
     mcp,
     nomad,
     projects,
@@ -129,6 +130,7 @@ for _router_module in [
     projects,
     sensitive,
     copilot_history,
+    lan,
 ]:
     app.include_router(_router_module.router)
 

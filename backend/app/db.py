@@ -317,6 +317,35 @@ def init_db(conn: sqlite3.Connection) -> None:
             embedding BLOB,
             UNIQUE(session_id, chunk_index)
         );
+
+        -- LAN device registry (crow-agent connected machines)
+        CREATE TABLE IF NOT EXISTS lan_devices (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            label TEXT NOT NULL,
+            ip TEXT NOT NULL UNIQUE,
+            port INTEGER NOT NULL DEFAULT 8788,
+            api_key TEXT,
+            status TEXT NOT NULL DEFAULT 'unknown',
+            last_seen TEXT,
+            info_json TEXT NOT NULL DEFAULT '{}',
+            hostname TEXT,
+            platform TEXT,
+            notes TEXT,
+            auto_harvest INTEGER NOT NULL DEFAULT 0,
+            created_at TEXT NOT NULL DEFAULT (datetime('now')),
+            updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+
+        -- LAN scan results (raw ARP / ping sweep history)
+        CREATE TABLE IF NOT EXISTS lan_scan_results (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            ip TEXT NOT NULL,
+            mac TEXT,
+            hostname TEXT,
+            open_ports TEXT NOT NULL DEFAULT '[]',
+            has_crow_agent INTEGER NOT NULL DEFAULT 0,
+            scanned_at TEXT NOT NULL DEFAULT (datetime('now'))
+        );
         """
     )
 

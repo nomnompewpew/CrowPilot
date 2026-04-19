@@ -413,6 +413,21 @@ nav.sb-nav button.active {
 .tool-result-block summary { cursor: pointer; padding: 4px 8px; color: var(--muted); user-select: none; }
 .tool-result-block pre { margin: 0; padding: 8px; font-family: "IBM Plex Mono", monospace; font-size: .72rem; color: var(--text-dim); white-space: pre-wrap; word-break: break-word; max-height: 200px; overflow-y: auto; }
 
+/* ── LAN Device cards ─────────────────────────────────────────── */
+.lan-device-card { margin-bottom: 10px; }
+.lan-device-header { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.lan-status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--border); flex-shrink: 0; }
+.lan-status-dot.online { background: var(--green-hi); }
+.lan-status-dot.offline { background: #e05555; }
+.lan-device-actions { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+.small-btn { width: auto; padding: 3px 10px; font-size: .78rem; }
+.small-btn.danger { background: transparent; color: #e05555; border: 1px solid #e05555; }
+.small-btn.danger:hover { background: #e05555; color: #fff; }
+.lan-result { margin-top: 8px; font-size: .82rem; }
+.lan-result .ok { color: var(--green-hi); }
+.lan-result .err { color: #e05555; }
+.badge { background: var(--bg3); border: 1px solid var(--border); border-radius: 4px; padding: 1px 6px; font-size: .72rem; }
+
 /* ── Views ─────────────────────────────────────────────────────── */
 .view { display: none; animation: fadeIn 200ms ease; }
 .view.active { display: block; }
