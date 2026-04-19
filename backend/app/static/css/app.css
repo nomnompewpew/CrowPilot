@@ -274,8 +274,28 @@ nav.sb-nav button.active {
   background: color-mix(in srgb, var(--green-hi) 8%, transparent);
 }
 
-/* ── vscode.dev full-screen panel ──────────────────────────── */
-#vsCodeView { display: none; flex: 1; overflow: hidden; width: 100%; }
+/* ── Monaco Editor full-screen panel ────────────────────────── */
+#monacoView { display: none; flex-direction: column; flex: 1; overflow: hidden; width: 100%; }
+#monacoToolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  background: var(--bg2);
+  border-bottom: 1px solid var(--border);
+  min-height: 36px;
+  flex-shrink: 0;
+}
+#monacoToolbar .tb-ctrl { width: auto; }
+#monacoToolbar select {
+  background: var(--bg3);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-size: .8rem;
+}
+#monacoContainer { flex: 1; overflow: hidden; }
 
 /* ── Topbar ────────────────────────────────────────────────────── */
 #topBar {

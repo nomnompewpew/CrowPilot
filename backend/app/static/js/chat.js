@@ -21,29 +21,7 @@ function toggleAgentMode() {
     : '';
 }
 
-function toggleVsCodeView() {
-  state.vsCodeViewActive = !state.vsCodeViewActive;
-  const appBody = el('appBody');
-  const vsPanel = el('vsCodeView');
-  const btn = el('vsCodeViewBtn');
-  const frame = el('vsCodeFrame');
-
-  if (state.vsCodeViewActive) {
-    // Load vscode.dev if not already loaded
-    if (!frame.src || frame.src === window.location.href) {
-      frame.src = 'https://vscode.dev';
-    }
-    appBody.style.display = 'none';
-    vsPanel.style.display = 'flex';
-    btn.classList.add('tb-active');
-    el('topBarSection').textContent = 'VS Code Editor';
-  } else {
-    vsPanel.style.display = 'none';
-    appBody.style.display = '';
-    btn.classList.remove('tb-active');
-    el('topBarSection').textContent = 'Command Deck';
-  }
-}
+// toggleVsCodeView removed — replaced by toggleMonacoView in monaco_editor.js
 
 function currentConversationRecord() {
   return Object.values(state.conversationBuckets)

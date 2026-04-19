@@ -224,6 +224,7 @@ async function selectProject(projectId) {
   renderProjectMeta();
   const selected = state.projects.find((p) => p.id === projectId);
   if (selected) {
+    state.activeProjectPath = selected.path;  // expose to Monaco editor
     el('projectFolderPath').value = selected.path;
     if (selected.dev_url) el('projectPreviewUrl').value = selected.dev_url;
   }

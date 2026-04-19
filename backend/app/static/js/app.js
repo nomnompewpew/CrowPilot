@@ -45,7 +45,7 @@ function initApp() {
 
   el('bigBrainModeBtn').addEventListener('click', () => setUiMode('big-brain'));
   el('zenModeBtn').addEventListener('click', () => setUiMode('zen'));
-  el('vsCodeViewBtn').addEventListener('click', toggleVsCodeView);
+  el('monacoViewBtn').addEventListener('click', toggleMonacoView);
   el('openCredentialsBtn').addEventListener('click', () => tabSwitch('credentials'));
 
   // Right-panel model picker
@@ -55,6 +55,9 @@ function initApp() {
   if (el('agentModeBtn')) {
     el('agentModeBtn').addEventListener('click', toggleAgentMode);
   }
+  if (el('monacoSaveBtn')) el('monacoSaveBtn').addEventListener('click', monacoSaveFile);
+  if (el('monacoOpenBtn')) el('monacoOpenBtn').addEventListener('click', monacoPromptOpen);
+  if (el('monacoLang')) el('monacoLang').addEventListener('change', () => monacoSetLanguage(el('monacoLang').value));
 
   el('jinaFetchBtn').addEventListener('click', jinaFetchUrl);
   el('jinaUrl').addEventListener('keydown', (e) => { if (e.key === 'Enter') jinaFetchUrl(); });

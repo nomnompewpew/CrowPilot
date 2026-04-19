@@ -8,13 +8,14 @@ const state = {
   conversationFilter: 'active',
   autoModel: false,
   agentMode: false,
-  vsCodeViewActive: false,
+  monacoViewActive: false,
   mcpSuggestion: null,
   credentials: [],
   connectors: {},
   projects: [],
   selectedProjectId: null,
   activeProjectId: null,   // project currently injected as Corbin context
+  activeProjectPath: null, // filesystem path of the active project
   projectCapabilities: null,
   projectScripts: [],
   projectRuntimes: [],

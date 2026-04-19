@@ -5,14 +5,68 @@ import json
 
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
+from pydantic import BaseModel
 
 from ..config import settings
 from ..services.memory import queue_size
+from ..services.native_tools import _safe_path
 from ..services.server_stats import get_server_stats
 from ..state import g
 from ..utils import discover_local_ipv4
 
 router = APIRouter(tags=["system"])
+
+
+# ── Monaco Editor file endpoints ─────────────────────────────────────────────
+
+class _FsReadReq(BaseModel):
+    path: str
+    start_line: int | None = None
+    end_line: int | None = None
+
+
+class _FsWriteReq(BaseModel):
+    path: str
+    content: str
+
+
+@router.post("/api/agent/fs/read")
+def agent_fs_read(req: _FsReadReq) -> dict:
+    p, err = _safe_path(req.path, must_exist=True)
+    if err:
+        return {"ok": False, "error": err}
+    if not p.is_file():
+        return {"ok": False, "error": "path is a directory"}
+    try:
+        raw = p.read_bytes()
+        # Reject obvious binaries
+        try:
+            text = raw.decode("utf-8")
+        except UnicodeDecodeError:
+            return {"ok": False, "error": "file appears to be binary"}
+        lines = text.splitlines(keepends=True)
+        if req.start_line or req.end_line:
+            s = max(0, (req.start_line or 1) - 1)
+            e = req.end_line or len(lines)
+            lines = lines[s:e]
+        if len(lines) > 5000:
+            return {"ok": False, "error": f"file too large ({len(lines)} lines); use start_line/end_line"}
+        return {"ok": True, "content": "".join(lines), "path": str(p)}
+    except Exception as exc:
+        return {"ok": False, "error": str(exc)}
+
+
+@router.post("/api/agent/fs/write")
+def agent_fs_write(req: _FsWriteReq) -> dict:
+    p, err = _safe_path(req.path)
+    if err:
+        return {"ok": False, "error": err}
+    try:
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_text(req.content, encoding="utf-8")
+        return {"ok": True, "path": str(p), "bytes": len(req.content.encode())}
+    except Exception as exc:
+        return {"ok": False, "error": str(exc)}
 
 
 @router.get("/api/memory/queue-size")
