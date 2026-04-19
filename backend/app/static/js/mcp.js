@@ -26,7 +26,6 @@ async function loadMcpCatalog() {
   items.forEach((item) => {
     const srv = serverByName[item.name] || null;
     const online = srv?.status === 'online';
-    const offline = srv && srv.status !== 'online';
     const authIcon = AUTH_ICONS[item.auth_type] || '🔌';
     const authLabel = AUTH_LABELS[item.auth_type] || item.auth_type;
     const docsUrl = (item.docs || [])[0] || '';
@@ -35,23 +34,19 @@ async function loadMcpCatalog() {
     const tile = document.createElement('div');
     tile.className = 'mcp-tile' + (srv ? ' installed' : '');
 
-    // Status badge
     const badgeHtml = srv
       ? `<span class="badge ${online ? 'ok' : 'offline'}">${online ? 'online' : 'offline'}</span>`
       : `<span class="badge" style="opacity:.6;">${authIcon} ${authLabel}</span>`;
 
-    // Local vs remote indicator
     const localBadge = item.pip_package
       ? `<span class="badge" title="Runs locally via pip install ${item.pip_package}" style="opacity:.7;">📦 local</span>`
       : '';
 
-    // Action buttons
     const connectBtn = `<button data-service="${item.key}" data-auth="${item.auth_type}" data-env-key="${envKey}" data-docs="${docsUrl}" data-pip="${item.pip_package || ''}"
       class="${online ? 'alt' : ''}" style="flex:2;">${online ? '✓ Connected' : srv ? 'Reconnect' : 'Connect'}</button>`;
     const checkBtn  = srv ? `<button data-check="${srv.id}" class="alt">Check</button>` : '';
     const delBtn    = srv && !srv.is_builtin ? `<button data-delete="${srv.id}" class="warn">Delete</button>` : '';
 
-    // Parse JSON error bodies into readable messages
     let errorMsg = srv?.last_error || '';
     if (errorMsg) {
       try {
@@ -76,34 +71,64 @@ async function loadMcpCatalog() {
     grid.appendChild(tile);
   });
 
-  // Wire connect buttons
+  // Append custom (non-catalog) server tiles to the same grid
+  const custom = allServers.filter((s) => !_catalogNames.has(s.name));
+  custom.forEach((row) => {
+    const tile = document.createElement('div');
+    tile.className = 'mcp-tile installed';
+    const badgeClass = row.status === 'online' ? 'ok' : row.status === 'offline' ? 'offline' : '';
+    const desc = [row.transport, row.url || row.command || 'n/a'].filter(Boolean).join(' · ');
+    const checkBtn = `<button data-check="${row.id}" class="alt" style="flex:2;">Check</button>`;
+    const delBtn = row.is_builtin ? '' : `<button data-delete="${row.id}" class="warn">Delete</button>`;
+    let errorMsg = row.last_error || '';
+    if (errorMsg) {
+      try {
+        const parsed = JSON.parse(errorMsg.match(/(\{.*\})/s)?.[1] || errorMsg);
+        if (parsed.error_description) errorMsg = parsed.error_description;
+        else if (parsed.error) errorMsg = parsed.error;
+      } catch {}
+    }
+    const errorHtml = errorMsg ? `<div class="mcp-tile-error">${errorMsg.slice(0, 160)}</div>` : '';
+    tile.innerHTML = `
+      <div class="mcp-tile-header">
+        <span class="mcp-tile-name">${row.name}</span>
+        <span style="display:flex;gap:4px;align-items:center;">
+          ${row.is_builtin ? '<span class="badge" style="opacity:.6;">locked</span>' : ''}
+          <span class="badge ${badgeClass}">${row.status}</span>
+        </span>
+      </div>
+      <p class="mcp-tile-desc">${desc}</p>
+      <div class="mcp-tile-actions">
+        ${checkBtn}${delBtn}
+      </div>
+      ${errorHtml}
+    `;
+    grid.appendChild(tile);
+  });
+
+  // Wire all buttons in one pass
   grid.querySelectorAll('button[data-service]').forEach((btn) => {
     btn.addEventListener('click', () => mcpCatalogConnect(
       btn.dataset.service, btn.dataset.auth, btn.dataset.envKey, btn.dataset.docs, btn.dataset.pip,
     ));
   });
 
-  // Wire check buttons
   grid.querySelectorAll('button[data-check]').forEach((btn) => {
     btn.addEventListener('click', async () => {
       const id = btn.getAttribute('data-check');
       btn.textContent = '…'; btn.disabled = true;
-      const r = await fetch(`/api/mcp/servers/${id}/check`, { method: 'POST' });
-      await loadMcpCatalog(); await listMcpServers();
+      await fetch(`/api/mcp/servers/${id}/check`, { method: 'POST' });
+      await loadMcpCatalog();
     });
   });
 
-  // Wire delete buttons
   grid.querySelectorAll('button[data-delete]').forEach((btn) => {
     btn.addEventListener('click', async () => {
       const id = btn.getAttribute('data-delete');
       await fetch(`/api/mcp/servers/${id}`, { method: 'DELETE' });
-      await loadMcpCatalog(); await listMcpServers(); await loadSummary();
+      await loadMcpCatalog(); await loadSummary();
     });
   });
-
-  // Also refresh custom servers list
-  _renderCustomServers(allServers);
 }
 
 async function mcpCatalogConnect(service, authType, envKey, docsUrl, pipPackage) {
@@ -116,7 +141,6 @@ async function mcpCatalogConnect(service, authType, envKey, docsUrl, pipPackage)
       body: JSON.stringify({ service }),
     });
     await loadMcpCatalog();
-    await listMcpServers();
     await loadSummary();
     return;
   }
@@ -170,57 +194,11 @@ async function mcpCredDialogSubmit() {
   el('mcpCredDialog').close();
   _mcpCatalogPending = null;
   await loadMcpCatalog();
-  await listMcpServers();
   await loadSummary();
 }
 
 async function listMcpServers() {
-  const resp = await fetch('/api/mcp/servers');
-  if (!resp.ok) return;
-  const rows = await resp.json();
-  _renderCustomServers(rows);
-}
-
-function _renderCustomServers(allServers) {
-  // Only show servers not in the curated catalog
-  const custom = allServers.filter((s) => !_catalogNames.has(s.name));
-  const card = el('mcpCustomCard');
-  const target = el('mcpList');
-  if (!custom.length) { card.style.display = 'none'; return; }
-  card.style.display = '';
-  target.innerHTML = '';
-
-  custom.forEach((row) => {
-    const item = document.createElement('div');
-    item.className = 'list-item';
-    const badgeClass = row.status === 'online' ? 'ok' : row.status === 'offline' ? 'offline' : '';
-    item.innerHTML = `
-      <div><strong>${row.name}</strong> <span class="badge ${badgeClass}">${row.status}</span>
-        ${row.is_builtin ? '<span class="badge">locked</span>' : ''}</div>
-      <div class="tiny">${row.transport} | ${row.url || row.command || 'n/a'}</div>
-      <div class="row" style="margin-top:6px;">
-        <button data-check="${row.id}" class="alt">Check</button>
-        ${row.is_builtin ? '' : `<button data-delete="${row.id}" class="warn">Delete</button>`}
-      </div>
-      ${row.last_error ? `<div class="tiny mono" style="color:var(--red,#f55);margin-top:4px;">${row.last_error.slice(0,120)}</div>` : ''}
-    `;
-    target.appendChild(item);
-  });
-
-  target.querySelectorAll('button[data-check]').forEach((btn) => {
-    btn.addEventListener('click', async () => {
-      const id = btn.getAttribute('data-check');
-      btn.textContent = '…'; btn.disabled = true;
-      await fetch(`/api/mcp/servers/${id}/check`, { method: 'POST' });
-      await listMcpServers();
-    });
-  });
-  target.querySelectorAll('button[data-delete]').forEach((btn) => {
-    btn.addEventListener('click', async () => {
-      await fetch(`/api/mcp/servers/${btn.getAttribute('data-delete')}`, { method: 'DELETE' });
-      await loadMcpCatalog(); await loadSummary();
-    });
-  });
+  return loadMcpCatalog();
 }
 
 async function createMcpServer() {
