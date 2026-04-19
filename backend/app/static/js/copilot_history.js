@@ -2,11 +2,11 @@
 
 (function () {
 
-  // ── State ──────────────────────────────────────────────────────────────
+  // ── State ──────────────────────────────────────────────────────────────────
   let _sessions = [];
   let _searchTimeout = null;
 
-  // ── Init ───────────────────────────────────────────────────────────────
+  // ── Init ───────────────────────────────────────────────────────────────────
   function initCopilotHistory() {
     el('chScanBtn').addEventListener('click', triggerScan);
     el('chHarvestBtn').addEventListener('click', triggerHarvest);
@@ -21,7 +21,7 @@
     loadSessions();
   }
 
-  // ── Load session list ──────────────────────────────────────────────────
+  // ── Load session list ──────────────────────────────────────────────────────
   async function loadSessions(q = '') {
     const grid = el('chSessionGrid');
     grid.innerHTML = '<p class="ch-empty">Loading…</p>';
@@ -30,7 +30,9 @@
       let url = `/api/copilot-history/sessions?limit=100`;
       if (q) url += `&q=${encodeURIComponent(q)}`;
       if (source) url += `&source_type=${encodeURIComponent(source)}`;
-      const data = await apiFetch(url);
+      const resp = await fetch(url);
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      const data = await resp.json();
       _sessions = data.sessions || [];
       renderGrid(_sessions, data.total || 0);
     } catch (e) {
@@ -38,7 +40,7 @@
     }
   }
 
-  // ── Render grid ────────────────────────────────────────────────────────
+  // ── Render grid ────────────────────────────────────────────────────────────
   function renderGrid(sessions, total) {
     const grid = el('chSessionGrid');
     if (!sessions.length) {
@@ -55,16 +57,16 @@
   }
 
   const SOURCE_LABELS = {
-    cli: { icon: '🖥', label: 'Copilot CLI', cls: 'ch-tag' },
-    vscode: { icon: '💻', label: 'VS Code (local)', cls: 'ch-tag ch-tag-vscode' },
-    crow_vscode: { icon: '🪶', label: '', cls: 'ch-tag ch-tag-crow' },
+    cli:        { icon: '🖥', label: 'Copilot CLI',     cls: 'ch-tag' },
+    vscode:     { icon: '💻', label: 'VS Code (local)', cls: 'ch-tag ch-tag-vscode' },
+    crow_vscode:{ icon: '🪶', label: '',                cls: 'ch-tag ch-tag-crow' },
   };
 
   function sessionCard(s) {
     const date = s.session_updated_at
       ? new Date(s.session_updated_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
       : '—';
-    const repo = s.repository || '';
+    const repo   = s.repository || '';
     const branch = s.branch || '';
     const embeddedDot = s.embedded
       ? '<span class="ch-dot ch-dot-ok" title="Embedded"></span>'
@@ -72,11 +74,11 @@
     const summary = s.ai_summary || s.cli_summary || '';
     const stats = [
       s.user_messages ? `${s.user_messages} turns` : '',
-      s.tool_calls ? `${s.tool_calls} tools` : '',
+      s.tool_calls    ? `${s.tool_calls} tools`    : '',
     ].filter(Boolean).join(' · ');
 
-    const srcType = s.source_type || 'cli';
-    const srcMeta = SOURCE_LABELS[srcType] || SOURCE_LABELS.cli;
+    const srcType  = s.source_type || 'cli';
+    const srcMeta  = SOURCE_LABELS[srcType] || SOURCE_LABELS.cli;
     const srcLabel = srcType === 'crow_vscode'
       ? `🪶 ${esc(s.source_device_label || 'Crow device')}`
       : `${srcMeta.icon} ${srcMeta.label}`;
@@ -92,14 +94,14 @@
         ${summary ? `<p class="ch-card-summary">${esc(summary)}</p>` : ''}
         <div class="ch-card-meta">
           <span class="${srcMeta.cls}">${srcLabel}</span>
-          ${repo ? `<span class="ch-tag">${esc(repo)}</span>` : ''}
-          ${branch ? `<span class="ch-tag ch-tag-branch">${esc(branch)}</span>` : ''}
-          ${stats ? `<span class="ch-stats">${esc(stats)}</span>` : ''}
+          ${repo   ? `<span class="ch-tag">${esc(repo)}</span>`                   : ''}
+          ${branch ? `<span class="ch-tag ch-tag-branch">${esc(branch)}</span>`   : ''}
+          ${stats  ? `<span class="ch-stats">${esc(stats)}</span>`                : ''}
         </div>
       </div>`;
   }
 
-  // ── Detail dialog ──────────────────────────────────────────────────────
+  // ── Detail dialog ──────────────────────────────────────────────────────────
   async function openDetail(sessionId) {
     const dlg = el('chDetailDialog');
     el('chDetailTitle').textContent = 'Loading…';
@@ -109,7 +111,9 @@
     dlg.showModal();
 
     try {
-      const s = await apiFetch(`/api/copilot-history/sessions/${sessionId}`);
+      const resp = await fetch(`/api/copilot-history/sessions/${sessionId}`);
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      const s = await resp.json();
       el('chDetailTitle').textContent = s.title || s.session_id.slice(0, 8);
       const date = s.session_updated_at ? new Date(s.session_updated_at).toLocaleString() : '—';
       const srcLabel = s.source_type === 'crow_vscode'
@@ -136,14 +140,16 @@
     }).join('');
   }
 
-  // ── Scan local ─────────────────────────────────────────────────────────
+  // ── Scan local ─────────────────────────────────────────────────────────────
   async function triggerScan() {
     const btn = el('chScanBtn');
     btn.disabled = true;
     btn.textContent = 'Scanning…';
     try {
-      const res = await apiFetch('/api/copilot-history/scan', { method: 'POST' });
-      const total = res.ingested || 0;
+      const resp = await fetch('/api/copilot-history/scan', { method: 'POST' });
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      const res = await resp.json();
+      const total = (res.ingested || 0) + (res.cli || 0) + (res.vscode || 0);
       btn.textContent = `↺ Done (${total} new)`;
       await loadSessions(el('chSearchInput').value.trim());
     } catch (e) {
@@ -153,13 +159,15 @@
     }
   }
 
-  // ── Harvest crow devices ───────────────────────────────────────────────
+  // ── Harvest crow devices ───────────────────────────────────────────────────
   async function triggerHarvest() {
     const btn = el('chHarvestBtn');
     btn.disabled = true;
     btn.textContent = '🪶 Harvesting…';
     try {
-      const res = await apiFetch('/api/copilot-history/harvest', { method: 'POST' });
+      const resp = await fetch('/api/copilot-history/harvest', { method: 'POST' });
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      const res = await resp.json();
       btn.textContent = `🪶 Done (${res.ingested} new)`;
       await loadSessions(el('chSearchInput').value.trim());
     } catch (e) {
@@ -169,59 +177,27 @@
     }
   }
 
-  // ── Delete ─────────────────────────────────────────────────────────────
+  // ── Delete ─────────────────────────────────────────────────────────────────
   async function deleteSession(sessionId) {
     if (!confirm('Remove this session from the index? (Does not delete the original file.)')) return;
     try {
-      await apiFetch(`/api/copilot-history/sessions/${sessionId}`, { method: 'DELETE' });
+      await fetch(`/api/copilot-history/sessions/${sessionId}`, { method: 'DELETE' });
       await loadSessions(el('chSearchInput').value.trim());
     } catch (e) {
       alert('Delete failed: ' + e.message);
     }
   }
 
-  // ── Helpers ────────────────────────────────────────────────────────────
+  // ── Helpers ────────────────────────────────────────────────────────────────
   function esc(s) {
-    return String(s)
+    return String(s || '')
       .replace(/&/g, '&amp;')
       .replace(/</g, '&lt;')
       .replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;');
   }
 
-  async function apiFetch(url, opts = {}) {
-    const token = state.token;
-    const res = await fetch(url, {
-      ...opts,
-      headers: { ...(opts.headers || {}), ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-    });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    return res.json();
-  }
-
-  // ── Register ───────────────────────────────────────────────────────────
-  window.initCopilotHistory = initCopilotHistory;
-  window.loadCopilotHistory = loadSessions;
-
-})();
-    return String(s)
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;');
-  }
-
-  async function apiFetch(url, opts = {}) {
-    const token = state.token;
-    const res = await fetch(url, {
-      ...opts,
-      headers: { ...(opts.headers || {}), ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-    });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    return res.json();
-  }
-
-  // ── Register ───────────────────────────────────────────────────────────
+  // ── Register ───────────────────────────────────────────────────────────────
   window.initCopilotHistory = initCopilotHistory;
   window.loadCopilotHistory = loadSessions;
 
