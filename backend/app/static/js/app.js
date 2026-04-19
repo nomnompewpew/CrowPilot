@@ -85,12 +85,12 @@ function initApp() {
   el('browseProjectBtn').addEventListener('click', browseProjectFolder);
   el('importProjectPathBtn').addEventListener('click', () => importProjectByPath(el('projectFolderPath').value));
   el('projectFolderPath').addEventListener('keydown', (e) => { if (e.key === 'Enter') importProjectByPath(el('projectFolderPath').value); });
+  el('projectSelect').addEventListener('change', (e) => { if (e.target.value) selectProject(Number(e.target.value)); });
   el('refreshProjectScriptsBtn').addEventListener('click', loadProjectScripts);
   el('runProjectScriptBtn').addEventListener('click', runProjectScript);
   el('openProjectPreviewBtn').addEventListener('click', openProjectPreview);
   el('autoDetectPreviewBtn').addEventListener('click', autoDetectPreviewUrl);
   el('projectPreviewUrl').addEventListener('keydown', (e) => { if (e.key === 'Enter') openProjectPreview(); });
-  el('sendProjectChatBtn').addEventListener('click', sendProjectChat);
 
   el('refreshServerStatsBtn').addEventListener('click', loadServerStats);
   el('clearLogsBtn').addEventListener('click', () => {

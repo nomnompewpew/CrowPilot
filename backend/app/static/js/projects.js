@@ -10,29 +10,24 @@ function renderProjectMeta() {
 }
 
 function renderProjectList() {
-  const wrap = el('projectList');
-  if (!wrap) return;
-  wrap.innerHTML = '';
+  const select = el('projectSelect');
+  if (!select) return;
+  const prev = state.selectedProjectId;
+  select.innerHTML = '';
+  if (!state.projects.length) {
+    const opt = document.createElement('option');
+    opt.value = '';
+    opt.textContent = 'No workspaces yet';
+    select.appendChild(opt);
+    return;
+  }
   state.projects.forEach((project) => {
-    const item = document.createElement('div');
-    item.className = 'list-item';
-    item.innerHTML = `
-      <div><strong>${project.name}</strong></div>
-      <div class="tiny mono">${project.path}</div>
-      <div class="tiny">${project.kind} | ${project.status} | updated ${project.updated_at}</div>
-      <div class="row" style="margin-top:8px;">
-        <button data-load-project="${project.id}">Select</button>
-      </div>
-    `;
-    wrap.appendChild(item);
+    const opt = document.createElement('option');
+    opt.value = project.id;
+    opt.textContent = `${project.name}  (${project.path})`;
+    select.appendChild(opt);
   });
-
-  wrap.querySelectorAll('button[data-load-project]').forEach((btn) => {
-    btn.addEventListener('click', async () => {
-      const id = Number(btn.getAttribute('data-load-project'));
-      await selectProject(id);
-    });
-  });
+  if (prev) select.value = prev;
 }
 
 function renderProjectScriptOptions() {
@@ -222,11 +217,13 @@ async function browseProjectFolder() {
 
 async function selectProject(projectId) {
   state.selectedProjectId = projectId;
+  // Sync the dropdown
+  const sel = el('projectSelect');
+  if (sel) sel.value = projectId;
   renderProjectMeta();
   const selected = state.projects.find((p) => p.id === projectId);
   if (selected) {
     el('projectFolderPath').value = selected.path;
-    // Pre-fill URL from saved dev_url immediately; runtimes will refine it
     if (selected.dev_url) el('projectPreviewUrl').value = selected.dev_url;
   }
   await Promise.all([loadProjectScripts(), listProjectRuntimes()]);

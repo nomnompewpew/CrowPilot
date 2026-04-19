@@ -587,64 +587,42 @@ STRIPE_API_KEY=..."></textarea>
 
       <section id="view-projects" class="view projects-layout">
 
-        <!-- ── Left sidebar: all controls ─────────────────────────── -->
-        <aside class="projects-sidebar">
-
-          <details open>
-            <summary><strong>Workspaces</strong></summary>
-            <div id="projectList" class="list" style="padding:6px 0;"></div>
-            <div id="projectCapabilityOut" class="tiny mono" style="padding:4px 0 0;"></div>
-            <div id="selectedProjectMeta" class="tiny mono"></div>
-            <div id="projectStatusOut" class="status mono"></div>
-          </details>
-
-          <details>
-            <summary><strong>Scripts</strong></summary>
-            <div style="padding:10px 0 4px;">
-              <label style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
-                <input id="projectAllowSystemAccess" type="checkbox" style="width:auto;" />
-                Allow local execution
-              </label>
-              <div class="row" style="flex-wrap:wrap;gap:6px;">
-                <select id="projectScriptSelect" style="flex:1;"></select>
-                <button id="refreshProjectScriptsBtn" class="alt">↺</button>
-                <button id="runProjectScriptBtn">▶ Run</button>
-              </div>
-              <div id="projectRuntimeList" class="list" style="margin-top:8px;"></div>
-              <pre id="projectRuntimeLogs" class="mono" style="white-space:pre-wrap;height:140px;overflow:auto;background:#12151e;color:#f4f8ff;border-radius:8px;padding:8px;margin-top:6px;font-size:11px;">No runtime logs yet.</pre>
-            </div>
-          </details>
-
-          <details>
-            <summary><strong>Workspace Chat</strong></summary>
-            <div style="padding:10px 0 4px;">
-              <textarea id="projectChatPrompt" rows="4" placeholder="Build me a landing page…" style="font-size:13px;"></textarea>
-              <label style="display:flex;align-items:center;gap:8px;margin-top:6px;">
-                <input id="projectIncludeContextToggle" type="checkbox" style="width:auto;" />
-                Include project context
-              </label>
-              <button id="sendProjectChatBtn" style="margin-top:6px;">Send</button>
-              <pre id="projectChatOut" class="mono" style="white-space:pre-wrap;height:200px;overflow:auto;background:#12151e;color:#f4f8ff;border-radius:8px;padding:8px;margin-top:6px;font-size:11px;"></pre>
-            </div>
-          </details>
-
-        </aside>
-
-        <!-- ── Main: preview as full-height focus ─────────────────── -->
         <div class="projects-preview">
+          <!-- ── Module controls bar ──────────────────────────────── -->
           <div class="projects-preview-bar">
             <div class="projects-preview-row">
+              <select id="projectSelect"></select>
               <input id="projectFolderPath" type="text" placeholder="/home/user/myproject" />
               <button id="browseProjectBtn" class="alt">Browse</button>
               <button id="importProjectPathBtn">Use</button>
             </div>
             <div class="projects-preview-row">
               <input id="projectPreviewUrl" type="text" placeholder="http://localhost:3000/" />
-              <button id="autoDetectPreviewBtn" class="alt">⚡ Detect</button>
-              <button id="openProjectPreviewBtn">▶ Load</button>
+              <button id="autoDetectPreviewBtn" class="alt">Detect</button>
+              <button id="openProjectPreviewBtn">Load</button>
+            </div>
+            <div class="projects-preview-row">
+              <select id="projectScriptSelect" style="flex:1;min-width:0;"></select>
+              <button id="refreshProjectScriptsBtn" class="alt">↺</button>
+              <button id="runProjectScriptBtn">▶ Run</button>
+              <span id="projectStatusOut" class="tiny mono" style="flex:1;min-width:0;padding:0 8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></span>
             </div>
           </div>
+          <div id="projectRuntimeList" class="list" style="flex-shrink:0;max-height:120px;overflow-y:auto;border-bottom:1px solid var(--border);"></div>
           <iframe id="projectPreviewFrame" title="Project preview" style="flex:1;width:100%;border:none;background:#fff;"></iframe>
+        </div>
+
+        <!-- Hidden stubs — JS writes to these but they don't need to be visible -->
+        <div style="display:none;" aria-hidden="true">
+          <div id="projectList"></div>
+          <div id="selectedProjectMeta"></div>
+          <div id="projectCapabilityOut"></div>
+          <pre id="projectRuntimeLogs"></pre>
+          <input id="projectAllowSystemAccess" type="checkbox" />
+          <input id="projectIncludeContextToggle" type="checkbox" />
+          <textarea id="projectChatPrompt"></textarea>
+          <button id="sendProjectChatBtn"></button>
+          <pre id="projectChatOut"></pre>
         </div>
 
       </section>
