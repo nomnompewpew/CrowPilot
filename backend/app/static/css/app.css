@@ -667,6 +667,8 @@ dialog::backdrop {
   padding: 2px 4px;
   border-radius: 4px;
   line-height: 1;
+  width: auto;
+  flex-shrink: 0;
 }
 .ch-delete-btn:hover { color: var(--red-hi); background: var(--bg); }
 .ch-card-title {
@@ -716,14 +718,16 @@ dialog::backdrop {
 .ch-dialog {
   width: min(760px, 96vw);
   max-height: 85vh;
-  display: flex;
-  flex-direction: column;
   border: 1px solid var(--border-hi);
   border-radius: var(--radius-lg);
   padding: 0;
   background: var(--surface);
   color: var(--text);
   overflow: hidden;
+}
+dialog[open].ch-dialog {
+  display: flex;
+  flex-direction: column;
 }
 .ch-dialog::backdrop { background: rgba(0,0,0,.55); }
 .ch-dialog-header {
@@ -737,9 +741,14 @@ dialog::backdrop {
 .ch-close-btn {
   margin-left: auto;
   flex-shrink: 0;
-  padding: 6px 10px;
+  width: auto;
+  padding: 5px 12px;
   font-size: .85rem;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
 }
+.ch-close-btn:hover { color: var(--text); background: var(--surface-3); filter: none; }
 .ch-detail-summary {
   margin: 0;
   padding: 12px 20px;
