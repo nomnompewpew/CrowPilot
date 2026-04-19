@@ -218,6 +218,17 @@ async def device_ls(device_id: int, path: str = "~") -> dict:
     return await _fetch_crow(dict(row)["ip"], dict(row)["port"], dict(row)["api_key"], f"/ls?path={path}")
 
 
+@router.post("/devices/{device_id}/copilot/harvest")
+async def harvest_device_copilot(device_id: int, force: bool = False) -> dict:
+    """Pull all VS Code Copilot transcripts from this crow device and embed them."""
+    from ..services.copilot_session_watcher import harvest_crow_device
+    row = g.db.execute("SELECT id FROM lan_devices WHERE id = ?", (device_id,)).fetchone()
+    if not row:
+        return {"ok": False, "error": "device not found"}
+    count = await harvest_crow_device(device_id, force=force)
+    return {"ok": True, "ingested": count}
+
+
 @router.post("/scan")
 async def scan_lan(subnet: str | None = None) -> dict:
     arp_hosts = _read_arp_table()

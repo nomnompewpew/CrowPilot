@@ -25,6 +25,7 @@ function renderLanDevices() {
         <button onclick="lanPing(${d.id})" class="small-btn">Ping</button>
         <button onclick="lanFetchInfo(${d.id})" class="small-btn">System Info</button>
         <button onclick="lanFetchCopilot(${d.id})" class="small-btn">Copilot History</button>
+        <button onclick="lanHarvestCopilot(${d.id})" class="small-btn" title="Pull all VS Code transcripts and embed to knowledge base">📥 Import History</button>
         <button onclick="lanFetchExtensions(${d.id})" class="small-btn">Extensions</button>
         <button onclick="lanBrowse(${d.id}, '~')" class="small-btn">Browse Files</button>
         <button onclick="lanDeleteDevice(${d.id})" class="small-btn danger">Remove</button>
@@ -130,7 +131,20 @@ async function lanFetchCopilot(deviceId) {
   _setLanResult(deviceId, html);
 }
 
-async function lanFetchExtensions(deviceId) {
+async function lanHarvestCopilot(deviceId) {
+  _setLanResult(deviceId, '<span class="tiny">📥 Importing Copilot history… this may take a minute while transcripts are read and embedded.</span>');
+  try {
+    const resp = await fetch(`/api/lan/devices/${deviceId}/copilot/harvest`, { method: 'POST' });
+    const data = await resp.json();
+    if (!data.ok) {
+      _setLanResult(deviceId, `<span class="err tiny">${esc(data.error)}</span>`);
+      return;
+    }
+    _setLanResult(deviceId, `<span class="tiny" style="color:var(--green-hi)">✓ Imported ${data.ingested} new session(s). View them in the Copilot History tab.</span>`);
+  } catch (e) {
+    _setLanResult(deviceId, `<span class="err tiny">Import failed: ${esc(e.message)}</span>`);
+  }
+}
   _setLanResult(deviceId, '<span class="tiny">Fetching extensions…</span>');
   const resp = await fetch(`/api/lan/devices/${deviceId}/extensions`);
   const data = await resp.json();

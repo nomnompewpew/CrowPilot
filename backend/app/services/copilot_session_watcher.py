@@ -323,15 +323,319 @@ async def scan_sessions(force: bool = False) -> int:
 
 
 # ---------------------------------------------------------------------------
+# VS Code transcript ingestion (local + crow-imported)
+# ---------------------------------------------------------------------------
+
+def _parse_vscode_transcript(jsonl_lines: list[str]) -> dict:
+    """Parse a VS Code copilot transcript (same event format as CLI events.jsonl)."""
+    lines: list[str] = []
+    user_count = asst_count = tool_count = 0
+    session_id = ""
+    start_time = ""
+
+    for raw in jsonl_lines:
+        raw = raw.strip()
+        if not raw:
+            continue
+        try:
+            ev = json.loads(raw)
+        except json.JSONDecodeError:
+            continue
+
+        etype = ev.get("type", "")
+        data = ev.get("data", {}) or {}
+
+        if etype == "session.start":
+            session_id = data.get("sessionId", "")
+            start_time = data.get("startTime", ev.get("timestamp", ""))
+
+        elif etype == "user.message":
+            content = data.get("content", "").strip()
+            if content:
+                lines.append(f"USER: {content}")
+                user_count += 1
+
+        elif etype == "assistant.message":
+            content = (data.get("content") or "").strip()
+            if content:
+                lines.append(f"ASSISTANT: {content}")
+                asst_count += 1
+
+        elif etype == "tool.execution_start":
+            tool_count += 1
+
+    # deduplicate sequential identical lines (streaming artifacts)
+    deduped: list[str] = []
+    prev = None
+    for l in lines:
+        if l != prev:
+            deduped.append(l)
+        prev = l
+
+    return {
+        "session_id": session_id,
+        "start_time": start_time,
+        "transcript": "\n\n".join(deduped),
+        "user_messages": user_count,
+        "assistant_turns": asst_count,
+        "tool_calls": tool_count,
+    }
+
+
+async def _ingest_vscode_transcript(
+    jsonl_lines: list[str],
+    fallback_session_id: str,
+    workspace_id: str = "",
+    source_type: str = "vscode",
+    device_id: int | None = None,
+    device_label: str = "",
+    source_path: str = "",
+    file_size: int = 0,
+    force: bool = False,
+) -> bool:
+    """Parse a VS Code transcript and ingest into copilot_cli_sessions. Returns True if new/updated."""
+    parsed = _parse_vscode_transcript(jsonl_lines)
+    session_id = parsed["session_id"] or fallback_session_id
+
+    if not session_id or not parsed["transcript"]:
+        return False
+
+    conn = g.db
+    existing = conn.execute(
+        "SELECT session_id, file_size, embedded FROM copilot_cli_sessions WHERE session_id=?",
+        (session_id,),
+    ).fetchone()
+
+    # Skip if file hasn't changed
+    if existing and not force:
+        if existing["file_size"] == file_size and existing["embedded"]:
+            return False
+
+    title = f"Session {session_id[:8]}"
+    ai_summary = await _generate_ai_summary(parsed["transcript"], title)
+
+    conn.execute(
+        """
+        INSERT INTO copilot_cli_sessions
+            (session_id, title, workspace, repository, branch, cli_summary, ai_summary,
+             user_messages, assistant_turns, tool_calls, transcript,
+             session_created_at, session_updated_at, embedded, last_scanned_at,
+             source_type, source_device_id, source_device_label, source_path, file_size)
+        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,0,datetime('now'),?,?,?,?,?)
+        ON CONFLICT(session_id) DO UPDATE SET
+            ai_summary=excluded.ai_summary,
+            user_messages=excluded.user_messages,
+            assistant_turns=excluded.assistant_turns,
+            tool_calls=excluded.tool_calls,
+            transcript=excluded.transcript,
+            session_updated_at=excluded.session_updated_at,
+            embedded=0,
+            last_scanned_at=datetime('now'),
+            source_type=excluded.source_type,
+            source_device_id=excluded.source_device_id,
+            source_device_label=excluded.source_device_label,
+            source_path=excluded.source_path,
+            file_size=excluded.file_size
+        """,
+        (
+            session_id,
+            title,
+            workspace_id,
+            "",  # repository
+            "",  # branch
+            "",  # cli_summary
+            ai_summary,
+            parsed["user_messages"],
+            parsed["assistant_turns"],
+            parsed["tool_calls"],
+            parsed["transcript"],
+            parsed["start_time"] or "",
+            parsed["start_time"] or "",
+            source_type,
+            device_id,
+            device_label,
+            source_path,
+            file_size,
+        ),
+    )
+    conn.commit()
+
+    chunks = _chunk_transcript(parsed["transcript"])
+    await _embed_chunks(session_id, chunks)
+    return True
+
+
+async def scan_vscode_local(force: bool = False) -> int:
+    """Scan local VS Code workspaceStorage directories for copilot transcripts."""
+    import os
+    import platform
+
+    _sys = platform.system()
+    candidates: list[Path] = []
+    if _sys == "Windows":
+        appdata = os.environ.get("APPDATA", "")
+        if appdata:
+            candidates.append(Path(appdata) / "Code" / "User" / "workspaceStorage")
+    elif _sys == "Darwin":
+        candidates.append(Path.home() / "Library" / "Application Support" / "Code" / "User" / "workspaceStorage")
+    else:
+        candidates.append(Path.home() / ".config" / "Code" / "User" / "workspaceStorage")
+        candidates.append(Path.home() / ".vscode-server" / "data" / "User" / "workspaceStorage")
+
+    count = 0
+    for base in candidates:
+        if not base.exists():
+            continue
+        try:
+            ws_dirs = [d for d in base.iterdir() if d.is_dir()]
+        except PermissionError:
+            continue
+
+        for ws_dir in ws_dirs:
+            transcripts_dir = ws_dir / "GitHub.copilot-chat" / "transcripts"
+            if not transcripts_dir.is_dir():
+                continue
+            for f in transcripts_dir.glob("*.jsonl"):
+                try:
+                    size = f.stat().st_size
+                    if size < 10:
+                        continue
+                    lines = f.read_text(encoding="utf-8", errors="replace").splitlines()
+                    updated = await _ingest_vscode_transcript(
+                        jsonl_lines=lines,
+                        fallback_session_id=f.stem,
+                        workspace_id=ws_dir.name,
+                        source_type="vscode",
+                        source_path=str(f),
+                        file_size=size,
+                        force=force,
+                    )
+                    if updated:
+                        count += 1
+                except Exception as exc:
+                    log.warning("Failed to ingest VS Code transcript %s: %s", f, exc)
+
+    if count:
+        log.info("VS Code local transcript scan: ingested %d session(s)", count)
+    return count
+
+
+async def harvest_crow_device(device_id: int, force: bool = False) -> int:
+    """
+    Pull all VS Code transcripts from a crow agent device and ingest them.
+    Returns count of sessions ingested.
+    """
+    conn = g.db
+    row = conn.execute("SELECT * FROM lan_devices WHERE id=?", (device_id,)).fetchone()
+    if not row:
+        return 0
+    row = dict(row)
+    ip, port, api_key, label = row["ip"], row["port"], row.get("api_key"), row["label"]
+    headers = {"X-Crow-Key": api_key} if api_key else {}
+
+    try:
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            resp = await client.get(f"http://{ip}:{port}/copilot", headers=headers)
+            if resp.status_code != 200:
+                return 0
+            data = resp.json()
+    except Exception as exc:
+        log.warning("Crow harvest: failed to connect to %s (%s): %s", label, ip, exc)
+        return 0
+
+    history = data.get("history", data)  # handle both new and old response shape
+    sessions = history.get("vscode_sessions", [])
+    transcript_sessions = [s for s in sessions if s.get("source") == "vscode-transcripts"]
+
+    count = 0
+    for session_meta in transcript_sessions:
+        file_path = session_meta.get("file", "")
+        file_size = session_meta.get("size", 0)
+        fallback_id = session_meta.get("filename", "").replace(".jsonl", "").replace(".json", "")
+
+        if not file_path:
+            continue
+
+        try:
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                resp = await client.get(
+                    f"http://{ip}:{port}/read",
+                    params={"path": file_path},
+                    headers=headers,
+                )
+                if resp.status_code != 200:
+                    continue
+                read_data = resp.json()
+                if not read_data.get("ok"):
+                    continue
+                content = read_data.get("content", "")
+                lines = content.splitlines()
+        except Exception as exc:
+            log.warning("Crow harvest: failed to read %s from %s: %s", file_path, label, exc)
+            continue
+
+        try:
+            updated = await _ingest_vscode_transcript(
+                jsonl_lines=lines,
+                fallback_session_id=fallback_id,
+                workspace_id=session_meta.get("workspace", ""),
+                source_type="crow_vscode",
+                device_id=device_id,
+                device_label=label,
+                source_path=file_path,
+                file_size=file_size,
+                force=force,
+            )
+            if updated:
+                count += 1
+        except Exception as exc:
+            log.warning("Crow harvest: ingest failed for %s: %s", file_path, exc)
+
+    log.info("Crow harvest %s: %d session(s) ingested", label, count)
+    return count
+
+
+async def harvest_all_crow_devices(force: bool = False) -> int:
+    """Harvest copilot transcripts from all crow devices with auto_harvest=1."""
+    conn = g.db
+    rows = conn.execute(
+        "SELECT id FROM lan_devices WHERE auto_harvest=1 AND status != 'offline'"
+    ).fetchall()
+    total = 0
+    for row in rows:
+        try:
+            total += await harvest_crow_device(row["id"], force=force)
+        except Exception as exc:
+            log.warning("Crow harvest failed for device %d: %s", row["id"], exc)
+    return total
+
+
+# ---------------------------------------------------------------------------
 # Background watcher task
 # ---------------------------------------------------------------------------
+
+HARVEST_INTERVAL = 300  # harvest crow devices every 5 minutes
+
 
 async def session_watcher_task() -> None:
     """Runs forever, scanning every POLL_INTERVAL seconds."""
     log.info("Copilot session watcher started (interval=%ds)", POLL_INTERVAL)
+    harvest_counter = 0
     while True:
         try:
             await scan_sessions()
         except Exception as exc:
-            log.warning("Session watcher error: %s", exc)
+            log.warning("Session watcher error (CLI): %s", exc)
+        try:
+            await scan_vscode_local()
+        except Exception as exc:
+            log.warning("Session watcher error (VS Code local): %s", exc)
+        # Harvest crow devices every HARVEST_INTERVAL seconds
+        harvest_counter += POLL_INTERVAL
+        if harvest_counter >= HARVEST_INTERVAL:
+            harvest_counter = 0
+            try:
+                await harvest_all_crow_devices()
+            except Exception as exc:
+                log.warning("Session watcher error (crow harvest): %s", exc)
         await asyncio.sleep(POLL_INTERVAL)

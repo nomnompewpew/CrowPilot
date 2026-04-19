@@ -389,6 +389,12 @@ def init_db(conn: sqlite3.Connection) -> None:
     _ensure_column(conn, "note_chunks", "embedding", "embedding BLOB")
     # Setup wizard — track per-user completion
     _ensure_column(conn, "users", "setup_complete", "setup_complete INTEGER NOT NULL DEFAULT 0")
+    # Copilot session source tracking (cli vs vscode, local vs crow-imported)
+    _ensure_column(conn, "copilot_cli_sessions", "source_type", "source_type TEXT NOT NULL DEFAULT 'cli'")
+    _ensure_column(conn, "copilot_cli_sessions", "source_device_id", "source_device_id INTEGER")
+    _ensure_column(conn, "copilot_cli_sessions", "source_device_label", "source_device_label TEXT")
+    _ensure_column(conn, "copilot_cli_sessions", "source_path", "source_path TEXT")
+    _ensure_column(conn, "copilot_cli_sessions", "file_size", "file_size INTEGER NOT NULL DEFAULT 0")
 
     conn.commit()
 

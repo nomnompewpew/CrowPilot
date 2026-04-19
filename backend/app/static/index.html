@@ -754,10 +754,17 @@ STRIPE_API_KEY=..."></textarea>
       <!-- ── Copilot History ──────────────────────────────────────── -->
       <section id="view-copilot-history" class="view">
         <div class="ch-header">
-          <h2 style="margin:0">🗂 Copilot CLI Session Archive</h2>
+          <h2 style="margin:0">🗂 Copilot Session Archive</h2>
           <div class="ch-controls">
+            <select id="chSourceFilter" class="ch-search" style="width:auto;">
+              <option value="">All sources</option>
+              <option value="cli">Copilot CLI</option>
+              <option value="vscode">VS Code (local)</option>
+              <option value="crow_vscode">Crow Devices</option>
+            </select>
             <input type="text" id="chSearchInput" placeholder="Search sessions…" class="ch-search">
-            <button id="chScanBtn" class="alt">↻ Scan Now</button>
+            <button id="chScanBtn" class="alt">↻ Scan Local</button>
+            <button id="chHarvestBtn" class="alt">🪶 Harvest All Devices</button>
           </div>
         </div>
         <div id="chSessionGrid" class="ch-grid"></div>

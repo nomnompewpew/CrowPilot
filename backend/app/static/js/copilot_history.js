@@ -1,4 +1,4 @@
-// copilot_history.js — Copilot CLI session archive UI
+// copilot_history.js — Copilot session archive UI (CLI + VS Code local + Crow devices)
 
 (function () {
 
@@ -9,9 +9,13 @@
   // ── Init ───────────────────────────────────────────────────────────────
   function initCopilotHistory() {
     el('chScanBtn').addEventListener('click', triggerScan);
+    el('chHarvestBtn').addEventListener('click', triggerHarvest);
     el('chSearchInput').addEventListener('input', function () {
       clearTimeout(_searchTimeout);
       _searchTimeout = setTimeout(() => loadSessions(this.value.trim()), 350);
+    });
+    el('chSourceFilter').addEventListener('change', function () {
+      loadSessions(el('chSearchInput').value.trim());
     });
     el('chDetailClose').addEventListener('click', () => el('chDetailDialog').close());
     loadSessions();
@@ -22,9 +26,10 @@
     const grid = el('chSessionGrid');
     grid.innerHTML = '<p class="ch-empty">Loading…</p>';
     try {
-      const url = q
-        ? `/api/copilot-history/sessions?limit=100&q=${encodeURIComponent(q)}`
-        : '/api/copilot-history/sessions?limit=100';
+      const source = el('chSourceFilter').value;
+      let url = `/api/copilot-history/sessions?limit=100`;
+      if (q) url += `&q=${encodeURIComponent(q)}`;
+      if (source) url += `&source_type=${encodeURIComponent(source)}`;
       const data = await apiFetch(url);
       _sessions = data.sessions || [];
       renderGrid(_sessions, data.total || 0);
@@ -37,11 +42,10 @@
   function renderGrid(sessions, total) {
     const grid = el('chSessionGrid');
     if (!sessions.length) {
-      grid.innerHTML = '<p class="ch-empty">No sessions found. Click "Scan Now" to import from ~/.copilot/session-state/</p>';
+      grid.innerHTML = '<p class="ch-empty">No sessions found. Click "Scan Local" to import from this machine, or "Harvest All Devices" to pull from connected Crow devices.</p>';
       return;
     }
     grid.innerHTML = sessions.map(s => sessionCard(s)).join('');
-    // wire click
     grid.querySelectorAll('.ch-card').forEach(card => {
       card.addEventListener('click', () => openDetail(card.dataset.id));
     });
@@ -49,6 +53,12 @@
       btn.addEventListener('click', e => { e.stopPropagation(); deleteSession(btn.dataset.id); });
     });
   }
+
+  const SOURCE_LABELS = {
+    cli: { icon: '🖥', label: 'Copilot CLI', cls: 'ch-tag' },
+    vscode: { icon: '💻', label: 'VS Code (local)', cls: 'ch-tag ch-tag-vscode' },
+    crow_vscode: { icon: '🪶', label: '', cls: 'ch-tag ch-tag-crow' },
+  };
 
   function sessionCard(s) {
     const date = s.session_updated_at
@@ -65,6 +75,12 @@
       s.tool_calls ? `${s.tool_calls} tools` : '',
     ].filter(Boolean).join(' · ');
 
+    const srcType = s.source_type || 'cli';
+    const srcMeta = SOURCE_LABELS[srcType] || SOURCE_LABELS.cli;
+    const srcLabel = srcType === 'crow_vscode'
+      ? `🪶 ${esc(s.source_device_label || 'Crow device')}`
+      : `${srcMeta.icon} ${srcMeta.label}`;
+
     return `
       <div class="ch-card" data-id="${s.session_id}">
         <div class="ch-card-top">
@@ -75,6 +91,7 @@
         <h4 class="ch-card-title">${esc(s.title || s.session_id.slice(0, 8))}</h4>
         ${summary ? `<p class="ch-card-summary">${esc(summary)}</p>` : ''}
         <div class="ch-card-meta">
+          <span class="${srcMeta.cls}">${srcLabel}</span>
           ${repo ? `<span class="ch-tag">${esc(repo)}</span>` : ''}
           ${branch ? `<span class="ch-tag ch-tag-branch">${esc(branch)}</span>` : ''}
           ${stats ? `<span class="ch-stats">${esc(stats)}</span>` : ''}
@@ -94,11 +111,11 @@
     try {
       const s = await apiFetch(`/api/copilot-history/sessions/${sessionId}`);
       el('chDetailTitle').textContent = s.title || s.session_id.slice(0, 8);
-      const date = s.session_updated_at
-        ? new Date(s.session_updated_at).toLocaleString()
-        : '—';
-      el('chDetailMeta').textContent =
-        [s.repository, s.branch, date].filter(Boolean).join(' · ');
+      const date = s.session_updated_at ? new Date(s.session_updated_at).toLocaleString() : '—';
+      const srcLabel = s.source_type === 'crow_vscode'
+        ? `🪶 ${s.source_device_label || 'Crow device'}`
+        : s.source_type === 'vscode' ? '💻 VS Code (local)' : '🖥 Copilot CLI';
+      el('chDetailMeta').textContent = [srcLabel, s.repository, s.branch, date].filter(Boolean).join(' · ');
       el('chDetailSummary').textContent = s.ai_summary || s.cli_summary || '';
       el('chDetailTranscript').innerHTML = renderTranscript(s.transcript || '');
     } catch (e) {
@@ -119,19 +136,36 @@
     }).join('');
   }
 
-  // ── Scan ───────────────────────────────────────────────────────────────
+  // ── Scan local ─────────────────────────────────────────────────────────
   async function triggerScan() {
     const btn = el('chScanBtn');
     btn.disabled = true;
     btn.textContent = 'Scanning…';
     try {
       const res = await apiFetch('/api/copilot-history/scan', { method: 'POST' });
-      btn.textContent = `↺ Done (${res.ingested} new)`;
+      const total = res.ingested || 0;
+      btn.textContent = `↺ Done (${total} new)`;
       await loadSessions(el('chSearchInput').value.trim());
     } catch (e) {
       btn.textContent = '↺ Error';
     } finally {
-      setTimeout(() => { btn.disabled = false; btn.textContent = '↺ Scan Now'; }, 2500);
+      setTimeout(() => { btn.disabled = false; btn.textContent = '↻ Scan Local'; }, 2500);
+    }
+  }
+
+  // ── Harvest crow devices ───────────────────────────────────────────────
+  async function triggerHarvest() {
+    const btn = el('chHarvestBtn');
+    btn.disabled = true;
+    btn.textContent = '🪶 Harvesting…';
+    try {
+      const res = await apiFetch('/api/copilot-history/harvest', { method: 'POST' });
+      btn.textContent = `🪶 Done (${res.ingested} new)`;
+      await loadSessions(el('chSearchInput').value.trim());
+    } catch (e) {
+      btn.textContent = '🪶 Error';
+    } finally {
+      setTimeout(() => { btn.disabled = false; btn.textContent = '🪶 Harvest All Devices'; }, 3000);
     }
   }
 
@@ -148,6 +182,28 @@
 
   // ── Helpers ────────────────────────────────────────────────────────────
   function esc(s) {
+    return String(s)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  async function apiFetch(url, opts = {}) {
+    const token = state.token;
+    const res = await fetch(url, {
+      ...opts,
+      headers: { ...(opts.headers || {}), ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return res.json();
+  }
+
+  // ── Register ───────────────────────────────────────────────────────────
+  window.initCopilotHistory = initCopilotHistory;
+  window.loadCopilotHistory = loadSessions;
+
+})();
     return String(s)
       .replace(/&/g, '&amp;')
       .replace(/</g, '&lt;')

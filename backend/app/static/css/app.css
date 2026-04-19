@@ -737,6 +737,8 @@ dialog::backdrop {
   text-overflow: ellipsis;
 }
 .ch-tag-branch { color: var(--green-hi); border-color: var(--green-hi); }
+.ch-tag-vscode { color: #4fc3f7; border-color: #4fc3f7; }
+.ch-tag-crow   { color: var(--accent); border-color: var(--accent); }
 .ch-stats { font-size: .7rem; color: var(--text-dim); margin-left: auto; }
 .ch-dot {
   display: inline-block;

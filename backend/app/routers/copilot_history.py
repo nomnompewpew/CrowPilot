@@ -15,7 +15,7 @@ from typing import Any
 from fastapi import APIRouter, HTTPException, Query
 
 from ..db import rows_to_dicts
-from ..services.copilot_session_watcher import scan_sessions
+from ..services.copilot_session_watcher import scan_sessions, scan_vscode_local, harvest_all_crow_devices
 from ..state import g
 
 router = APIRouter(prefix="/api/copilot-history", tags=["copilot-history"])
@@ -30,35 +30,37 @@ def list_sessions(
     limit: int = Query(50, ge=1, le=200),
     offset: int = Query(0, ge=0),
     q: str = Query(""),
+    source_type: str = Query(""),
 ):
     conn = g.db
+    filters = []
+    params: list = []
     if q:
-        rows = conn.execute(
-            """
-            SELECT id, session_id, title, workspace, repository, branch,
-                   cli_summary, ai_summary, user_messages, assistant_turns,
-                   tool_calls, session_created_at, session_updated_at, embedded
-            FROM copilot_cli_sessions
-            WHERE title LIKE ? OR ai_summary LIKE ? OR workspace LIKE ? OR repository LIKE ?
-            ORDER BY session_updated_at DESC
-            LIMIT ? OFFSET ?
-            """,
-            (f"%{q}%", f"%{q}%", f"%{q}%", f"%{q}%", limit, offset),
-        ).fetchall()
-    else:
-        rows = conn.execute(
-            """
-            SELECT id, session_id, title, workspace, repository, branch,
-                   cli_summary, ai_summary, user_messages, assistant_turns,
-                   tool_calls, session_created_at, session_updated_at, embedded
-            FROM copilot_cli_sessions
-            ORDER BY session_updated_at DESC
-            LIMIT ? OFFSET ?
-            """,
-            (limit, offset),
-        ).fetchall()
+        filters.append("(title LIKE ? OR ai_summary LIKE ? OR workspace LIKE ? OR repository LIKE ?)")
+        params.extend([f"%{q}%", f"%{q}%", f"%{q}%", f"%{q}%"])
+    if source_type:
+        filters.append("source_type = ?")
+        params.append(source_type)
 
-    total = conn.execute("SELECT COUNT(*) FROM copilot_cli_sessions").fetchone()[0]
+    where = f"WHERE {' AND '.join(filters)}" if filters else ""
+    rows = conn.execute(
+        f"""
+        SELECT id, session_id, title, workspace, repository, branch,
+               cli_summary, ai_summary, user_messages, assistant_turns,
+               tool_calls, session_created_at, session_updated_at, embedded,
+               source_type, source_device_id, source_device_label
+        FROM copilot_cli_sessions
+        {where}
+        ORDER BY session_updated_at DESC
+        LIMIT ? OFFSET ?
+        """,
+        params + [limit, offset],
+    ).fetchall()
+
+    count_params = params[:]
+    total = conn.execute(
+        f"SELECT COUNT(*) FROM copilot_cli_sessions {where}", count_params
+    ).fetchone()[0]
     return {"sessions": rows_to_dicts(rows), "total": total}
 
 
@@ -84,7 +86,15 @@ def get_session(session_id: str):
 
 @router.post("/scan")
 async def trigger_scan(force: bool = Query(False)):
-    count = await scan_sessions(force=force)
+    cli_count = await scan_sessions(force=force)
+    vscode_count = await scan_vscode_local(force=force)
+    return {"ingested": cli_count + vscode_count, "cli": cli_count, "vscode": vscode_count}
+
+
+@router.post("/harvest")
+async def trigger_harvest(force: bool = Query(False)):
+    """Pull transcripts from all crow devices with auto_harvest enabled."""
+    count = await harvest_all_crow_devices(force=force)
     return {"ingested": count}
 
 
