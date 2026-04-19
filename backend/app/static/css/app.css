@@ -427,6 +427,7 @@ nav.sb-nav button.active {
 .lan-result .ok { color: var(--green-hi); }
 .lan-result .err { color: #e05555; }
 .badge { background: var(--bg3); border: 1px solid var(--border); border-radius: 4px; padding: 1px 6px; font-size: .72rem; }
+.btn-link { text-decoration: none; display: block; }
 
 /* ── Views ─────────────────────────────────────────────────────── */
 .view { display: none; animation: fadeIn 200ms ease; }

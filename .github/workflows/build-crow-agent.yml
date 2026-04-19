@@ -1,0 +1,79 @@
+name: Build Crow Agent Binaries
+
+on:
+  push:
+    paths:
+      - "backend/scripts/crow_agent.py"
+    branches:
+      - staging
+      - main
+  workflow_dispatch:
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            artifact: crow-agent-linux-x86_64
+          - os: windows-latest
+            artifact: crow-agent-windows-x86_64.exe
+          - os: macos-latest
+            artifact: crow-agent-macos-x86_64
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install PyInstaller
+        run: pip install pyinstaller
+
+      - name: Build binary (Linux/macOS)
+        if: runner.os != 'Windows'
+        run: |
+          pyinstaller --onefile \
+            --name "${{ matrix.artifact }}" \
+            --distpath dist/ \
+            backend/scripts/crow_agent.py
+
+      - name: Build binary (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          pyinstaller --onefile `
+            --name "${{ matrix.artifact }}" `
+            --distpath dist/ `
+            backend/scripts/crow_agent.py
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: dist/${{ matrix.artifact }}
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: agents/
+
+      - name: Copy to static and commit
+        run: |
+          mkdir -p backend/app/static/agents
+          find agents/ -type f -exec cp {} backend/app/static/agents/ \;
+          git config user.email "crowpilot@localhost"
+          git config user.name "CrowPilot CI"
+          git add backend/app/static/agents/
+          git diff --cached --quiet || git commit -m "ci: update crow-agent binaries"
+          git push

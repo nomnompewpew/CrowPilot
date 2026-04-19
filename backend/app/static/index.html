@@ -749,7 +749,7 @@ STRIPE_API_KEY=..."></textarea>
           <!-- LAN Scan card -->
           <article class="card">
             <h2>🔍 LAN Scanner</h2>
-            <p class="tiny" style="margin:0 0 12px;color:var(--text-dim)">Scans the ARP table + ping-sweeps your subnet. Devices running <code>crow_agent.py</code> are detected automatically.</p>
+            <p class="tiny" style="margin:0 0 12px;color:var(--text-dim)">Scans the ARP table + ping-sweeps your subnet. Devices running the Crow Agent are detected automatically.</p>
             <label for="lanSubnet">Subnet (leave blank to auto-detect)</label>
             <input id="lanSubnet" type="text" placeholder="e.g. 192.168.1.0/24" />
             <div style="display:flex;gap:8px;margin-top:8px;">
@@ -758,9 +758,36 @@ STRIPE_API_KEY=..."></textarea>
             <div id="lanScanOut" style="margin-top:12px;"></div>
           </article>
 
-          <!-- Add device manually card -->
+          <!-- Crow Agent Download card -->
           <article class="card">
-            <h2>➕ Add Device Manually</h2>
+            <h2>🪶 Crow Agent Download</h2>
+            <p class="tiny" style="color:var(--text-dim);margin:0 0 12px">Install the read-only Crow Agent on any machine. No Python required — single binary, no dependencies.</p>
+            <div style="display:flex;flex-direction:column;gap:8px;">
+              <a href="/static/agents/crow-agent-linux-x86_64" download class="btn-link">
+                <button style="width:100%;text-align:left;display:flex;align-items:center;gap:8px;">
+                  🐧 <span><strong>Linux x86_64</strong> <span class="tiny" style="color:var(--text-dim)">(built locally)</span></span>
+                </button>
+              </a>
+              <a href="/static/agents/crow-agent-windows-x86_64.exe" download class="btn-link">
+                <button style="width:100%;text-align:left;display:flex;align-items:center;gap:8px;">
+                  🪟 <span><strong>Windows x86_64</strong> <span class="tiny" style="color:var(--text-dim)">(built via CI)</span></span>
+                </button>
+              </a>
+              <a href="/static/agents/crow-agent-macos-x86_64" download class="btn-link">
+                <button style="width:100%;text-align:left;display:flex;align-items:center;gap:8px;">
+                  🍎 <span><strong>macOS x86_64</strong> <span class="tiny" style="color:var(--text-dim)">(built via CI)</span></span>
+                </button>
+              </a>
+            </div>
+            <h3 style="margin:16px 0 6px;font-size:.85rem;">Quick install (Linux)</h3>
+            <pre class="mono tiny" style="background:var(--bg3);padding:10px;border-radius:6px;overflow-x:auto">./crow-agent-linux-x86_64 --port 8788 --key your_secret
+# or install as systemd service:
+sudo ./crow-agent-linux-x86_64 --install --port 8788 --key your_secret</pre>
+          </article>
+
+          <!-- Add Crow Device card -->
+          <article class="card">
+            <h2>➕ Add Crow Device</h2>
             <label for="lanNewLabel">Label</label>
             <input id="lanNewLabel" type="text" placeholder="My Dev Laptop" />
             <label for="lanNewIp">IP Address</label>
@@ -775,24 +802,60 @@ STRIPE_API_KEY=..."></textarea>
             <span id="lanAddStatus" class="tiny status" style="margin-left:8px;"></span>
           </article>
 
-          <!-- Crow Agent setup instructions -->
-          <article class="card big-brain-only">
-            <h2>🪶 Crow Agent Setup</h2>
-            <p class="tiny">Copy <code>backend/scripts/crow_agent.py</code> to the target machine. No pip install needed — stdlib only.</p>
-            <h3>Run directly</h3>
-            <pre class="mono tiny" style="background:var(--bg3);padding:10px;border-radius:6px;">python3 crow_agent.py --port 8788 --key your_secret</pre>
-            <h3>Install as systemd service</h3>
-            <pre class="mono tiny" style="background:var(--bg3);padding:10px;border-radius:6px;">sudo python3 crow_agent.py --install --port 8788 --key your_secret</pre>
-            <p class="tiny" style="color:var(--text-dim)">Then add the device IP here with the same key. Pantheon will discover it during the next scan.</p>
+          <!-- Add Router card -->
+          <article class="card">
+            <h2>🌐 Add Router</h2>
+            <p class="tiny" style="color:var(--text-dim);margin:0 0 12px">OPNsense (REST API) or pfSense (SSH). Read-only by default — enable writes when you're ready to let AI make changes.</p>
+            <label for="routerNewLabel">Label</label>
+            <input id="routerNewLabel" type="text" placeholder="Home Router" />
+            <label for="routerNewHost">Host / IP</label>
+            <input id="routerNewHost" type="text" placeholder="192.168.1.1" />
+            <label for="routerNewType">Router Type</label>
+            <select id="routerNewType" onchange="toggleRouterForm(this.value)">
+              <option value="opnsense">OPNsense</option>
+              <option value="pfsense">pfSense</option>
+            </select>
+            <label for="routerNewPort">Port</label>
+            <input id="routerNewPort" type="number" value="443" />
+            <div id="opnsenseFields">
+              <label for="routerNewApiKey">API Key</label>
+              <input id="routerNewApiKey" type="password" placeholder="OPNsense API key" />
+              <label for="routerNewApiSecret">API Secret</label>
+              <input id="routerNewApiSecret" type="password" placeholder="OPNsense API secret" />
+            </div>
+            <div id="pfsenseFields" style="display:none">
+              <label for="routerNewSshUser">SSH Username</label>
+              <input id="routerNewSshUser" type="text" placeholder="admin" />
+              <label for="routerNewSshPass">SSH Password (or leave blank for key auth)</label>
+              <input id="routerNewSshPass" type="password" placeholder="••••••••" />
+            </div>
+            <label for="routerNewNotes">Notes</label>
+            <input id="routerNewNotes" type="text" placeholder="optional description" />
+            <label class="inline-check" style="margin-top:10px;font-size:.85rem;">
+              <input id="routerAllowWrites" type="checkbox" />
+              Allow AI to make changes (write mode)
+            </label>
+            <p class="tiny" style="color:var(--text-dim);margin:4px 0 8px">⚠ In write mode, the AI can apply firewall rules and config changes. Only enable if you want that.</p>
+            <button onclick="addNetworkRouter()" style="width:auto;">Add Router</button>
+            <span id="routerAddStatus" class="tiny status" style="margin-left:8px;"></span>
           </article>
 
           <!-- Device list (full width) -->
           <article class="card" style="grid-column: 1 / -1;">
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
-              <h2 style="margin:0;">📡 Connected Devices</h2>
+              <h2 style="margin:0;">📡 Crow Devices</h2>
               <button onclick="loadLanDevices()" class="alt" style="width:auto;padding:4px 12px;font-size:.8rem;">Refresh</button>
             </div>
             <div id="lanDeviceList"></div>
+          </article>
+
+          <!-- Router list (full width) -->
+          <article class="card" style="grid-column: 1 / -1;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+              <h2 style="margin:0;">🌐 Network Routers</h2>
+              <button onclick="loadNetworkRouters()" class="alt" style="width:auto;padding:4px 12px;font-size:.8rem;">Refresh</button>
+            </div>
+            <div id="routerList"></div>
           </article>
 
         </div>

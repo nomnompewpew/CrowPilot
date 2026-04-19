@@ -23,7 +23,7 @@ function tabSwitch(tab) {
   if (el('topBarSection')) el('topBarSection').textContent = NAV_LABELS[tab] || tab;
   if (tab === 'server') loadServerStats();
   if (tab === 'mcp') { loadMcpCatalog(); listMcpServers(); }
-  if (tab === 'lan') loadLanDevices();
+  if (tab === 'lan') { loadLanDevices(); loadNetworkRouters(); }
 }
 
 /* ── Copy helper ────────────────────────────────────────────────── */

@@ -209,3 +209,196 @@ async function lanQuickAdd(ip, hostname) {
   const data = await resp.json();
   if (data.ok) await loadLanDevices();
 }
+
+// ── Router Management (OPNsense / pfSense) ────────────────────────────────────
+
+let _networkRouters = [];
+
+async function loadNetworkRouters() {
+  try {
+    const resp = await fetch('/api/routers');
+    const data = await resp.json();
+    _networkRouters = data.routers || [];
+    renderNetworkRouters();
+  } catch (e) {
+    console.error('loadNetworkRouters:', e);
+  }
+}
+
+function renderNetworkRouters() {
+  const list = el('routerList');
+  if (!list) return;
+  if (!_networkRouters.length) {
+    list.innerHTML = '<p class="status">No routers added yet.</p>';
+    return;
+  }
+  list.innerHTML = _networkRouters.map((r) => `
+    <article class="card lan-device-card" data-router-id="${r.id}">
+      <div class="lan-device-header">
+        <span class="lan-status-dot ${r.status === 'online' ? 'online' : r.status === 'offline' ? 'offline' : ''}"></span>
+        <strong>${esc(r.label)}</strong>
+        <span class="tiny mono" style="color:var(--text-dim)">${esc(r.host)}:${r.port}</span>
+        <span class="tiny badge">${esc(r.router_type)}</span>
+        ${r.allow_writes ? '<span class="tiny badge" style="background:rgba(255,80,80,.15);color:#f88">read+write</span>' : '<span class="tiny badge">read-only</span>'}
+      </div>
+      ${r.notes ? `<p class="tiny" style="color:var(--text-dim);margin:4px 0 0">${esc(r.notes)}</p>` : ''}
+      <div class="lan-device-actions">
+        <button onclick="routerPing(${r.id})" class="small-btn">Ping</button>
+        ${r.router_type === 'opnsense' ? `
+          <button onclick="routerFetch(${r.id},'opnsense/interfaces')" class="small-btn">Interfaces</button>
+          <button onclick="routerFetch(${r.id},'opnsense/leases')" class="small-btn">DHCP Leases</button>
+          <button onclick="routerFetch(${r.id},'opnsense/arp')" class="small-btn">ARP Table</button>
+          <button onclick="routerFetch(${r.id},'opnsense/firewall')" class="small-btn">Firewall Rules</button>
+          <button onclick="routerFetch(${r.id},'opnsense/services')" class="small-btn">Services</button>
+          <button onclick="routerFetch(${r.id},'opnsense/firmware')" class="small-btn">Firmware</button>
+        ` : `
+          <button onclick="routerFetch(${r.id},'pfsense/interfaces')" class="small-btn">Interfaces</button>
+          <button onclick="routerFetch(${r.id},'pfsense/arp')" class="small-btn">ARP Table</button>
+          <button onclick="routerFetch(${r.id},'pfsense/firewall')" class="small-btn">Firewall Rules</button>
+          <button onclick="routerSsh(${r.id})" class="small-btn">Run Command</button>
+        `}
+        <button onclick="routerSnapshots(${r.id})" class="small-btn">Snapshots</button>
+        <button onclick="routerDelete(${r.id})" class="small-btn danger">Remove</button>
+      </div>
+      <div id="routerResult-${r.id}" class="lan-result"></div>
+    </article>
+  `).join('');
+}
+
+function _setRouterResult(routerId, html) {
+  const el2 = document.getElementById(`routerResult-${routerId}`);
+  if (el2) el2.innerHTML = html;
+}
+
+async function routerPing(routerId) {
+  _setRouterResult(routerId, '<span class="tiny">Connecting…</span>');
+  const resp = await fetch(`/api/routers/${routerId}/ping`, { method: 'POST' });
+  const data = await resp.json();
+  if (data.ok) {
+    const r = _networkRouters.find((x) => x.id === routerId);
+    if (r) r.status = data.status;
+    renderNetworkRouters();
+    _setRouterResult(routerId, `<span class="tiny ${data.status === 'online' ? 'ok' : 'err'}">${data.status === 'online' ? '✓ Reachable' : '✗ Unreachable'}</span>`);
+  } else {
+    _setRouterResult(routerId, `<span class="err tiny">${esc(data.error)}</span>`);
+  }
+}
+
+async function routerFetch(routerId, endpoint) {
+  _setRouterResult(routerId, `<span class="tiny">Fetching ${endpoint}…</span>`);
+  const resp = await fetch(`/api/routers/${routerId}/${endpoint}`);
+  const data = await resp.json();
+  const label = endpoint.split('/').pop().replace(/_/g, ' ');
+  if (!data.ok) { _setRouterResult(routerId, `<span class="err tiny">${esc(data.error)}</span>`); return; }
+  const content = data.data || data.stdout || data;
+  _setRouterResult(routerId, `
+    <details open>
+      <summary class="tiny"><strong>${label}</strong> — <span style="color:var(--text-dim)">snapshot saved</span></summary>
+      <pre class="mono tiny" style="max-height:300px;overflow-y:auto;white-space:pre-wrap">${esc(typeof content === 'string' ? content : JSON.stringify(content, null, 2))}</pre>
+    </details>
+  `);
+}
+
+async function routerSsh(routerId) {
+  const cmd = prompt('Run command on pfSense (SSH):');
+  if (!cmd) return;
+  _setRouterResult(routerId, `<span class="tiny">Running: ${esc(cmd)}</span>`);
+  const resp = await fetch(`/api/routers/${routerId}/pfsense/exec`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ command: cmd }),
+  });
+  const data = await resp.json();
+  if (!data.ok) { _setRouterResult(routerId, `<span class="err tiny">${esc(data.error)}</span>`); return; }
+  _setRouterResult(routerId, `
+    <details open>
+      <summary class="tiny"><strong>$ ${esc(cmd)}</strong></summary>
+      <pre class="mono tiny" style="max-height:300px;overflow-y:auto;white-space:pre-wrap">${esc(data.stdout)}</pre>
+      ${data.stderr ? `<pre class="mono tiny err" style="max-height:100px;overflow-y:auto">${esc(data.stderr)}</pre>` : ''}
+    </details>
+  `);
+}
+
+async function routerSnapshots(routerId) {
+  _setRouterResult(routerId, '<span class="tiny">Loading snapshots…</span>');
+  const resp = await fetch(`/api/routers/${routerId}/snapshots`);
+  const data = await resp.json();
+  if (!data.ok) { _setRouterResult(routerId, `<span class="err tiny">${esc(data.error)}</span>`); return; }
+  const snaps = data.snapshots || [];
+  if (!snaps.length) { _setRouterResult(routerId, '<span class="tiny">No snapshots yet.</span>'); return; }
+  _setRouterResult(routerId, `
+    <details open>
+      <summary class="tiny"><strong>Snapshots (${snaps.length})</strong></summary>
+      <ul class="tiny mono" style="padding-left:1rem;margin:4px 0;max-height:200px;overflow-y:auto">
+        ${snaps.map((s) => `<li>
+          <a href="#" onclick="routerLoadSnapshot(${routerId},${s.id});return false;">${esc(s.snapshot_type)}</a>
+          <span style="color:var(--text-dim)"> — ${esc(s.captured_at)}</span>
+        </li>`).join('')}
+      </ul>
+    </details>
+  `);
+}
+
+async function routerLoadSnapshot(routerId, snapshotId) {
+  const resp = await fetch(`/api/routers/${routerId}/snapshots/${snapshotId}`);
+  const data = await resp.json();
+  if (!data.ok) { _setRouterResult(routerId, `<span class="err tiny">${esc(data.error)}</span>`); return; }
+  const snap = data.snapshot;
+  const parsed = JSON.parse(snap.data_json || '{}');
+  _setRouterResult(routerId, `
+    <details open>
+      <summary class="tiny"><strong>${esc(snap.snapshot_type)}</strong> snapshot — ${esc(snap.captured_at)}</summary>
+      <pre class="mono tiny" style="max-height:300px;overflow-y:auto;white-space:pre-wrap">${esc(JSON.stringify(parsed, null, 2))}</pre>
+    </details>
+  `);
+}
+
+async function routerDelete(routerId) {
+  if (!confirm('Remove this router?')) return;
+  await fetch(`/api/routers/${routerId}`, { method: 'DELETE' });
+  await loadNetworkRouters();
+}
+
+async function addNetworkRouter() {
+  const label = el('routerNewLabel').value.trim();
+  const host = el('routerNewHost').value.trim();
+  const type = el('routerNewType').value;
+  const port = parseInt(el('routerNewPort').value.trim()) || (type === 'opnsense' ? 443 : 22);
+  const apiKey = el('routerNewApiKey').value.trim();
+  const apiSecret = el('routerNewApiSecret').value.trim();
+  const sshUser = el('routerNewSshUser').value.trim();
+  const sshPass = el('routerNewSshPass').value.trim();
+  const allowWrites = el('routerAllowWrites').checked;
+  const notes = el('routerNewNotes').value.trim();
+  const statusEl = el('routerAddStatus');
+  if (!label || !host) { statusEl.textContent = 'Label and host are required.'; return; }
+  statusEl.textContent = 'Adding…';
+  const resp = await fetch('/api/routers', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      label, host, router_type: type, port,
+      api_key: apiKey || null, api_secret: apiSecret || null,
+      ssh_user: sshUser || null, ssh_password: sshPass || null,
+      allow_writes: allowWrites, notes: notes || null,
+    }),
+  });
+  const data = await resp.json();
+  if (data.ok) {
+    statusEl.textContent = '✓ Added';
+    ['routerNewLabel','routerNewHost','routerNewApiKey','routerNewApiSecret','routerNewSshUser','routerNewSshPass','routerNewNotes'].forEach((id) => { const e = el(id); if (e) e.value = ''; });
+    el('routerAllowWrites').checked = false;
+    await loadNetworkRouters();
+  } else {
+    statusEl.textContent = data.error || 'Failed';
+  }
+}
+
+function toggleRouterForm(type) {
+  const opnFields = el('opnsenseFields');
+  const pfFields = el('pfsenseFields');
+  if (opnFields) opnFields.style.display = type === 'opnsense' ? '' : 'none';
+  if (pfFields) pfFields.style.display = type === 'pfsense' ? '' : 'none';
+  const portEl = el('routerNewPort');
+  if (portEl && !portEl._userEdited) portEl.value = type === 'opnsense' ? '443' : '22';
+}

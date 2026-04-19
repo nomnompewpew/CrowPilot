@@ -346,6 +346,36 @@ def init_db(conn: sqlite3.Connection) -> None:
             has_crow_agent INTEGER NOT NULL DEFAULT 0,
             scanned_at TEXT NOT NULL DEFAULT (datetime('now'))
         );
+
+        -- Network routers (OPNsense, pfSense, etc.)
+        CREATE TABLE IF NOT EXISTS network_routers (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            label TEXT NOT NULL,
+            host TEXT NOT NULL,
+            router_type TEXT NOT NULL DEFAULT 'opnsense',
+            port INTEGER NOT NULL DEFAULT 443,
+            api_key TEXT,
+            api_secret TEXT,
+            ssh_user TEXT,
+            ssh_key_path TEXT,
+            ssh_password TEXT,
+            use_https INTEGER NOT NULL DEFAULT 1,
+            allow_writes INTEGER NOT NULL DEFAULT 0,
+            status TEXT NOT NULL DEFAULT 'unknown',
+            last_seen TEXT,
+            notes TEXT,
+            created_at TEXT NOT NULL DEFAULT (datetime('now')),
+            updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+
+        -- Router data snapshots (interfaces, leases, firewall rules, etc.)
+        CREATE TABLE IF NOT EXISTS router_snapshots (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            router_id INTEGER NOT NULL REFERENCES network_routers(id) ON DELETE CASCADE,
+            snapshot_type TEXT NOT NULL,
+            data_json TEXT NOT NULL DEFAULT '{}',
+            captured_at TEXT NOT NULL DEFAULT (datetime('now'))
+        );
         """
     )
 

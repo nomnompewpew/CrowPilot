@@ -33,6 +33,7 @@ from .routers import (
     knowledge,
     lan,
     mcp,
+    network_routers,
     nomad,
     projects,
     sensitive,
@@ -131,6 +132,7 @@ for _router_module in [
     sensitive,
     copilot_history,
     lan,
+    network_routers,
 ]:
     app.include_router(_router_module.router)
 
