@@ -135,11 +135,11 @@ def _vscode_copilot_history() -> dict:
             if not chat_dir.is_dir():
                 continue
 
-            # transcripts/ — the main chat log directory
+            # transcripts/ — UUID-named .jsonl files, one per conversation
             transcripts_dir = chat_dir / "transcripts"
             if transcripts_dir.is_dir():
                 try:
-                    for f in sorted(transcripts_dir.glob("*.json"), key=lambda x: x.stat().st_mtime, reverse=True)[:50]:
+                    for f in sorted(transcripts_dir.glob("*.jsonl"), key=lambda x: x.stat().st_mtime, reverse=True)[:50]:
                         try:
                             sessions.append({
                                 "source": "vscode-transcripts",
@@ -155,11 +155,25 @@ def _vscode_copilot_history() -> dict:
                 except Exception:
                     pass
 
-            # debug-logs/ — copilot session debug logs
+            # debug-logs/<uuid>/main.jsonl — one subdir per session
             debug_dir = chat_dir / "debug-logs"
             if debug_dir.is_dir():
                 try:
-                    for f in sorted(debug_dir.glob("*.json"), key=lambda x: x.stat().st_mtime, reverse=True)[:20]:
+                    for f in sorted(debug_dir.rglob("*.jsonl"), key=lambda x: x.stat().st_mtime, reverse=True)[:20]:
+                        try:
+                            sessions.append({
+                                "source": "vscode-debug-logs",
+                                "base": str(base),
+                                "workspace": ws_dir.name,
+                                "file": str(f),
+                                "filename": f.name,
+                                "size": f.stat().st_size,
+                                "mtime": f.stat().st_mtime,
+                            })
+                        except Exception:
+                            pass
+                    # also grab models.json etc from debug-logs subdirs
+                    for f in sorted(debug_dir.rglob("*.json"), key=lambda x: x.stat().st_mtime, reverse=True)[:10]:
                         try:
                             sessions.append({
                                 "source": "vscode-debug-logs",
@@ -175,9 +189,9 @@ def _vscode_copilot_history() -> dict:
                 except Exception:
                     pass
 
-            # any top-level .json files in the copilot-chat dir (e.g. chatSessions.json)
+            # any top-level .json or .jsonl files in the copilot-chat dir
             try:
-                for f in chat_dir.glob("*.json"):
+                for f in list(chat_dir.glob("*.json")) + list(chat_dir.glob("*.jsonl")):
                     try:
                         sessions.append({
                             "source": "vscode-json",
