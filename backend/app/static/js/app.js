@@ -167,7 +167,7 @@ function showWizard(steps) {
   const dlg = el('wizardOverlay');
   const list = el('wizardStepList');
   list.innerHTML = steps.map(s =>
-    `<li style="padding:6px 0; ${s.ok ? '' : 'color:var(--yellow,#e0b854)'}">${s.ok ? '✅' : '⚠️'} <strong>${s.name}</strong> — ${s.detail}</li>`
+    `<li style="padding:6px 0; ${s.ok ? '' : 'color:var(--yellow,#e0b854)'}">${s.ok ? '✅' : '⚠️'} <strong>${s.label}</strong> — ${s.detail}</li>`
   ).join('');
   dlg.showModal();
 }
