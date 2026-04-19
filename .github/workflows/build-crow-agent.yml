@@ -59,9 +59,12 @@ jobs:
   release:
     needs: build
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Download all artifacts
         uses: actions/download-artifact@v4
@@ -72,8 +75,10 @@ jobs:
         run: |
           mkdir -p backend/app/static/agents
           find agents/ -type f -exec cp {} backend/app/static/agents/ \;
-          git config user.email "crowpilot@localhost"
+          chmod +x backend/app/static/agents/crow-agent-linux-x86_64 2>/dev/null || true
+          chmod +x backend/app/static/agents/crow-agent-macos-x86_64 2>/dev/null || true
+          git config user.email "crowpilot-ci@localhost"
           git config user.name "CrowPilot CI"
           git add backend/app/static/agents/
-          git diff --cached --quiet || git commit -m "ci: update crow-agent binaries"
+          git diff --cached --quiet || git commit -m "ci: update crow-agent binaries [skip ci]"
           git push
