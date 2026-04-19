@@ -4,6 +4,7 @@ import datetime
 import secrets
 
 from fastapi import APIRouter, HTTPException, Request, Response
+from pydantic import BaseModel
 
 from ..schemas import LoginRequest
 from ..services.auth import get_session_user, hash_password, verify_password
@@ -54,3 +55,28 @@ def auth_me(request: Request) -> dict:
     if not user:
         raise HTTPException(status_code=401, detail="Not authenticated")
     return {"username": user["username"], "role": user["role"]}
+
+
+class ChangePasswordRequest(BaseModel):
+    current_password: str
+    new_password: str
+
+
+@router.post("/change-password")
+def auth_change_password(payload: ChangePasswordRequest, request: Request) -> dict:
+    token = request.cookies.get("crowpilot_session", "")
+    user = get_session_user(token)
+    if not user:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    if not verify_password(payload.current_password, user["salt"], user["password_hash"]):
+        raise HTTPException(status_code=400, detail="Current password is incorrect")
+    if len(payload.new_password) < 8:
+        raise HTTPException(status_code=400, detail="New password must be at least 8 characters")
+    new_salt = secrets.token_hex(16)
+    new_hash = hash_password(payload.new_password, new_salt)
+    g.db.execute(
+        "UPDATE users SET password_hash = ?, salt = ? WHERE id = ?",
+        (new_hash, new_salt, user["id"]),
+    )
+    g.db.commit()
+    return {"ok": True}

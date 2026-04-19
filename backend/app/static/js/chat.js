@@ -298,7 +298,7 @@ async function sendChat() {
   const selectedModel = el('model').value.trim();
   const model = state.autoModel && provider === 'copilot_proxy' ? 'auto' : selectedModel;
   const useMemory = el('useMemoryToggle').checked;
-  const secureMode = el('secureModeToggle').checked;
+  const secureMode = true; // always scan via local model before cloud
 
   addMessage('user', prompt);
   el('prompt').value = '';

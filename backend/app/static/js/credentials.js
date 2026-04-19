@@ -209,3 +209,28 @@ async function loadHubAccess() {
   ].join('\n');
 }
 
+el('changePwBtn')?.addEventListener('click', async () => {
+  const current = el('changePwCurrent').value;
+  const newPw = el('changePwNew').value;
+  const confirm = el('changePwConfirm').value;
+  const status = el('changePwStatus');
+  if (!current || !newPw) { status.textContent = 'Fill in all fields.'; return; }
+  if (newPw !== confirm) { status.textContent = 'New passwords do not match.'; return; }
+  status.textContent = 'Updating…';
+  const resp = await fetch('/api/auth/change-password', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ current_password: current, new_password: newPw }),
+  });
+  const out = await resp.json();
+  if (!resp.ok) {
+    status.textContent = `Error: ${out.detail || 'failed'}`;
+    return;
+  }
+  status.textContent = 'Password changed successfully.';
+  el('changePwCurrent').value = '';
+  el('changePwNew').value = '';
+  el('changePwConfirm').value = '';
+});
+
+

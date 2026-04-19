@@ -145,10 +145,7 @@
                   <input id="useMemoryToggle" type="checkbox" checked />
                   Use knowledge memory
                 </label>
-                <label class="inline-check" title="Route through local Qwen3-14B for PII scan before sending to cloud">
-                  <input id="secureModeToggle" type="checkbox" />
-                  🔒 Secure Mode
-                </label>
+
               </div>
               <button id="sendBtn" style="margin-top:8px;">Send</button>
               <div id="chatStatus" class="status"></div>
@@ -417,6 +414,19 @@
 
       <section id="view-credentials" class="view">
         <div class="grid dual">
+          <article class="card">
+            <h2>Change Password</h2>
+            <p class="tiny">Update your CrowPilot login password.</p>
+            <label for="changePwCurrent">Current Password</label>
+            <input id="changePwCurrent" type="password" placeholder="current password" />
+            <label for="changePwNew">New Password</label>
+            <input id="changePwNew" type="password" placeholder="new password" />
+            <label for="changePwConfirm">Confirm New Password</label>
+            <input id="changePwConfirm" type="password" placeholder="confirm new password" />
+            <button id="changePwBtn" style="margin-top:8px;">Change Password</button>
+            <div id="changePwStatus" class="status mono"></div>
+          </article>
+
           <article class="card">
             <h2>Credential Vault</h2>
             <p class="tiny">Credentials are encrypted locally before storage. Use credential references in other forms like {{cred:cloudflare-api-token}}.</p>
