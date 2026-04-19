@@ -87,15 +87,47 @@ async function lanFetchCopilot(deviceId) {
   const resp = await fetch(`/api/lan/devices/${deviceId}/copilot`);
   const data = await resp.json();
   if (!data.ok) { _setLanResult(deviceId, `<span class="err tiny">${esc(data.error)}</span>`); return; }
-  const sessions = data.sessions || [];
-  if (!sessions.length) { _setLanResult(deviceId, '<span class="tiny">No Copilot sessions found.</span>'); return; }
-  _setLanResult(deviceId, `
-    <details open><summary class="tiny"><strong>Copilot Sessions (${sessions.length})</strong></summary>
-    <ul class="tiny mono" style="padding-left:1rem;margin:4px 0;">
-      ${sessions.map((s) => `<li>${esc(s.file)} <span style="color:var(--text-dim)">(${Math.round(s.size/1024)}KB)</span></li>`).join('')}
-    </ul>
-    </details>
-  `);
+  const history = data.history || {};
+  const sessions = history.vscode_sessions || data.sessions || [];
+  const cli = history.copilot_cli || [];
+  const basesChecked = history.bases_checked || [];
+  const os = history.os || 'unknown';
+
+  if (!sessions.length && !cli.length) {
+    const basesHtml = basesChecked.length
+      ? `<p class="tiny" style="color:var(--text-dim);margin:4px 0">Searched: ${basesChecked.map(esc).join(', ')}</p>`
+      : '';
+    _setLanResult(deviceId, `<span class="tiny">No Copilot sessions found (OS: ${esc(os)}).</span>${basesHtml}`);
+    return;
+  }
+
+  const bySource = {};
+  for (const s of sessions) {
+    const src = s.source || 'vscode';
+    if (!bySource[src]) bySource[src] = [];
+    bySource[src].push(s);
+  }
+
+  let html = `<div class="tiny"><strong>OS: ${esc(os)}</strong>`;
+  if (basesChecked.length) html += ` <span style="color:var(--text-dim)">— checked ${basesChecked.length} path(s)</span>`;
+  html += '</div>';
+
+  for (const [src, items] of Object.entries(bySource)) {
+    const label = src === 'vscode-transcripts' ? '💬 Transcripts' : src === 'vscode-debug-logs' ? '🐛 Debug Logs' : '📄 Chat JSON';
+    html += `<details open><summary class="tiny" style="margin-top:8px"><strong>${label} (${items.length})</strong></summary>
+    <ul class="tiny mono" style="padding-left:1rem;margin:4px 0;max-height:200px;overflow-y:auto">
+      ${items.map((s) => `<li title="${esc(s.file)}">${esc(s.filename || s.file)} <span style="color:var(--text-dim)">(${Math.round((s.size||0)/1024)}KB)</span></li>`).join('')}
+    </ul></details>`;
+  }
+
+  if (cli.length) {
+    html += `<details><summary class="tiny" style="margin-top:8px"><strong>🖥 Copilot CLI (${cli.length})</strong></summary>
+    <ul class="tiny mono" style="padding-left:1rem;margin:4px 0;max-height:120px;overflow-y:auto">
+      ${cli.map((s) => `<li>${esc(s.file)} <span style="color:var(--text-dim)">(${Math.round((s.size||0)/1024)}KB)</span></li>`).join('')}
+    </ul></details>`;
+  }
+
+  _setLanResult(deviceId, html);
 }
 
 async function lanFetchExtensions(deviceId) {

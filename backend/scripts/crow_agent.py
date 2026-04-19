@@ -98,40 +98,140 @@ def _system_info() -> dict:
     return info
 
 
-def _vscode_copilot_history() -> list[dict]:
-    """Return metadata about VS Code Copilot chat sessions on this machine."""
-    base_dirs = [
-        Path.home() / ".config/Code/User/workspaceStorage",
-        Path.home() / "Library/Application Support/Code/User/workspaceStorage",
-        Path(os.environ.get("APPDATA", "")) / "Code/User/workspaceStorage",
-    ]
-    results = []
-    for base in base_dirs:
+def _vscode_copilot_history() -> dict:
+    """Return VS Code Copilot chat session history + CLI history for this machine.
+
+    Searches all known base paths for each OS:
+      Windows : %APPDATA%/Code/User/workspaceStorage
+      Linux   : ~/.config/Code/User/workspaceStorage
+                ~/.vscode-server/data/User/workspaceStorage  (remote-SSH host)
+      macOS   : ~/Library/Application Support/Code/User/workspaceStorage
+    Also checks ~/.copilot/ for Copilot CLI session state.
+    """
+    _sys = platform.system()
+
+    # --- VS Code workspaceStorage candidates ---
+    ws_candidates: list[Path] = []
+    if _sys == "Windows":
+        appdata = os.environ.get("APPDATA", "")
+        if appdata:
+            ws_candidates.append(Path(appdata) / "Code" / "User" / "workspaceStorage")
+    elif _sys == "Darwin":
+        ws_candidates.append(Path.home() / "Library" / "Application Support" / "Code" / "User" / "workspaceStorage")
+    else:  # Linux + anything else
+        ws_candidates.append(Path.home() / ".config" / "Code" / "User" / "workspaceStorage")
+        ws_candidates.append(Path.home() / ".vscode-server" / "data" / "User" / "workspaceStorage")
+
+    sessions: list[dict] = []
+    for base in ws_candidates:
         if not base.exists():
             continue
-        for ws_dir in base.iterdir():
-            chat_db = ws_dir / "GitHub.copilot-chat" / "copilotMcpChatHistory.json"
-            if not chat_db.exists():
-                chat_db = ws_dir / "GitHub.copilot-chat" / "chatSessions.json"
-            if not chat_db.exists():
-                # look for any .json in the copilot dir
-                copilot_dir = ws_dir / "GitHub.copilot-chat"
-                if copilot_dir.is_dir():
-                    for f in copilot_dir.glob("*.json"):
-                        results.append({
+        try:
+            ws_dirs = [d for d in base.iterdir() if d.is_dir()]
+        except PermissionError:
+            continue
+        for ws_dir in ws_dirs:
+            chat_dir = ws_dir / "GitHub.copilot-chat"
+            if not chat_dir.is_dir():
+                continue
+
+            # transcripts/ — the main chat log directory
+            transcripts_dir = chat_dir / "transcripts"
+            if transcripts_dir.is_dir():
+                try:
+                    for f in sorted(transcripts_dir.glob("*.json"), key=lambda x: x.stat().st_mtime, reverse=True)[:50]:
+                        try:
+                            sessions.append({
+                                "source": "vscode-transcripts",
+                                "base": str(base),
+                                "workspace": ws_dir.name,
+                                "file": str(f),
+                                "filename": f.name,
+                                "size": f.stat().st_size,
+                                "mtime": f.stat().st_mtime,
+                            })
+                        except Exception:
+                            pass
+                except Exception:
+                    pass
+
+            # debug-logs/ — copilot session debug logs
+            debug_dir = chat_dir / "debug-logs"
+            if debug_dir.is_dir():
+                try:
+                    for f in sorted(debug_dir.glob("*.json"), key=lambda x: x.stat().st_mtime, reverse=True)[:20]:
+                        try:
+                            sessions.append({
+                                "source": "vscode-debug-logs",
+                                "base": str(base),
+                                "workspace": ws_dir.name,
+                                "file": str(f),
+                                "filename": f.name,
+                                "size": f.stat().st_size,
+                                "mtime": f.stat().st_mtime,
+                            })
+                        except Exception:
+                            pass
+                except Exception:
+                    pass
+
+            # any top-level .json files in the copilot-chat dir (e.g. chatSessions.json)
+            try:
+                for f in chat_dir.glob("*.json"):
+                    try:
+                        sessions.append({
+                            "source": "vscode-json",
+                            "base": str(base),
                             "workspace": ws_dir.name,
+                            "file": str(f),
+                            "filename": f.name,
+                            "size": f.stat().st_size,
+                            "mtime": f.stat().st_mtime,
+                        })
+                    except Exception:
+                        pass
+            except Exception:
+                pass
+
+    # --- Copilot CLI session state (~/.copilot) ---
+    cli_items: list[dict] = []
+    dot_copilot = Path.home() / ".copilot"
+    if dot_copilot.is_dir():
+        # command-history-state.json at top level
+        hist = dot_copilot / "command-history-state.json"
+        if hist.exists():
+            try:
+                cli_items.append({
+                    "source": "copilot-cli-history",
+                    "file": str(hist),
+                    "size": hist.stat().st_size,
+                    "mtime": hist.stat().st_mtime,
+                })
+            except Exception:
+                pass
+        # session-state events (events.jsonl per session)
+        session_state = dot_copilot / "session-state"
+        if session_state.is_dir():
+            try:
+                for f in sorted(session_state.rglob("*.jsonl"), key=lambda x: x.stat().st_mtime, reverse=True)[:20]:
+                    try:
+                        cli_items.append({
+                            "source": "copilot-cli-session",
                             "file": str(f),
                             "size": f.stat().st_size,
                             "mtime": f.stat().st_mtime,
                         })
-                continue
-            results.append({
-                "workspace": ws_dir.name,
-                "file": str(chat_db),
-                "size": chat_db.stat().st_size,
-                "mtime": chat_db.stat().st_mtime,
-            })
-    return results
+                    except Exception:
+                        pass
+            except Exception:
+                pass
+
+    return {
+        "os": _sys,
+        "vscode_sessions": sessions,
+        "copilot_cli": cli_items,
+        "bases_checked": [str(p) for p in ws_candidates],
+    }
 
 
 def _vscode_extensions() -> list[str]:
@@ -201,7 +301,7 @@ class CrowHandler(http.server.BaseHTTPRequestHandler):
             self._json({"ok": True, "info": _system_info()})
 
         elif path == "/copilot":
-            self._json({"ok": True, "sessions": _vscode_copilot_history()})
+            self._json({"ok": True, "history": _vscode_copilot_history()})
 
         elif path == "/extensions":
             self._json({"ok": True, "extensions": _vscode_extensions()})
