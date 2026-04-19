@@ -1,3 +1,8 @@
+const AUTH_ICONS  = { none: '🆓', api_key: '🔑', bearer: '🔑', oauth: '🔗' };
+const AUTH_LABELS = { none: 'Free', api_key: 'API Key', bearer: 'Token', oauth: 'OAuth' };
+
+let _mcpCatalogPending = null; // { service, envKey, docsUrl }
+
 async function loadMcpCatalog() {
   const resp = await fetch('/api/mcp/catalog');
   if (!resp.ok) return;
@@ -37,10 +42,9 @@ async function loadMcpCatalog() {
 
 async function mcpCatalogConnect(service, authType, envKey, docsUrl) {
   if (authType === 'none') {
-    // Free — connect immediately, no credential needed
     const btn = el('mcpCatalogGrid').querySelector(`button[data-service="${service}"]`);
     if (btn) { btn.textContent = 'Connecting…'; btn.disabled = true; }
-    const resp = await fetch('/api/mcp/connect', {
+    await fetch('/api/mcp/connect', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ service }),
@@ -51,21 +55,30 @@ async function mcpCatalogConnect(service, authType, envKey, docsUrl) {
     return;
   }
 
-  if (authType === 'oauth') {
-    // OAuth — open provider login in new tab, then ask for the token
-    if (docsUrl) window.open(docsUrl, '_blank');
-    // Fall through to credential dialog — user pastes the token they just got
-  }
+  _mcpCatalogPending = { service, envKey, docsUrl };
 
-  // Show credential dialog
-  _mcpCatalogPending = { service, envKey };
+  // Title + label
   el('mcpCredDialogTitle').textContent = `Connect ${service}`;
-  el('mcpCredDialogHint').textContent = authType === 'oauth'
-    ? `Complete login in the tab that just opened, then paste your token below.`
-    : `Paste your ${envKey || 'API key'} — it is stored encrypted in the vault.`;
   el('mcpCredDialogLabel').textContent = envKey || 'API Key / Token';
   el('mcpCredDialogInput').value = '';
   el('mcpCredDialogStatus').textContent = '';
+
+  // Hint text
+  const isOauth = authType === 'oauth';
+  el('mcpCredDialogHint').textContent = isOauth
+    ? `Complete OAuth in the tab that opens, copy the token you receive, and paste it below.`
+    : `Paste your ${envKey || 'API key'} — stored encrypted in the vault, never sent to the cloud.`;
+
+  // Show / hide the "Get your key" button
+  const getKeyBtn = el('mcpCredDialogGetKey');
+  if (docsUrl) {
+    getKeyBtn.style.display = '';
+    getKeyBtn.textContent = isOauth ? '🔗 Open login page →' : '🔑 Get your key →';
+    getKeyBtn.onclick = () => window.open(docsUrl, '_blank');
+  } else {
+    getKeyBtn.style.display = 'none';
+  }
+
   el('mcpCredDialog').showModal();
 }
 

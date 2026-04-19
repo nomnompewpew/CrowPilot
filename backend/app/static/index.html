@@ -201,17 +201,18 @@
         </div>
       </section>
 
-      <!-- Credential prompt modal for API-key services -->
-      <dialog id="mcpCredDialog" style="background:var(--surface2); border:1px solid var(--border); border-radius:10px; padding:24px; min-width:320px; color:var(--text);">
-        <h3 id="mcpCredDialogTitle" style="margin:0 0 12px;">Connect Service</h3>
-        <p id="mcpCredDialogHint" class="tiny" style="margin-bottom:12px;"></p>
-        <label id="mcpCredDialogLabel" for="mcpCredDialogInput" style="font-size:12px;">API Key</label>
-        <input id="mcpCredDialogInput" type="password" placeholder="Paste key here" style="margin-top:4px; margin-bottom:12px;" />
+      <!-- Credential prompt modal for API-key / OAuth services -->
+      <dialog id="mcpCredDialog">
+        <h3 id="mcpCredDialogTitle" style="margin:0 0 8px; font-size:1rem;">Connect Service</h3>
+        <p id="mcpCredDialogHint" class="tiny" style="margin:0 0 14px; color:var(--text-muted);"></p>
+        <button id="mcpCredDialogGetKey" class="dialog-get-key-btn" style="display:none;">🔑 Get your key →</button>
+        <label id="mcpCredDialogLabel" for="mcpCredDialogInput" style="font-size:.8rem; color:var(--text-muted); margin-top:14px; display:block;">API Key / Token</label>
+        <input id="mcpCredDialogInput" type="password" placeholder="Paste key here" style="margin-top:4px; margin-bottom:14px;" />
         <div class="row">
           <button id="mcpCredDialogSave">Connect</button>
           <button id="mcpCredDialogCancel" class="alt">Cancel</button>
         </div>
-        <div id="mcpCredDialogStatus" class="status tiny" style="margin-top:8px;"></div>
+        <div id="mcpCredDialogStatus" class="status tiny" style="margin-top:10px;"></div>
       </dialog>
 
       <section id="view-knowledge" class="view">

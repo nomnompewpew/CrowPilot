@@ -400,6 +400,35 @@ label.inline-check input { width: auto; }
   to   { opacity: 1; transform: translateY(0); }
 }
 
+/* ── Dialogs ────────────────────────────────────────────────────── */
+dialog {
+  background: var(--surface2);
+  border: 1px solid var(--border-hi);
+  border-radius: var(--radius-lg);
+  padding: 28px;
+  width: min(440px, 95vw);
+  color: var(--text);
+  box-shadow: 0 8px 40px rgba(0,0,0,.5);
+}
+dialog::backdrop {
+  background: rgba(0, 0, 0, .65);
+  backdrop-filter: blur(2px);
+}
+.dialog-get-key-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  background: var(--green);
+  color: #000;
+  border-radius: var(--radius);
+  font-size: .82rem;
+  font-weight: 600;
+  text-decoration: none;
+  margin-bottom: 4px;
+}
+.dialog-get-key-btn:hover { opacity: .85; }
+
 /* ── Responsive ────────────────────────────────────────────────── */
 @media (max-width: 1020px) { .grid.two, .grid.dual { grid-template-columns: 1fr; } }
 @media (max-width: 740px)  { #sidebar { display: none; } }

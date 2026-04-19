@@ -103,9 +103,4 @@ async function searchNotes() {
   el('searchOut').textContent = out.map((x) => `${x.note_title} [${x.chunk_index}]\n${x.chunk_text.slice(0, 180)}...`).join('\n\n') || 'No matches';
 }
 
-// ── MCP Catalog ─────────────────────────────────────────────────────────
-const AUTH_ICONS = { none: '🆓', api_key: '🔑', bearer: '🔑', oauth: '🔗' };
-const AUTH_LABELS = { none: 'Free', api_key: 'API Key', bearer: 'Token', oauth: 'OAuth' };
-
-let _mcpCatalogPending = null; // service key awaiting key input
 
