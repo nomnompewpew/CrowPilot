@@ -83,9 +83,8 @@ function initApp() {
   el('sensitivePreviewBtn').addEventListener('click', runSensitivePreview);
 
   el('browseProjectBtn').addEventListener('click', browseProjectFolder);
-  el('discoverProjectsBtn').addEventListener('click', discoverProjectsFromRoot);
-  el('importProjectPathBtn').addEventListener('click', () => importProjectByPath(el('projectManualPath').value));
-  el('refreshProjectsBtn').addEventListener('click', listProjects);
+  el('importProjectPathBtn').addEventListener('click', () => importProjectByPath(el('projectFolderPath').value));
+  el('projectFolderPath').addEventListener('keydown', (e) => { if (e.key === 'Enter') importProjectByPath(el('projectFolderPath').value); });
   el('refreshProjectScriptsBtn').addEventListener('click', loadProjectScripts);
   el('runProjectScriptBtn').addEventListener('click', runProjectScript);
   el('openProjectPreviewBtn').addEventListener('click', openProjectPreview);

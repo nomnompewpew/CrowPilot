@@ -215,7 +215,7 @@ async function browseProjectFolder() {
   const out = await resp.json();
   state.selectedProjectId = out.project.id;
   el('projectStatusOut').textContent = `Workspace selected: ${out.selected_path}`;
-  el('projectManualPath').value = out.selected_path;
+  el('projectFolderPath').value = out.selected_path;
   await listProjects();
   await selectProject(out.project.id);
 }
@@ -225,7 +225,7 @@ async function selectProject(projectId) {
   renderProjectMeta();
   const selected = state.projects.find((p) => p.id === projectId);
   if (selected) {
-    el('projectManualPath').value = selected.path;
+    el('projectFolderPath').value = selected.path;
     // Pre-fill URL from saved dev_url immediately; runtimes will refine it
     if (selected.dev_url) el('projectPreviewUrl').value = selected.dev_url;
   }

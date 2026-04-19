@@ -427,13 +427,21 @@ nav.sb-nav button.active {
 }
 .projects-preview-bar {
   display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 10px;
+  flex-direction: column;
+  gap: 0;
+  padding: 0;
   background: var(--surface, #161b27);
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
 }
+.projects-preview-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border-bottom: 1px solid var(--border);
+}
+.projects-preview-row:last-child { border-bottom: none; }
 .projects-preview-bar input {
   flex: 1;
   min-width: 0;
