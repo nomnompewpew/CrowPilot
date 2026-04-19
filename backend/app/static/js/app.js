@@ -169,13 +169,15 @@ function showWizard(steps) {
   list.innerHTML = steps.map(s =>
     `<li style="padding:6px 0; ${s.ok ? '' : 'color:var(--yellow,#e0b854)'}">${s.ok ? '✅' : '⚠️'} <strong>${s.label}</strong> — ${s.detail}</li>`
   ).join('');
+
+  const closeBtn = el('wizardCloseBtn');
+  closeBtn.onclick = async () => {
+    dlg.close();
+    try { await fetch('/api/wizard/complete', { method: 'POST' }); } catch {}
+  };
+
   dlg.showModal();
 }
-
-el('wizardCloseBtn')?.addEventListener('click', async () => {
-  el('wizardOverlay')?.close();
-  try { await fetch('/api/wizard/complete', { method: 'POST' }); } catch {}
-});
 
 /* ── Zen Credential ────────────────────────────────────────────── */
 el('zenCredentialBtn')?.addEventListener('click', async () => {
