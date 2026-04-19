@@ -115,13 +115,42 @@ function renderPreviewHosts() {
 }
 
 function renderPreviewPorts() {
-  const ports = new Set(['3000', '4321', '5173', '8080']);
+  // Internal CrowPilot ports — never show these in the project preview picker
+  const INTERNAL_PORTS = new Set(['8787', '8080', '8081', '8082', '8083']);
+  const ports = new Set(['3000', '4321', '5173', '5000', '8000']);
+
+  // Pull port from the selected project's saved dev_url
+  const selectedProject = state.projects.find((p) => p.id === state.selectedProjectId);
+  if (selectedProject?.dev_url) {
+    try {
+      const m = selectedProject.dev_url.match(/:(\d{2,5})\b/);
+      if (m) ports.add(m[1]);
+    } catch (_) {}
+  }
+
+  // Pull ports from script raw commands (e.g. "next dev --port 3001")
+  (state.projectScripts || []).forEach((script) => {
+    const raw = String(script.raw || '');
+    const matches = raw.matchAll(/(?:--port|-p)\s+(\d{2,5})|:(\d{4,5})\b/g);
+    for (const m of matches) {
+      const port = m[1] || m[2];
+      if (port) ports.add(port);
+    }
+    // also scan inline numbers that look like port args
+    const numMatch = raw.match(/\b(\d{4,5})\b/g);
+    if (numMatch) numMatch.forEach((p) => ports.add(p));
+  });
+
+  // Pull ports from running runtimes
   state.projectRuntimes.forEach((runtime) => {
     (runtime.command || []).forEach((token) => {
       const m = String(token).match(/\b(\d{4,5})\b/);
       if (m) ports.add(m[1]);
     });
   });
+
+  // Strip internal ports
+  INTERNAL_PORTS.forEach((p) => ports.delete(p));
 
   const select = el('projectPreviewPort');
   if (!select) return;
@@ -133,6 +162,15 @@ function renderPreviewPorts() {
     opt.textContent = port;
     select.appendChild(opt);
   });
+
+  // Prefer the project's saved dev_url port, then previously selected, then first
+  if (selectedProject?.dev_url) {
+    const m = selectedProject.dev_url.match(/:(\d{2,5})\b/);
+    if (m && ports.has(m[1])) {
+      select.value = m[1];
+      return;
+    }
+  }
   if (current && ports.has(current)) {
     select.value = current;
   }

@@ -225,6 +225,11 @@ nav.sb-nav button.active {
   overflow-y: auto;
   padding: 12px 12px 6px;
   min-height: 0;
+  max-height: none;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  margin-bottom: 0;
   scrollbar-width: thin;
   scrollbar-color: var(--border) transparent;
 }
@@ -370,7 +375,6 @@ nav.sb-nav button.active {
 
 /* ── Projects: sidebar + full-height preview ────────────────────── */
 .projects-layout {
-  display: flex;
   flex-direction: row;
   gap: 0;
   height: 100%;
