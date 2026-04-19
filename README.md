@@ -79,9 +79,25 @@ Open `http://127.0.0.1:8787` — the setup wizard will walk you through the rema
 | `PANTHEON_LOCAL_MODEL` | `local-model` | Local chat model name |
 | `PANTHEON_EMBEDDING_BASE_URL` | _(empty)_ | Embedding model endpoint |
 | `PANTHEON_EMBEDDING_MODEL` | _(empty)_ | Embedding model name |
+| `PANTHEON_EMBED_MODE` | `realtime` | Background embedding throttle mode |
+| `PANTHEON_AGENT_HOME` | `../.corbin` | Repo-local Corbin workspace |
+| `PANTHEON_RUNTIME_PROFILE` | `desktop` | Hardware profile hint for local defaults |
 | `PANTHEON_CREDENTIAL_KEY` | _(required)_ | AES encryption key for credential vault |
 | `PANTHEON_PROJECTS_ROOT` | `./projects` | Root for local project folders |
 | `PANTHEON_DB_PATH` | `./data/pantheon.db` | SQLite database path |
+
+## Corbin Workspace
+
+CrowPilot now seeds a repo-local `.corbin/` workspace on startup for persistent agent scaffolding:
+
+- `memory/` — local JSONL persistence targets for working-set and long-term notes
+- `env/` — desktop, Raspberry Pi, and workstation env templates
+- `personality/` — repo-local fallback prompt for Corbin
+- `mcp/` — saved MCP endpoint definitions, including `http://localhost:8787/mcp`
+- `skills/` — seed skill contracts for local automation
+- `hardware/` — model recommendations by host capability tier
+
+For entry-level hardware, start from `.corbin/env/raspberry-pi.env.example`. It keeps the dedicated PII redaction model and swaps the embedding path to a lighter CPU-friendly default so indexing can run on weaker hardware without dragging live chat down.
 
 ## Remote LAN Access
 

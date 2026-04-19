@@ -11,6 +11,9 @@ is saved.
 """
 from __future__ import annotations
 
+from pathlib import Path
+
+from ..config import settings
 from ..state import g
 
 # ── Default personality ────────────────────────────────────────────────────────
@@ -87,6 +90,13 @@ instead of lecturing about them.
 _SETTING_KEY = "corbin_system_prompt"
 
 
+def _prompt_file() -> Path:
+    base = Path(settings.agent_home)
+    if not base.is_absolute():
+        base = (Path(__file__).resolve().parents[3] / base).resolve()
+    return base / "personality" / "corbin-system-prompt.txt"
+
+
 def get_system_prompt() -> str:
     """
     Return Corbin's current system prompt.
@@ -100,17 +110,26 @@ def get_system_prompt() -> str:
             return row["value"]
     except Exception:
         pass
+    prompt_file = _prompt_file()
+    if prompt_file.exists():
+        text = prompt_file.read_text().strip()
+        if text:
+            return text
     return CORBIN_DEFAULT_PROMPT
 
 
 def save_system_prompt(text: str) -> None:
     """Persist a customized system prompt to the settings table."""
+    cleaned = text.strip()
     g.db.execute(
         """
         INSERT INTO settings(key, value) VALUES (?, ?)
         ON CONFLICT(key) DO UPDATE SET value = excluded.value,
                                        updated_at = datetime('now')
         """,
-        (_SETTING_KEY, text.strip()),
+        (_SETTING_KEY, cleaned),
     )
     g.db.commit()
+    prompt_file = _prompt_file()
+    prompt_file.parent.mkdir(parents=True, exist_ok=True)
+    prompt_file.write_text(cleaned + "\n")

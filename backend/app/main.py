@@ -13,6 +13,7 @@ from .config import settings
 from .db import get_connection, init_db
 from .middleware.auth import auth_middleware
 from .services.auth import seed_default_user
+from .services.agent_workspace import ensure_agent_workspace
 from .services.log_handler import install_log_capture
 from .services.mcp import ensure_builtin_mcp_servers, normalize_existing_mcp_servers, import_vscode_mcp_servers
 from .services.memory import embed_worker, stop_embed_worker
@@ -44,6 +45,7 @@ from .wizard import router as wizard_router
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     install_log_capture()
+    ensure_agent_workspace()
     g.db = get_connection(settings.db_path)
     init_db(g.db)
     normalize_existing_mcp_servers()

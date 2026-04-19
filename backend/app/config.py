@@ -45,6 +45,8 @@ class Settings:
     credential_key: str = os.getenv("PANTHEON_CREDENTIAL_KEY", "")
     projects_root: str = os.getenv("PANTHEON_PROJECTS_ROOT", "./projects")
     copilot_cli_command: str = os.getenv("PANTHEON_COPILOT_CLI_COMMAND", "gh")
+    agent_home: str = os.getenv("PANTHEON_AGENT_HOME", "../.corbin")
+    runtime_profile: str = os.getenv("PANTHEON_RUNTIME_PROFILE", "desktop")
 
     # MCP relay token — if set, POST /mcp requires Authorization: Bearer <token>.
     # Leave empty to keep the relay open (default, compatible with VS Code without extra config).

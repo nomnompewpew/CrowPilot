@@ -1,0 +1,46 @@
+{
+  "version": 1,
+  "skills": [
+    {
+      "name": "hardware-profile-selection",
+      "category": "deployment",
+      "description": "Choose CrowPilot scan and embedding defaults from the repo-local hardware profiles.",
+      "status": "draft",
+      "local_only": true,
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "profile": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "profile"
+        ]
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "scan_model": {
+            "type": "string"
+          },
+          "embedding_model": {
+            "type": "string"
+          },
+          "embed_mode": {
+            "type": "string"
+          }
+        }
+      },
+      "tool_contract": {
+        "reads": [
+          ".corbin/hardware/profiles.json",
+          ".corbin/env/raspberry-pi.env.example",
+          ".corbin/env/desktop.env.example",
+          ".corbin/env/workstation.env.example"
+        ],
+        "writes": []
+      }
+    }
+  ]
+}

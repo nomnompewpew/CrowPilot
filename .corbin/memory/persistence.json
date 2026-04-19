@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "store": "jsonl",
+  "files": {
+    "working_set": "working-set.local.jsonl",
+    "long_term": "long-term.local.jsonl"
+  },
+  "notes": [
+    "Append one JSON object per line.",
+    "Keep secrets out of these files; use the credential vault for sensitive values."
+  ]
+}

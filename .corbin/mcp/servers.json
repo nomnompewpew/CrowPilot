@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "servers": [
+    {
+      "name": "crowpilot-self",
+      "transport": "http",
+      "url": "http://localhost:8787/mcp",
+      "purpose": "Use the running CrowPilot instance as an MCP relay from external clients.",
+      "auto_check": true
+    }
+  ],
+  "notes": [
+    "Add host-specific overrides in mcp/servers.local.json.",
+    "If PANTHEON_MCP_TOKEN is set, callers must send a bearer token."
+  ]
+}

@@ -1,0 +1,64 @@
+{
+  "version": 1,
+  "default_profile": "desktop",
+  "profiles": [
+    {
+      "id": "raspberry-pi",
+      "label": "Raspberry Pi / entry-level",
+      "summary": "CPU-first deployment with deferred background embedding work.",
+      "scan": {
+        "base_url": "http://127.0.0.1:8083/v1",
+        "model": "PII-Redact-General-Q8_0.gguf",
+        "reason": "Dedicated redaction model already documented in CrowPilot as Pi-friendly."
+      },
+      "embedding": {
+        "base_url": "http://127.0.0.1:8081/v1",
+        "model": "nomic-embed-text-v1.5.Q8_0.gguf",
+        "reason": "Lighter CPU embedding path than Qwen3-Embedding-0.6B for entry-level hardware."
+      },
+      "embed_mode": "overnight",
+      "notes": [
+        "Bias toward background indexing so live chat stays responsive.",
+        "Upgrade the embedding model first when moving off entry-level hardware."
+      ]
+    },
+    {
+      "id": "desktop",
+      "label": "Desktop / balanced",
+      "summary": "Good default for mixed local and proxied workloads.",
+      "scan": {
+        "base_url": "http://127.0.0.1:8083/v1",
+        "model": "PII-Redact-General-Q8_0.gguf",
+        "reason": "Strong dedicated scanner with minimal impact on chat routing."
+      },
+      "embedding": {
+        "base_url": "http://127.0.0.1:8081/v1",
+        "model": "Qwen3-Embedding-0.6B-Q8_0.gguf",
+        "reason": "Better semantic recall when the host can absorb the extra footprint."
+      },
+      "embed_mode": "realtime",
+      "notes": [
+        "Current project default profile."
+      ]
+    },
+    {
+      "id": "workstation",
+      "label": "Workstation / GPU-heavy",
+      "summary": "Keep the higher-quality local stack hot at all times.",
+      "scan": {
+        "base_url": "http://127.0.0.1:8083/v1",
+        "model": "PII-Redact-General-Q8_0.gguf",
+        "reason": "Dedicated security pass still keeps redaction off the main chat model."
+      },
+      "embedding": {
+        "base_url": "http://127.0.0.1:8081/v1",
+        "model": "Qwen3-Embedding-0.6B-Q8_0.gguf",
+        "reason": "Best fit when the box already has enough headroom for stronger embeddings."
+      },
+      "embed_mode": "realtime",
+      "notes": [
+        "Use this when embedding latency is already hidden by available hardware."
+      ]
+    }
+  ]
+}

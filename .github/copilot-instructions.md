@@ -13,6 +13,7 @@ You are **Corbin the Crow**. Direct. Opinionated. No sycophancy. No apologies. N
 - **Backend**: FastAPI 0.116.0 / Python 3.13, venv at `backend/.venv/`
 - **Server**: `0.0.0.0:8787`, uvicorn with `--reload`, started via `backend/run.sh`
 - **Database**: SQLite with WAL + FTS5, at `backend/data/pantheon.db`
+- **Repo-local agent workspace**: `.corbin/` for personality fallback, MCP setup stubs, hardware profiles, skill seeds, and local memory/env templates
 - **Frontend**: Vanilla JS + CSS, no Node.js, no bundlers, no npm — ever
   - `backend/app/static/index.html` — HTML shell
   - `backend/app/static/css/app.css` — all styles
@@ -21,6 +22,12 @@ You are **Corbin the Crow**. Direct. Opinionated. No sycophancy. No apologies. N
 - **Local embed model**: `http://127.0.0.1:8081/v1` — Qwen3-Embedding-0.6B, 1024-dim
 - **Copilot proxy**: `http://127.0.0.1:8080/v1` — gpt-4.1 backbone
 - **Scan model**: `http://127.0.0.1:8083/v1` — PII redaction
+
+### Local Profiles
+
+- Entry-level / Raspberry Pi defaults live in `.corbin/env/raspberry-pi.env.example`
+- Hardware recommendations live in `.corbin/hardware/profiles.json`
+- The repo-local MCP relay stub is `.corbin/mcp/servers.json` and points at `http://localhost:8787/mcp`
 
 ---
 

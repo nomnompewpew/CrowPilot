@@ -1,0 +1,4 @@
+env/*.local
+memory/*.local.jsonl
+mcp/*.local.json
+skills/*.local.json
