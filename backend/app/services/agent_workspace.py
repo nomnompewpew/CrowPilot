@@ -12,7 +12,7 @@ _WORKSPACE_MANIFEST = {
     "version": 1,
     "name": "Corbin workspace",
     "agent_home": ".corbin",
-    "runtime_profile": "desktop",
+    "runtime_profile": "developer",
     "directories": {
         "memory": "memory",
         "env": "env",
@@ -25,13 +25,34 @@ _WORKSPACE_MANIFEST = {
         "Use env/*.env.example as starting points, then copy to local files outside git.",
         "Keep secrets and host-specific overrides in *.local files only.",
         "Corbin falls back to personality/corbin-system-prompt.txt when the DB has no custom prompt.",
+        "Monorepo editions map to runtime profiles: crowpi=raspberry-pi, crowpilot-lite=lite, crowpilot=workstation, crowpilot-developer=developer.",
     ],
 }
 
 _HARDWARE_PROFILES = {
     "version": 1,
-    "default_profile": "desktop",
+    "default_profile": "developer",
     "profiles": [
+        {
+            "id": "developer",
+            "label": "CrowPilot Developer",
+            "summary": "Feature-complete local lab profile with maximum tooling flexibility.",
+            "scan": {
+                "base_url": "http://127.0.0.1:8083/v1",
+                "model": "Llama-3.2-1B-Instruct-Q4_0_4_4.gguf",
+                "prompt_mode": "instruction",
+                "reason": "Keeps the scanner separated from chat while Developer mode runs the broadest stack.",
+            },
+            "embedding": {
+                "base_url": "http://127.0.0.1:8081/v1",
+                "model": "Qwen3-Embedding-0.6B-Q8_0.gguf",
+                "reason": "Developer edition prioritizes richer semantic quality over minimal footprint.",
+            },
+            "embed_mode": "realtime",
+            "notes": [
+                "Use this for playground and rapid prototyping.",
+            ],
+        },
         {
             "id": "raspberry-pi",
             "label": "Raspberry Pi / entry-level",
@@ -54,6 +75,26 @@ _HARDWARE_PROFILES = {
             ],
         },
         {
+            "id": "lite",
+            "label": "CrowPilot Lite",
+            "summary": "CPU-focused profile for older laptops and desktops above Pi-class hardware.",
+            "scan": {
+                "base_url": "http://127.0.0.1:8083/v1",
+                "model": "Llama-3.2-1B-Instruct-Q4_0_4_4.gguf",
+                "prompt_mode": "instruction",
+                "reason": "Small scanner keeps latency stable on constrained hosts.",
+            },
+            "embedding": {
+                "base_url": "http://127.0.0.1:8081/v1",
+                "model": "nomic-embed-text-v1.5.Q8_0.gguf",
+                "reason": "Lighter embedding path than workstation-grade defaults.",
+            },
+            "embed_mode": "realtime",
+            "notes": [
+                "Best fit for CPU-only or older desktop/laptop systems.",
+            ],
+        },
+        {
             "id": "desktop",
             "label": "Desktop / balanced",
             "summary": "Good default for mixed local and proxied workloads.",
@@ -70,7 +111,7 @@ _HARDWARE_PROFILES = {
             },
             "embed_mode": "realtime",
             "notes": [
-                "Current project default profile.",
+                "Legacy compatibility profile retained for existing setups.",
             ],
         },
         {
@@ -140,6 +181,10 @@ _SKILL_BOOTSTRAP = {
             "tool_contract": {
                 "reads": [
                     ".corbin/hardware/profiles.json",
+                    ".corbin/env/crowpilot-developer.env.example",
+                    ".corbin/env/crowpi.env.example",
+                    ".corbin/env/crowpilot-lite.env.example",
+                    ".corbin/env/crowpilot.env.example",
                     ".corbin/env/raspberry-pi.env.example",
                     ".corbin/env/desktop.env.example",
                     ".corbin/env/workstation.env.example",
@@ -170,6 +215,46 @@ skills/*.local.json
 """
 
 _ENV_FILES = {
+    "crowpilot-developer.env.example": """PANTHEON_EDITION=crowpilot-developer
+PANTHEON_AGENT_HOME=../.corbin
+PANTHEON_RUNTIME_PROFILE=developer
+PANTHEON_SCAN_BASE_URL=http://127.0.0.1:8083/v1
+PANTHEON_SCAN_MODEL=Llama-3.2-1B-Instruct-Q4_0_4_4.gguf
+PANTHEON_SCAN_PROMPT_MODE=instruction
+PANTHEON_EMBEDDING_BASE_URL=http://127.0.0.1:8081/v1
+PANTHEON_EMBEDDING_MODEL=Qwen3-Embedding-0.6B-Q8_0.gguf
+PANTHEON_EMBED_MODE=realtime
+""",
+    "crowpi.env.example": """PANTHEON_EDITION=crowpi
+PANTHEON_AGENT_HOME=../.corbin
+PANTHEON_RUNTIME_PROFILE=raspberry-pi
+PANTHEON_SCAN_BASE_URL=http://127.0.0.1:8083/v1
+PANTHEON_SCAN_MODEL=Llama-3.2-1B-Instruct-Q4_0_4_4.gguf
+PANTHEON_SCAN_PROMPT_MODE=instruction
+PANTHEON_EMBEDDING_BASE_URL=http://127.0.0.1:8081/v1
+PANTHEON_EMBEDDING_MODEL=nomic-embed-text-v1.5.Q8_0.gguf
+PANTHEON_EMBED_MODE=overnight
+""",
+    "crowpilot-lite.env.example": """PANTHEON_EDITION=crowpilot-lite
+PANTHEON_AGENT_HOME=../.corbin
+PANTHEON_RUNTIME_PROFILE=lite
+PANTHEON_SCAN_BASE_URL=http://127.0.0.1:8083/v1
+PANTHEON_SCAN_MODEL=Llama-3.2-1B-Instruct-Q4_0_4_4.gguf
+PANTHEON_SCAN_PROMPT_MODE=instruction
+PANTHEON_EMBEDDING_BASE_URL=http://127.0.0.1:8081/v1
+PANTHEON_EMBEDDING_MODEL=nomic-embed-text-v1.5.Q8_0.gguf
+PANTHEON_EMBED_MODE=realtime
+""",
+    "crowpilot.env.example": """PANTHEON_EDITION=crowpilot
+PANTHEON_AGENT_HOME=../.corbin
+PANTHEON_RUNTIME_PROFILE=workstation
+PANTHEON_SCAN_BASE_URL=http://127.0.0.1:8083/v1
+PANTHEON_SCAN_MODEL=Llama-3.2-1B-Instruct-Q4_0_4_4.gguf
+PANTHEON_SCAN_PROMPT_MODE=instruction
+PANTHEON_EMBEDDING_BASE_URL=http://127.0.0.1:8081/v1
+PANTHEON_EMBEDDING_MODEL=Qwen3-Embedding-0.6B-Q8_0.gguf
+PANTHEON_EMBED_MODE=realtime
+""",
     "desktop.env.example": """PANTHEON_AGENT_HOME=../.corbin
 PANTHEON_RUNTIME_PROFILE=desktop
 PANTHEON_SCAN_BASE_URL=http://127.0.0.1:8083/v1

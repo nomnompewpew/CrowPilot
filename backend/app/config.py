@@ -12,6 +12,7 @@ class Settings:
     db_path: str = os.getenv("PANTHEON_DB_PATH", "./data/pantheon.db")
     host: str = os.getenv("PANTHEON_HOST", "0.0.0.0")
     port: int = int(os.getenv("PANTHEON_PORT", "8787"))
+    edition: str = os.getenv("PANTHEON_EDITION", "crowpilot-developer")
 
     default_provider: str = os.getenv("PANTHEON_DEFAULT_PROVIDER", "copilot_proxy")
 

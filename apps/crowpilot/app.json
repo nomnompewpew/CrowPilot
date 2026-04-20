@@ -1,0 +1,10 @@
+{
+  "id": "crowpilot",
+  "name": "CrowPilot",
+  "description": "Full production profile for systems with at least 8GB VRAM or Jetson-class accelerators.",
+  "runtime_profile": "workstation",
+  "backend_env": "apps/crowpilot/backend.env",
+  "status": "planned",
+  "inherits": "crowpilot-developer",
+  "feature_tier": "full"
+}

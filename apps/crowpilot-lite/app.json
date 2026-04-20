@@ -1,0 +1,10 @@
+{
+  "id": "crowpilot-lite",
+  "name": "CrowPilot Lite",
+  "description": "CPU-focused profile for older laptops and desktops that are above Pi-class hardware.",
+  "runtime_profile": "lite",
+  "backend_env": "apps/crowpilot-lite/backend.env",
+  "status": "planned",
+  "inherits": "crowpilot-developer",
+  "feature_tier": "balanced"
+}

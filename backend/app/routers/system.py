@@ -171,6 +171,8 @@ async def dashboard_summary() -> dict:
     }
 
     return {
+        "edition": settings.edition,
+        "runtime_profile": settings.runtime_profile,
         "counts": counts,
         "providers": providers_status,
         "tagline": "CrowPilot command center for MCP, model routing, and local knowledge.",

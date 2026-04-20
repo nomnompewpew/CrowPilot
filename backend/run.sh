@@ -23,8 +23,17 @@ if [[ -f .env ]]; then
   set +o allexport
 fi
 
+EDITION="${PANTHEON_EDITION:-crowpilot-developer}"
+EDITION_ENV="../apps/${EDITION}/backend.env"
+if [[ -f "${EDITION_ENV}" ]]; then
+  set -o allexport
+  # shellcheck disable=SC1090
+  source "${EDITION_ENV}"
+  set +o allexport
+fi
+
 HOST="${PANTHEON_HOST:-0.0.0.0}"
 PORT="${PANTHEON_PORT:-8787}"
 
-echo "Starting CrowPilot on ${HOST}:${PORT}"
+echo "Starting CrowPilot (${EDITION}) on ${HOST}:${PORT}"
 uvicorn app.main:app --host "${HOST}" --port "${PORT}" --reload --timeout-graceful-shutdown 1 --reload-delay 2

@@ -36,6 +36,11 @@ llama.cpp flags (1080 Ti tuning):
 ## Repo Layout
 
 ```
+apps/                  # Product edition manifests + env overlays
+  crowpilot-developer/
+  crowpi/
+  crowpilot-lite/
+  crowpilot/
 backend/
   app/
     main.py            # FastAPI app, lifespan, router registration
@@ -55,6 +60,8 @@ backend/
 docs/
   architecture.md
   integration.md
+  monorepo-plan.md
+packages/              # Future shared Python packages
 ```
 
 ## Quick Start
@@ -75,6 +82,7 @@ Open `http://127.0.0.1:8787` — the setup wizard will walk you through the rema
 |---|---|---|
 | `PANTHEON_COPILOT_BASE_URL` | `http://127.0.0.1:8080/v1` | Copilot Proxy endpoint |
 | `PANTHEON_COPILOT_MODEL` | `gpt-5.3-codex` | Cloud model name |
+| `PANTHEON_EDITION` | `crowpilot-developer` | Product edition (`crowpilot-developer`, `crowpi`, `crowpilot-lite`, `crowpilot`) |
 | `PANTHEON_LOCAL_BASE_URL` | _(empty)_ | Local chat model endpoint |
 | `PANTHEON_LOCAL_MODEL` | `local-model` | Local chat model name |
 | `PANTHEON_EMBEDDING_BASE_URL` | _(empty)_ | Embedding model endpoint |
@@ -98,6 +106,13 @@ CrowPilot now seeds a repo-local `.corbin/` workspace on startup for persistent 
 - `hardware/` — model recommendations by host capability tier
 
 For entry-level hardware, start from `.corbin/env/raspberry-pi.env.example`. It keeps the dedicated PII redaction model and swaps the embedding path to a lighter CPU-friendly default so indexing can run on weaker hardware without dragging live chat down.
+
+For monorepo edition defaults, start from one of:
+
+- `.corbin/env/crowpilot-developer.env.example`
+- `.corbin/env/crowpi.env.example`
+- `.corbin/env/crowpilot-lite.env.example`
+- `.corbin/env/crowpilot.env.example`
 
 ## Remote LAN Access
 

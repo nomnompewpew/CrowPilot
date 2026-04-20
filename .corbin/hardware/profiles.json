@@ -1,7 +1,27 @@
 {
   "version": 1,
-  "default_profile": "desktop",
+  "default_profile": "developer",
   "profiles": [
+    {
+      "id": "developer",
+      "label": "CrowPilot Developer",
+      "summary": "Feature-complete local lab profile with maximum tooling flexibility.",
+      "scan": {
+        "base_url": "http://127.0.0.1:8083/v1",
+        "model": "Llama-3.2-1B-Instruct-Q4_0_4_4.gguf",
+        "prompt_mode": "instruction",
+        "reason": "Keeps the scanner separated from chat while Developer mode runs the broadest stack."
+      },
+      "embedding": {
+        "base_url": "http://127.0.0.1:8081/v1",
+        "model": "Qwen3-Embedding-0.6B-Q8_0.gguf",
+        "reason": "Developer edition prioritizes richer semantic quality over minimal footprint."
+      },
+      "embed_mode": "realtime",
+      "notes": [
+        "Use this for playground and rapid prototyping."
+      ]
+    },
     {
       "id": "raspberry-pi",
       "label": "Raspberry Pi / entry-level",
@@ -24,6 +44,26 @@
       ]
     },
     {
+      "id": "lite",
+      "label": "CrowPilot Lite",
+      "summary": "CPU-focused profile for older laptops and desktops above Pi-class hardware.",
+      "scan": {
+        "base_url": "http://127.0.0.1:8083/v1",
+        "model": "Llama-3.2-1B-Instruct-Q4_0_4_4.gguf",
+        "prompt_mode": "instruction",
+        "reason": "Small scanner keeps latency stable on constrained hosts."
+      },
+      "embedding": {
+        "base_url": "http://127.0.0.1:8081/v1",
+        "model": "nomic-embed-text-v1.5.Q8_0.gguf",
+        "reason": "Lighter embedding path than workstation-grade defaults."
+      },
+      "embed_mode": "realtime",
+      "notes": [
+        "Best fit for CPU-only or older desktop/laptop systems."
+      ]
+    },
+    {
       "id": "desktop",
       "label": "Desktop / balanced",
       "summary": "Good default for mixed local and proxied workloads.",
@@ -40,7 +80,7 @@
       },
       "embed_mode": "realtime",
       "notes": [
-        "Current project default profile."
+        "Legacy compatibility profile retained for existing setups."
       ]
     },
     {

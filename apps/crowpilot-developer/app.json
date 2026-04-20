@@ -1,0 +1,10 @@
+{
+  "id": "crowpilot-developer",
+  "name": "CrowPilot Developer",
+  "description": "Full internal build with every tool path enabled for rapid prototyping and local testing.",
+  "runtime_profile": "developer",
+  "backend_env": "apps/crowpilot-developer/backend.env",
+  "status": "active",
+  "inherits": null,
+  "feature_tier": "all"
+}

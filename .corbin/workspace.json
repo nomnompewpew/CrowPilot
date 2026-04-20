@@ -2,7 +2,7 @@
   "version": 1,
   "name": "Corbin workspace",
   "agent_home": ".corbin",
-  "runtime_profile": "desktop",
+  "runtime_profile": "developer",
   "directories": {
     "memory": "memory",
     "env": "env",
@@ -14,6 +14,7 @@
   "notes": [
     "Use env/*.env.example as starting points, then copy to local files outside git.",
     "Keep secrets and host-specific overrides in *.local files only.",
-    "Corbin falls back to personality/corbin-system-prompt.txt when the DB has no custom prompt."
+    "Corbin falls back to personality/corbin-system-prompt.txt when the DB has no custom prompt.",
+    "Monorepo editions map to runtime profiles: crowpi=raspberry-pi, crowpilot-lite=lite, crowpilot=workstation, crowpilot-developer=developer."
   ]
 }

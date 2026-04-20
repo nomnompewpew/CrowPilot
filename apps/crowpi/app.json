@@ -1,0 +1,10 @@
+{
+  "id": "crowpi",
+  "name": "CrowPi",
+  "description": "Entry-level deployment profile tuned for Raspberry Pi and Orange Pi class hardware.",
+  "runtime_profile": "raspberry-pi",
+  "backend_env": "apps/crowpi/backend.env",
+  "status": "planned",
+  "inherits": "crowpilot-developer",
+  "feature_tier": "minimal"
+}
