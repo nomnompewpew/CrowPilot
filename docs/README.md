@@ -7,6 +7,7 @@ This folder is the canonical docs hub. Use [../INDEX.md](../INDEX.md) for root t
 - [architecture.md](architecture.md) — system architecture and data flow
 - [integration.md](integration.md) — runtime integration and environment setup
 - [api.md](api.md) — API route catalog and OpenAPI docs usage
+- [api-endpoint-matrix.md](api-endpoint-matrix.md) — auto-generated live endpoint matrix
 - [master-plan.md](master-plan.md) — stabilization and refactor strategy
 - [monorepo-plan.md](monorepo-plan.md) — edition rollout strategy
 

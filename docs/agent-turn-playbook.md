@@ -13,6 +13,8 @@ This playbook defines mandatory turn-close behavior.
 - Update docs for what should happen next turn
 - At minimum, append an entry to [agent-turn-log.md](agent-turn-log.md)
 - If behavior/structure changed, update relevant folder index docs and root [../INDEX.md](../INDEX.md)
+- If routes changed, regenerate [api-endpoint-matrix.md](api-endpoint-matrix.md):
+  - `python3 scripts/generate_api_matrix.py --openapi-url http://127.0.0.1:8787/openapi.json --output docs/api-endpoint-matrix.md`
 
 3. Git workflow
 - `git add -A`

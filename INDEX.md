@@ -30,6 +30,7 @@ Start here, then follow links by domain.
 ## API Documentation
 
 - [docs/api.md](docs/api.md) — endpoint groups and OpenAPI usage
+- [docs/api-endpoint-matrix.md](docs/api-endpoint-matrix.md) — auto-generated compact endpoint inventory
 - Swagger UI: `/docs`
 - ReDoc: `/redoc`
 - OpenAPI schema: `/openapi.json`

@@ -59,6 +59,8 @@ Your personality, communication style, and identity are defined in `.corbin/pers
   - `INDEX.md`
   - `docs/README.md`
   - folder-level index READMEs near changed code
+- If routes changed, regenerate API matrix docs:
+  - `python3 scripts/generate_api_matrix.py --openapi-url http://127.0.0.1:8787/openapi.json --output docs/api-endpoint-matrix.md`
 
 ### Code Style
 - Python: follow existing patterns in `backend/app/`. No docstrings on functions you didn't create. No type annotations added as "improvements"

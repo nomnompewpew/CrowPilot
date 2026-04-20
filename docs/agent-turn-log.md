@@ -35,3 +35,20 @@ Append one section per turn. Keep this file chronological.
 - Keep [INDEX.md](../INDEX.md) and folder index READMEs updated whenever structure changes.
 - Append this turn log every turn with completed/verified/next sections.
 - Add endpoint examples in [api.md](api.md) as new routes are introduced.
+
+## 2026-04-20 API Matrix Automation
+
+### Completed
+- Added [scripts/generate_api_matrix.py](../scripts/generate_api_matrix.py) to generate a compact markdown endpoint matrix from live OpenAPI.
+- Generated [api-endpoint-matrix.md](api-endpoint-matrix.md) with current endpoints from `http://127.0.0.1:8787/openapi.json`.
+- Updated docs navigation and guidance in [api.md](api.md), [README](README.md), [../INDEX.md](../INDEX.md), and [../scripts/README.md](../scripts/README.md).
+- Updated turn-close enforcement in [agent-turn-playbook.md](agent-turn-playbook.md) and [../.github/copilot-instructions.md](../.github/copilot-instructions.md) to require matrix regeneration when routes change.
+
+### Verified
+- Matrix generator command runs successfully and writes `docs/api-endpoint-matrix.md`.
+- Current generated matrix includes 148 endpoints from live OpenAPI.
+- Workspace diagnostics report no errors.
+
+### Next
+- Run matrix regeneration in any turn that adds, removes, renames, or retags routes.
+- Keep auth classification rules in the generator aligned with middleware public path policy.

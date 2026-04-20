@@ -7,8 +7,19 @@ Pantheon exposes APIs through FastAPI routers in `backend/app/routers/`.
 - Swagger UI: `/docs`
 - ReDoc: `/redoc`
 - OpenAPI JSON: `/openapi.json`
+- Generated matrix: [api-endpoint-matrix.md](api-endpoint-matrix.md)
 
 Swagger is the fastest way to inspect payload schemas for new endpoint work.
+
+## Auto-Generated Endpoint Matrix
+
+Refresh the matrix from the running local server:
+
+```bash
+python3 scripts/generate_api_matrix.py --openapi-url http://127.0.0.1:8787/openapi.json --output docs/api-endpoint-matrix.md
+```
+
+This writes a compact endpoint table grouped by tag with access classification.
 
 ## Route Groups
 
@@ -40,6 +51,7 @@ Swagger is the fastest way to inspect payload schemas for new endpoint work.
 3. Verify route appears in `/docs`.
 4. Add curl smoke check in your turn notes.
 5. Update [agent-turn-log.md](agent-turn-log.md) with behavior and follow-ups.
+6. Regenerate [api-endpoint-matrix.md](api-endpoint-matrix.md) if any route changed.
 
 ## Authentication Notes
 
