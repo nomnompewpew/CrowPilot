@@ -69,3 +69,18 @@ Append one section per turn. Keep this file chronological.
 ### Next
 - If edition env overlays change, mirror those changes in [../.vscode/launch.json](../.vscode/launch.json).
 - Consider adding a task profile set if you want no-debug run commands alongside debug launchers.
+
+## 2026-04-20 VS Code No-Debug Run Profiles
+
+### Completed
+- Added run-only VS Code task profiles in [../.vscode/tasks.json](../.vscode/tasks.json) for CrowPilot Developer, CrowPilot, CrowPilot Lite, and CrowPi editions.
+- Added aggregate run task `Pantheon: Run All Editions (No Debug)`.
+- Updated [../.gitignore](../.gitignore) to track [../.vscode/tasks.json](../.vscode/tasks.json).
+- Updated docs in [../README.md](../README.md), [../backend/README.md](../backend/README.md), and [../INDEX.md](../INDEX.md).
+
+### Verified
+- `tasks.json` is present and valid JSON.
+- Task labels and port assignments align with existing debug profile split (8787-8790).
+
+### Next
+- If launch settings or edition overlays change, keep [../.vscode/launch.json](../.vscode/launch.json) and [../.vscode/tasks.json](../.vscode/tasks.json) synchronized.

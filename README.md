@@ -104,3 +104,13 @@ Run and Debug profiles are available in [.vscode/launch.json](.vscode/launch.jso
 Use the Run and Debug panel, choose a profile, and press F5.
 
 Each profile runs Uvicorn from the backend folder with the edition-specific environment values.
+
+Run-only (no debugger attached) profiles are available as VS Code tasks in [.vscode/tasks.json](.vscode/tasks.json):
+
+- Pantheon: Run CrowPilot Developer (8787)
+- Pantheon: Run CrowPilot (8788)
+- Pantheon: Run CrowPilot Lite (8789)
+- Pantheon: Run CrowPi (8790)
+- Pantheon: Run All Editions (No Debug)
+
+Use `Tasks: Run Task` from the command palette to launch them.

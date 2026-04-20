@@ -32,3 +32,5 @@ Use the Run and Debug profiles in [../.vscode/launch.json](../.vscode/launch.jso
 - CrowPilot Lite on `8789`
 - CrowPi on `8790`
 - Compound profile to run all editions together
+
+For run-only mode (no debugger), use task profiles in [../.vscode/tasks.json](../.vscode/tasks.json) via `Tasks: Run Task`.
