@@ -170,6 +170,10 @@ async function loadSummary() {
   const resp = await fetch('/api/dashboard/summary');
   const data = await resp.json();
   state.lastSummary = data;
+  state.edition = data.edition || null;
+  state.editionProfile = data.edition_profile || null;
+  state.modelProfile = data.model_profile || null;
+  if (typeof applyEditionProfile === 'function') applyEditionProfile();
   renderStatStrip(data, state.serverStats);
 }
 

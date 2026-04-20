@@ -43,6 +43,7 @@
         </div>
       </div>
       <div id="topBarSection">Command Deck</div>
+      <div id="editionBadge" class="tb-edition">CrowPilot Developer</div>
       <div class="topbar-controls">
         <button id="openCredentialsBtn" class="tb-ctrl">Vault</button>
         <span id="topBarUser" class="tb-ctrl tb-user">—</span>
@@ -118,6 +119,7 @@
 
       <div class="sb-bottom">
         <div id="embedBadge" style="display:none; font-size:.65rem; color:var(--accent); margin-bottom:5px;">⚙ Embedding…</div>
+        <div id="editionRuntimeHint" class="edition-runtime-hint">Edition profile is loading…</div>
         <div id="sidebarStatus"></div>
         <button id="logoutBtn">Sign Out</button>
       </div>
@@ -153,7 +155,7 @@
           </article>
 
           <!-- LAN Scan -->
-          <article class="card">
+          <article class="card" data-edition-feature="lan_tools">
             <h2>🔍 LAN Scanner</h2>
             <p class="tiny" style="margin:0 0 12px;color:var(--text-dim)">Scans the ARP table + ping-sweeps your subnet. Crow Agent devices are detected automatically.</p>
             <label for="lanSubnet">Subnet (leave blank to auto-detect)</label>
@@ -165,7 +167,7 @@
           </article>
 
           <!-- Crow Agent Download -->
-          <article class="card">
+          <article class="card" data-edition-feature="agent_download">
             <h2>🪶 Crow Agent Download</h2>
             <p class="tiny" style="color:var(--text-dim);margin:0 0 12px">Drop on any machine — single binary, no Python needed.</p>
             <div style="display:flex;flex-direction:column;gap:8px;">
@@ -184,7 +186,7 @@ sudo ./crow-agent --install  # systemd service</pre>
           </article>
 
           <!-- Add Crow Device -->
-          <article class="card">
+          <article class="card" data-edition-feature="lan_tools">
             <h2>➕ Add Crow Device</h2>
             <label for="lanNewLabel">Label</label>
             <input id="lanNewLabel" type="text" placeholder="My Dev Laptop" />
@@ -201,7 +203,7 @@ sudo ./crow-agent --install  # systemd service</pre>
           </article>
 
           <!-- Add Router -->
-          <article class="card">
+          <article class="card" data-edition-feature="router_tools">
             <h2>🌐 Add Router</h2>
             <p class="tiny" style="color:var(--text-dim);margin:0 0 12px">OPNsense (REST API) or pfSense (SSH). Read-only by default.</p>
             <label for="routerNewLabel">Label</label>
@@ -239,7 +241,7 @@ sudo ./crow-agent --install  # systemd service</pre>
           </article>
 
           <!-- Crow Devices list -->
-          <article class="card" style="grid-column: 1 / -1;">
+          <article class="card" style="grid-column: 1 / -1;" data-edition-feature="lan_tools">
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
               <h2 style="margin:0;">📡 Crow Devices</h2>
               <button onclick="loadLanDevices()" class="alt" style="width:auto;padding:4px 12px;font-size:.8rem;">Refresh</button>
@@ -248,7 +250,7 @@ sudo ./crow-agent --install  # systemd service</pre>
           </article>
 
           <!-- Router list -->
-          <article class="card" style="grid-column: 1 / -1;">
+          <article class="card" style="grid-column: 1 / -1;" data-edition-feature="router_tools">
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
               <h2 style="margin:0;">🌐 Network Routers</h2>
               <button onclick="loadNetworkRouters()" class="alt" style="width:auto;padding:4px 12px;font-size:.8rem;">Refresh</button>

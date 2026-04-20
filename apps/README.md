@@ -42,9 +42,10 @@ scripts/edition.sh status
 
 ## Current Reality
 
-Phase 1 is mostly edition scaffolding.
+Phase 1 is mostly edition scaffolding, with runtime capability gating now active in the UI.
 
 - All editions still share the same backend and frontend implementation.
 - The main differences today are env overlays and runtime-profile defaults.
-- Hard feature gating and per-edition UI/route pruning have not been built yet.
+- Sidebar tabs and selected heavyweight deck tools are now hidden based on edition capability flags.
+- Backend route pruning is still pending; non-visible routes currently remain mounted.
 - CrowPi and Lite are not fully productized yet; they are testable profiles on the shared codebase.

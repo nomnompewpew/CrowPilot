@@ -161,6 +161,12 @@ nav.sb-nav button.active {
   display: flex; flex-direction: column; gap: 6px;
 }
 #sidebarStatus { font-size: .7rem; color: var(--text-dim); line-height: 1.4; }
+.edition-runtime-hint {
+  font-size: .66rem;
+  color: var(--text-muted);
+  line-height: 1.35;
+  margin-bottom: 3px;
+}
 #logoutBtn {
   width: 100%; padding: 6px;
   background: transparent; border: 1px solid var(--border);
@@ -316,6 +322,18 @@ nav.sb-nav button.active {
 #topBarSection {
   flex: 1; font-size: .78rem; font-weight: 700; letter-spacing: .09em;
   text-transform: uppercase; color: var(--text-muted);
+}
+.tb-edition {
+  flex-shrink: 0;
+  font-size: .68rem;
+  font-weight: 700;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+  color: var(--green-hi);
+  border: 1px solid var(--border-hi);
+  background: var(--surface-2);
+  border-radius: 999px;
+  padding: 4px 9px;
 }
 .topbar-controls { display: flex; align-items: center; gap: 2px; }
 .tb-ctrl {

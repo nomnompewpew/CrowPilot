@@ -8,6 +8,7 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
 from ..config import settings
+from ..services.edition_profiles import get_edition_profile
 from ..services.memory import queue_size
 from ..services.native_tools import _safe_path
 from ..services.server_stats import get_server_stats
@@ -155,6 +156,7 @@ async def list_models_for_provider(provider: str | None = None) -> dict:
 @router.get("/api/dashboard/summary")
 async def dashboard_summary() -> dict:
     providers_status = (await health())["providers"]
+    edition_profile = get_edition_profile(settings.edition)
 
     counts = {
         "conversations": g.db.execute("SELECT COUNT(*) FROM conversations").fetchone()[0],
@@ -173,6 +175,13 @@ async def dashboard_summary() -> dict:
     return {
         "edition": settings.edition,
         "runtime_profile": settings.runtime_profile,
+        "edition_profile": edition_profile,
+        "model_profile": {
+            "local_model": settings.local_model,
+            "scan_model": settings.scan_model,
+            "embedding_model": settings.embedding_model,
+            "embed_mode": settings.embed_mode,
+        },
         "counts": counts,
         "providers": providers_status,
         "tagline": "CrowPilot command center for MCP, model routing, and local knowledge.",

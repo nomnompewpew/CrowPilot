@@ -9,6 +9,7 @@ const state = {
   autoModel: false,
   agentMode: false,
   monacoViewActive: false,
+  activeTab: 'deck',
   mcpSuggestion: null,
   credentials: [],
   connectors: {},
@@ -23,6 +24,9 @@ const state = {
   noteList: [],
   serverStats: null,
   lastSummary: null,
+  edition: null,
+  editionProfile: null,
+  modelProfile: null,
   conversationBuckets: {
     active: [],
     hidden: [],
