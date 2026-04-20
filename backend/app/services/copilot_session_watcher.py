@@ -332,6 +332,7 @@ def _parse_vscode_transcript(jsonl_lines: list[str]) -> dict:
     user_count = asst_count = tool_count = 0
     session_id = ""
     start_time = ""
+    first_message = ""
 
     for raw in jsonl_lines:
         raw = raw.strip()
@@ -354,6 +355,8 @@ def _parse_vscode_transcript(jsonl_lines: list[str]) -> dict:
             if content:
                 lines.append(f"USER: {content}")
                 user_count += 1
+                if not first_message:
+                    first_message = content[:80]
 
         elif etype == "assistant.message":
             content = (data.get("content") or "").strip()
@@ -375,6 +378,7 @@ def _parse_vscode_transcript(jsonl_lines: list[str]) -> dict:
     return {
         "session_id": session_id,
         "start_time": start_time,
+        "first_message": first_message,
         "transcript": "\n\n".join(deduped),
         "user_messages": user_count,
         "assistant_turns": asst_count,
@@ -411,7 +415,7 @@ async def _ingest_vscode_transcript(
         if existing["file_size"] == file_size and existing["embedded"]:
             return False
 
-    title = f"Session {session_id[:8]}"
+    title = parsed["first_message"] or f"Session {session_id[:8]}"
     ai_summary = await _generate_ai_summary(parsed["transcript"], title)
 
     conn.execute(
@@ -423,6 +427,7 @@ async def _ingest_vscode_transcript(
              source_type, source_device_id, source_device_label, source_path, file_size)
         VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,0,datetime('now'),?,?,?,?,?)
         ON CONFLICT(session_id) DO UPDATE SET
+            title=excluded.title,
             ai_summary=excluded.ai_summary,
             user_messages=excluded.user_messages,
             assistant_turns=excluded.assistant_turns,

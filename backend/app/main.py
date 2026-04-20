@@ -15,7 +15,7 @@ from .middleware.auth import auth_middleware
 from .services.auth import seed_default_user
 from .services.agent_workspace import ensure_agent_workspace
 from .services.log_handler import install_log_capture
-from .services.copilot_session_watcher import session_watcher_task, scan_sessions, scan_vscode_local
+from .services.copilot_session_watcher import session_watcher_task
 from .services.mcp import ensure_builtin_mcp_servers, normalize_existing_mcp_servers, import_vscode_mcp_servers
 from .services.memory import embed_worker, stop_embed_worker
 from .services.providers import reload_providers_from_integrations
@@ -59,9 +59,7 @@ async def lifespan(_: FastAPI):
     seed_default_user()
     # Start passive embed background worker
     _worker_task = asyncio.create_task(embed_worker())
-    # Initial Copilot CLI session scan + VS Code local scan + background watcher
-    await scan_sessions()
-    await scan_vscode_local()
+    # Start background watcher (handles initial scan + periodic re-scans)
     _watcher_task = asyncio.create_task(session_watcher_task())
     yield
     stop_embed_worker()

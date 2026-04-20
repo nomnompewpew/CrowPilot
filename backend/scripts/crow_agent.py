@@ -39,7 +39,7 @@ CROW_VERSION = "0.2.0"
 _BLOCKED_PREFIXES = ("/proc", "/sys", "/dev", "/boot", "/etc/shadow", "/etc/passwd", "/root/.ssh")
 
 # Max bytes returned for file reads
-_MAX_READ_BYTES = 256 * 1024  # 256 KB
+_MAX_READ_BYTES = 4 * 1024 * 1024  # 4 MB — large enough for Copilot transcript files
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
