@@ -39,7 +39,7 @@ _HARDWARE_PROFILES = {
             "summary": "Feature-complete local lab profile with maximum tooling flexibility.",
             "scan": {
                 "base_url": "http://127.0.0.1:8083/v1",
-                "model": "Llama-3.2-1B-Instruct-Q4_0_4_4.gguf",
+                "model": "Llama-3.2-1B-Instruct-Q4_K_M.gguf",
                 "prompt_mode": "instruction",
                 "reason": "Keeps the scanner separated from chat while Developer mode runs the broadest stack.",
             },
@@ -59,7 +59,7 @@ _HARDWARE_PROFILES = {
             "summary": "CPU-first deployment with deferred background embedding work.",
             "scan": {
                 "base_url": "http://127.0.0.1:8083/v1",
-                "model": "Llama-3.2-1B-Instruct-Q4_0_4_4.gguf",
+                "model": "Llama-3.2-1B-Instruct-Q4_K_M.gguf",
                 "prompt_mode": "instruction",
                 "reason": "Drop-in llama.cpp scanner that actually ships as GGUF and stays light enough for Pi-class hardware.",
             },
@@ -80,7 +80,7 @@ _HARDWARE_PROFILES = {
             "summary": "CPU-focused profile for older laptops and desktops above Pi-class hardware.",
             "scan": {
                 "base_url": "http://127.0.0.1:8083/v1",
-                "model": "Llama-3.2-1B-Instruct-Q4_0_4_4.gguf",
+                "model": "Llama-3.2-1B-Instruct-Q4_K_M.gguf",
                 "prompt_mode": "instruction",
                 "reason": "Small scanner keeps latency stable on constrained hosts.",
             },
@@ -100,7 +100,7 @@ _HARDWARE_PROFILES = {
             "summary": "Good default for mixed local and proxied workloads.",
             "scan": {
                 "base_url": "http://127.0.0.1:8083/v1",
-                "model": "Llama-3.2-1B-Instruct-Q4_0_4_4.gguf",
+                "model": "Llama-3.2-1B-Instruct-Q4_K_M.gguf",
                 "prompt_mode": "instruction",
                 "reason": "Keeps scanner latency low without requiring a non-llama.cpp serving stack.",
             },
@@ -120,7 +120,7 @@ _HARDWARE_PROFILES = {
             "summary": "Keep the higher-quality local stack hot at all times.",
             "scan": {
                 "base_url": "http://127.0.0.1:8083/v1",
-                "model": "Llama-3.2-1B-Instruct-Q4_0_4_4.gguf",
+                "model": "Llama-3.2-1B-Instruct-Q4_K_M.gguf",
                 "prompt_mode": "instruction",
                 "reason": "Still small enough that there is no reason to waste the main chat model on redaction.",
             },
@@ -219,7 +219,7 @@ _ENV_FILES = {
 PANTHEON_AGENT_HOME=../.corbin
 PANTHEON_RUNTIME_PROFILE=developer
 PANTHEON_SCAN_BASE_URL=http://127.0.0.1:8083/v1
-PANTHEON_SCAN_MODEL=Llama-3.2-1B-Instruct-Q4_0_4_4.gguf
+PANTHEON_SCAN_MODEL=Llama-3.2-1B-Instruct-Q4_K_M.gguf
 PANTHEON_SCAN_PROMPT_MODE=instruction
 PANTHEON_EMBEDDING_BASE_URL=http://127.0.0.1:8081/v1
 PANTHEON_EMBEDDING_MODEL=Qwen3-Embedding-0.6B-Q8_0.gguf
@@ -228,8 +228,10 @@ PANTHEON_EMBED_MODE=realtime
     "crowpi.env.example": """PANTHEON_EDITION=crowpi
 PANTHEON_AGENT_HOME=../.corbin
 PANTHEON_RUNTIME_PROFILE=raspberry-pi
+PANTHEON_LOCAL_BASE_URL=http://127.0.0.1:8082/v1
+PANTHEON_LOCAL_MODEL=Llama-3.2-1B-Instruct-Q4_K_M.gguf
 PANTHEON_SCAN_BASE_URL=http://127.0.0.1:8083/v1
-PANTHEON_SCAN_MODEL=Llama-3.2-1B-Instruct-Q4_0_4_4.gguf
+PANTHEON_SCAN_MODEL=Llama-3.2-1B-Instruct-Q4_K_M.gguf
 PANTHEON_SCAN_PROMPT_MODE=instruction
 PANTHEON_EMBEDDING_BASE_URL=http://127.0.0.1:8081/v1
 PANTHEON_EMBEDDING_MODEL=nomic-embed-text-v1.5.Q8_0.gguf
@@ -239,7 +241,7 @@ PANTHEON_EMBED_MODE=overnight
 PANTHEON_AGENT_HOME=../.corbin
 PANTHEON_RUNTIME_PROFILE=lite
 PANTHEON_SCAN_BASE_URL=http://127.0.0.1:8083/v1
-PANTHEON_SCAN_MODEL=Llama-3.2-1B-Instruct-Q4_0_4_4.gguf
+PANTHEON_SCAN_MODEL=Llama-3.2-1B-Instruct-Q4_K_M.gguf
 PANTHEON_SCAN_PROMPT_MODE=instruction
 PANTHEON_EMBEDDING_BASE_URL=http://127.0.0.1:8081/v1
 PANTHEON_EMBEDDING_MODEL=nomic-embed-text-v1.5.Q8_0.gguf
@@ -249,7 +251,7 @@ PANTHEON_EMBED_MODE=realtime
 PANTHEON_AGENT_HOME=../.corbin
 PANTHEON_RUNTIME_PROFILE=workstation
 PANTHEON_SCAN_BASE_URL=http://127.0.0.1:8083/v1
-PANTHEON_SCAN_MODEL=Llama-3.2-1B-Instruct-Q4_0_4_4.gguf
+PANTHEON_SCAN_MODEL=Llama-3.2-1B-Instruct-Q4_K_M.gguf
 PANTHEON_SCAN_PROMPT_MODE=instruction
 PANTHEON_EMBEDDING_BASE_URL=http://127.0.0.1:8081/v1
 PANTHEON_EMBEDDING_MODEL=Qwen3-Embedding-0.6B-Q8_0.gguf
@@ -258,7 +260,7 @@ PANTHEON_EMBED_MODE=realtime
     "desktop.env.example": """PANTHEON_AGENT_HOME=../.corbin
 PANTHEON_RUNTIME_PROFILE=desktop
 PANTHEON_SCAN_BASE_URL=http://127.0.0.1:8083/v1
-PANTHEON_SCAN_MODEL=Llama-3.2-1B-Instruct-Q4_0_4_4.gguf
+PANTHEON_SCAN_MODEL=Llama-3.2-1B-Instruct-Q4_K_M.gguf
 PANTHEON_SCAN_PROMPT_MODE=instruction
 PANTHEON_EMBEDDING_BASE_URL=http://127.0.0.1:8081/v1
 PANTHEON_EMBEDDING_MODEL=Qwen3-Embedding-0.6B-Q8_0.gguf
@@ -266,8 +268,10 @@ PANTHEON_EMBED_MODE=realtime
 """,
     "raspberry-pi.env.example": """PANTHEON_AGENT_HOME=../.corbin
 PANTHEON_RUNTIME_PROFILE=raspberry-pi
+PANTHEON_LOCAL_BASE_URL=http://127.0.0.1:8082/v1
+PANTHEON_LOCAL_MODEL=Llama-3.2-1B-Instruct-Q4_K_M.gguf
 PANTHEON_SCAN_BASE_URL=http://127.0.0.1:8083/v1
-PANTHEON_SCAN_MODEL=Llama-3.2-1B-Instruct-Q4_0_4_4.gguf
+PANTHEON_SCAN_MODEL=Llama-3.2-1B-Instruct-Q4_K_M.gguf
 PANTHEON_SCAN_PROMPT_MODE=instruction
 PANTHEON_EMBEDDING_BASE_URL=http://127.0.0.1:8081/v1
 PANTHEON_EMBEDDING_MODEL=nomic-embed-text-v1.5.Q8_0.gguf
@@ -276,7 +280,7 @@ PANTHEON_EMBED_MODE=overnight
     "workstation.env.example": """PANTHEON_AGENT_HOME=../.corbin
 PANTHEON_RUNTIME_PROFILE=workstation
 PANTHEON_SCAN_BASE_URL=http://127.0.0.1:8083/v1
-PANTHEON_SCAN_MODEL=Llama-3.2-1B-Instruct-Q4_0_4_4.gguf
+PANTHEON_SCAN_MODEL=Llama-3.2-1B-Instruct-Q4_K_M.gguf
 PANTHEON_SCAN_PROMPT_MODE=instruction
 PANTHEON_EMBEDDING_BASE_URL=http://127.0.0.1:8081/v1
 PANTHEON_EMBEDDING_MODEL=Qwen3-Embedding-0.6B-Q8_0.gguf

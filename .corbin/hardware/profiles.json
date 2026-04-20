@@ -8,7 +8,7 @@
       "summary": "Feature-complete local lab profile with maximum tooling flexibility.",
       "scan": {
         "base_url": "http://127.0.0.1:8083/v1",
-        "model": "Llama-3.2-1B-Instruct-Q4_0_4_4.gguf",
+        "model": "Llama-3.2-1B-Instruct-Q4_K_M.gguf",
         "prompt_mode": "instruction",
         "reason": "Keeps the scanner separated from chat while Developer mode runs the broadest stack."
       },
@@ -28,7 +28,7 @@
       "summary": "CPU-first deployment with deferred background embedding work.",
       "scan": {
         "base_url": "http://127.0.0.1:8083/v1",
-        "model": "Llama-3.2-1B-Instruct-Q4_0_4_4.gguf",
+        "model": "Llama-3.2-1B-Instruct-Q4_K_M.gguf",
         "prompt_mode": "instruction",
         "reason": "Drop-in llama.cpp scanner that actually ships as GGUF and stays light enough for Pi-class hardware."
       },
@@ -49,7 +49,7 @@
       "summary": "CPU-focused profile for older laptops and desktops above Pi-class hardware.",
       "scan": {
         "base_url": "http://127.0.0.1:8083/v1",
-        "model": "Llama-3.2-1B-Instruct-Q4_0_4_4.gguf",
+        "model": "Llama-3.2-1B-Instruct-Q4_K_M.gguf",
         "prompt_mode": "instruction",
         "reason": "Small scanner keeps latency stable on constrained hosts."
       },
@@ -69,7 +69,7 @@
       "summary": "Good default for mixed local and proxied workloads.",
       "scan": {
         "base_url": "http://127.0.0.1:8083/v1",
-        "model": "Llama-3.2-1B-Instruct-Q4_0_4_4.gguf",
+        "model": "Llama-3.2-1B-Instruct-Q4_K_M.gguf",
         "prompt_mode": "instruction",
         "reason": "Keeps scanner latency low without requiring a non-llama.cpp serving stack."
       },
@@ -89,7 +89,7 @@
       "summary": "Keep the higher-quality local stack hot at all times.",
       "scan": {
         "base_url": "http://127.0.0.1:8083/v1",
-        "model": "Llama-3.2-1B-Instruct-Q4_0_4_4.gguf",
+        "model": "Llama-3.2-1B-Instruct-Q4_K_M.gguf",
         "prompt_mode": "instruction",
         "reason": "Still small enough that there is no reason to waste the main chat model on redaction."
       },

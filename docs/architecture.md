@@ -177,4 +177,4 @@ Cookie-based session auth (`crowpilot_session`). `auth_middleware` blocks all pa
 
 ## UI Architecture
 
-Single `index.html` (~3 400 lines) served by FastAPI static files. No build step, no framework. Tabs: Command Deck, Knowledge Lab, MCP Forge, Skills, Tasks, Credentials Vault, Integrations, Projects, Widgets, Sensitive Gate. Zen prompt cards appear in Credentials, Integrations, Tasks, Skills, Knowledge, MCP, and Widgets views.
+`index.html` is the static shell served by FastAPI, with feature logic split across plain scripts in `backend/app/static/js/` (no framework, no bundler). Tabs and domain behavior are implemented by module files such as `chat.js`, `knowledge.js`, `mcp.js`, `projects.js`, and `tasks.js`, with `app.js` handling bootstrap wiring.

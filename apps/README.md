@@ -34,6 +34,18 @@ To switch the already-running dev server on port `8787`:
 scripts/edition.sh switch crowpi
 ```
 
+CrowPi's lightweight local model stack can be bootstrapped with:
+
+```bash
+scripts/crowpi-models.sh start
+```
+
+That script ensures the entry-level GGUFs are present locally and serves:
+
+- `8081` — `nomic-embed-text-v1.5.Q8_0.gguf`
+- `8082` — `Llama-3.2-1B-Instruct-Q4_K_M.gguf` for local chat
+- `8083` — `Llama-3.2-1B-Instruct-Q4_K_M.gguf` for the dedicated scan model
+
 To inspect what is currently running:
 
 ```bash

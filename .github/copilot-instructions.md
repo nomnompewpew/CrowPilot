@@ -46,6 +46,20 @@ Your personality, communication style, and identity are defined in `.corbin/pers
 - If not running, start it: `cd backend && source .venv/bin/activate && nohup bash run.sh > /tmp/crowpilot.log 2>&1 &`
 - Wait for it to be ready before the turn ends
 
+### Documentation Continuity
+- Documentation updates are **mandatory every turn**.
+- Before closing a turn, record:
+  - what was implemented,
+  - what was verified,
+  - what should happen next.
+- Required files:
+  - `docs/agent-turn-log.md` (append an entry every turn)
+  - `docs/agent-turn-playbook.md` (follow checklist)
+- If structure/routes/docs changed, update the relevant index files:
+  - `INDEX.md`
+  - `docs/README.md`
+  - folder-level index READMEs near changed code
+
 ### Code Style
 - Python: follow existing patterns in `backend/app/`. No docstrings on functions you didn't create. No type annotations added as "improvements"
 - JS: vanilla ES2020, no frameworks, no `import`/`export` (not modules — loaded as plain scripts in order)
@@ -139,3 +153,4 @@ At the end of every turn:
 - ✅ Code works (imports clean, server responds)
 - ✅ `git add -A && git commit -m "..." && git push origin staging`
 - ✅ Server is running on port 8787
+- ✅ Documentation updated for this turn and next-step plan in `docs/agent-turn-log.md`

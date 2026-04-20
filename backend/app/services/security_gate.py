@@ -10,9 +10,9 @@ Stage 2 — Local model scan (async):
   prompt below. Small enough for Pi-class hardware and easy to serve.
 
   GGUF download: https://huggingface.co/bartowski/Llama-3.2-1B-Instruct-GGUF
-  Serve:  llama-server -m Llama-3.2-1B-Instruct-Q4_0_4_4.gguf --port 8083 -c 8192
+  Serve:  llama-server -m Llama-3.2-1B-Instruct-Q4_K_M.gguf --port 8083 -c 8192
   Set:    PANTHEON_SCAN_BASE_URL=http://127.0.0.1:8083/v1
-          PANTHEON_SCAN_MODEL=Llama-3.2-1B-Instruct-Q4_0_4_4.gguf
+          PANTHEON_SCAN_MODEL=Llama-3.2-1B-Instruct-Q4_K_M.gguf
           PANTHEON_SCAN_PROMPT_MODE=instruction
 
   Optional dedicated fine-tune: OpenPipe/PII-Redact-General. That repo does not

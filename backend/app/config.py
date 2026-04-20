@@ -28,7 +28,7 @@ class Settings:
     # Security gate model — separate lightweight scanner, independent from the main chat model.
     # Drop-in llama.cpp default: Llama-3.2-1B-Instruct GGUF with prompt-driven redaction.
     #   Repo: https://huggingface.co/bartowski/Llama-3.2-1B-Instruct-GGUF
-    #   Recommended Pi quant: Llama-3.2-1B-Instruct-Q4_0_4_4.gguf
+    #   Recommended Pi quant: Llama-3.2-1B-Instruct-Q4_K_M.gguf
     # Optional dedicated fine-tune: OpenPipe/PII-Redact-General, but that repo ships
     # safetensors rather than GGUF, so it needs a different serving stack.
     # If left blank, falls back to local_base_url / local_model.

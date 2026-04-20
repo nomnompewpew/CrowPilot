@@ -71,7 +71,13 @@ async def lifespan(_: FastAPI):
         g.db.close()
 
 
-app = FastAPI(title="CrowPilot API", lifespan=lifespan)
+app = FastAPI(
+    title="CrowPilot API",
+    lifespan=lifespan,
+    docs_url="/docs",
+    redoc_url="/redoc",
+    openapi_url="/openapi.json",
+)
 
 # ── CORS: allow only the server itself and VS Code webviews ───────────────────
 # "vscode-webview://" is the origin of VS Code's webview panel (local installs).
