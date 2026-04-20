@@ -1,11 +1,12 @@
 """
 routers/copilot_history.py — Copilot CLI session archive endpoints.
 
-  GET  /api/copilot-history/sessions          — list all sessions (paginated)
-  GET  /api/copilot-history/sessions/{id}     — full session with transcript
-  POST /api/copilot-history/scan              — trigger immediate rescan
-  DELETE /api/copilot-history/sessions/{id}  — remove from index
-  GET  /api/copilot-history/search            — semantic search over sessions
+  GET    /api/copilot-history/sessions          — list all sessions (paginated)
+  GET    /api/copilot-history/sessions/{id}     — full session with transcript
+  PATCH  /api/copilot-history/sessions/{id}     — update title
+  POST   /api/copilot-history/scan              — trigger immediate rescan
+  DELETE /api/copilot-history/sessions/{id}     — remove from index
+  GET    /api/copilot-history/search            — semantic search over sessions
 """
 from __future__ import annotations
 
@@ -13,6 +14,7 @@ import struct
 from typing import Any
 
 from fastapi import APIRouter, HTTPException, Query
+from pydantic import BaseModel
 
 from ..db import rows_to_dicts
 from ..services.copilot_session_watcher import scan_sessions, scan_vscode_local, harvest_all_crow_devices
@@ -78,6 +80,30 @@ def get_session(session_id: str):
     if not row:
         raise HTTPException(404, "Session not found")
     return dict(row)
+
+
+# ---------------------------------------------------------------------------
+# Update title
+# ---------------------------------------------------------------------------
+
+class PatchSessionRequest(BaseModel):
+    title: str
+
+
+@router.patch("/sessions/{session_id}")
+def patch_session(session_id: str, payload: PatchSessionRequest):
+    title = payload.title.strip()
+    if not title:
+        raise HTTPException(400, "Title cannot be empty")
+    conn = g.db
+    result = conn.execute(
+        "UPDATE copilot_cli_sessions SET title=? WHERE session_id=?",
+        (title, session_id),
+    )
+    if result.rowcount == 0:
+        raise HTTPException(404, "Session not found")
+    conn.commit()
+    return {"ok": True, "session_id": session_id, "title": title}
 
 
 # ---------------------------------------------------------------------------

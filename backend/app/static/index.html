@@ -771,10 +771,11 @@ STRIPE_API_KEY=..."></textarea>
         <!-- Session detail panel -->
         <dialog id="chDetailDialog" class="ch-dialog">
           <div class="ch-dialog-header">
-            <div>
+            <div style="flex:1; min-width:0;">
               <h3 id="chDetailTitle" style="margin:0 0 4px"></h3>
               <p id="chDetailMeta" class="tiny" style="margin:0; color:var(--text-muted)"></p>
             </div>
+            <button id="chDetailRenameBtn" class="ch-rename-dialog-btn" title="Rename this session">✏️ Rename</button>
             <button id="chDetailClose" class="ch-close-btn">✕ Close</button>
           </div>
           <p id="chDetailSummary" class="ch-detail-summary"></p>

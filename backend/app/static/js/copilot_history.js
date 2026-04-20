@@ -54,6 +54,9 @@
     grid.querySelectorAll('.ch-delete-btn').forEach(btn => {
       btn.addEventListener('click', e => { e.stopPropagation(); deleteSession(btn.dataset.id); });
     });
+    grid.querySelectorAll('.ch-rename-btn').forEach(btn => {
+      btn.addEventListener('click', e => { e.stopPropagation(); inlineRenameCard(btn); });
+    });
   }
 
   const SOURCE_LABELS = {
@@ -90,7 +93,7 @@
           <span class="ch-card-date">${date}</span>
           <button class="ch-delete-btn" data-id="${s.session_id}" title="Remove from index">✕</button>
         </div>
-        <h4 class="ch-card-title">${esc(s.title || s.session_id.slice(0, 8))}</h4>
+        <h4 class="ch-card-title">${esc(s.title || s.session_id.slice(0, 8))} <button class="ch-rename-btn" data-id="${s.session_id}" data-title="${esc(s.title || '')}" title="Edit title">✏️</button></h4>
         ${summary ? `<p class="ch-card-summary">${esc(summary)}</p>` : ''}
         <div class="ch-card-meta">
           <span class="${srcMeta.cls}">${srcLabel}</span>
@@ -115,6 +118,7 @@
       if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
       const s = await resp.json();
       el('chDetailTitle').textContent = s.title || s.session_id.slice(0, 8);
+      el('chDetailTitle').dataset.id = s.session_id;
       const date = s.session_updated_at ? new Date(s.session_updated_at).toLocaleString() : '—';
       const srcLabel = s.source_type === 'crow_vscode'
         ? `🪶 ${s.source_device_label || 'Crow device'}`
@@ -122,6 +126,10 @@
       el('chDetailMeta').textContent = [srcLabel, s.repository, s.branch, date].filter(Boolean).join(' · ');
       el('chDetailSummary').textContent = s.ai_summary || s.cli_summary || '';
       el('chDetailTranscript').innerHTML = renderTranscript(s.transcript || '');
+
+      // wire rename button in dialog
+      const renameBtn = el('chDetailRenameBtn');
+      renameBtn.onclick = () => renameSessionDialog(s.session_id, el('chDetailTitle').textContent);
     } catch (e) {
       el('chDetailTitle').textContent = 'Error';
       el('chDetailTranscript').textContent = e.message;
@@ -174,6 +182,45 @@
       btn.textContent = '🪶 Error';
     } finally {
       setTimeout(() => { btn.disabled = false; btn.textContent = '🪶 Harvest All Devices'; }, 3000);
+    }
+  }
+
+  // ── Rename ─────────────────────────────────────────────────────────────────
+  async function renameSessionDialog(sessionId, currentTitle) {
+    const newTitle = prompt('Rename session:', currentTitle);
+    if (newTitle === null || newTitle.trim() === '') return;
+    try {
+      const resp = await fetch(`/api/copilot-history/sessions/${sessionId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: newTitle.trim() }),
+      });
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      // update dialog title in place
+      const titleEl = el('chDetailTitle');
+      if (titleEl) titleEl.textContent = newTitle.trim();
+      // reload grid in background
+      loadSessions(el('chSearchInput').value.trim());
+    } catch (e) {
+      alert('Rename failed: ' + e.message);
+    }
+  }
+
+  async function inlineRenameCard(btn) {
+    const sessionId = btn.dataset.id;
+    const currentTitle = btn.dataset.title;
+    const newTitle = prompt('Rename session:', currentTitle);
+    if (newTitle === null || newTitle.trim() === '') return;
+    try {
+      const resp = await fetch(`/api/copilot-history/sessions/${sessionId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: newTitle.trim() }),
+      });
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      loadSessions(el('chSearchInput').value.trim());
+    } catch (e) {
+      alert('Rename failed: ' + e.message);
     }
   }
 

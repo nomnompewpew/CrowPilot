@@ -710,8 +710,11 @@ dialog::backdrop {
   font-weight: 600;
   color: var(--text);
   white-space: nowrap;
-  overflow: hidden;
+  overflow: visible;
   text-overflow: ellipsis;
+  display: flex;
+  align-items: center;
+  gap: 2px;
 }
 .ch-card-summary {
   margin: 0 0 8px;
@@ -774,7 +777,7 @@ dialog[open].ch-dialog {
   flex-shrink: 0;
 }
 .ch-close-btn {
-  margin-left: auto;
+  margin-left: 8px;
   flex-shrink: 0;
   width: auto;
   padding: 5px 12px;
@@ -784,6 +787,28 @@ dialog[open].ch-dialog {
   color: var(--text-muted);
 }
 .ch-close-btn:hover { color: var(--text); background: var(--surface-3); filter: none; }
+.ch-rename-dialog-btn {
+  flex-shrink: 0;
+  width: auto;
+  padding: 5px 12px;
+  font-size: .85rem;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+}
+.ch-rename-dialog-btn:hover { color: var(--text); background: var(--surface-3); filter: none; }
+.ch-rename-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: .75rem;
+  color: var(--text-muted);
+  padding: 0 3px;
+  vertical-align: middle;
+  opacity: 0;
+  transition: opacity .15s;
+}
+.ch-card:hover .ch-rename-btn { opacity: 1; }
 .ch-detail-summary {
   margin: 0;
   padding: 12px 20px;
