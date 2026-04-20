@@ -220,6 +220,47 @@ def detect_copilot_cli() -> dict:
             "configured": configured,
             "reason": f"Executable not found in PATH: {exe}",
         }
+
+    # Validate that the configured command can actually execute Copilot operations.
+    # `gh` may exist but the copilot extension/subcommand may be missing.
+    try:
+        if exe == "gh":
+            probe = subprocess.run(
+                parts + ["copilot", "--help"],
+                capture_output=True,
+                text=True,
+                timeout=6,
+                check=False,
+            )
+            if probe.returncode != 0:
+                reason = (probe.stderr or probe.stdout or "gh copilot is unavailable").strip()
+                return {
+                    "available": False,
+                    "configured": configured,
+                    "reason": reason[:220],
+                }
+        elif exe == "copilot":
+            probe = subprocess.run(
+                parts + ["--help"],
+                capture_output=True,
+                text=True,
+                timeout=6,
+                check=False,
+            )
+            if probe.returncode != 0:
+                reason = (probe.stderr or probe.stdout or "copilot CLI is unavailable").strip()
+                return {
+                    "available": False,
+                    "configured": configured,
+                    "reason": reason[:220],
+                }
+    except Exception as exc:
+        return {
+            "available": False,
+            "configured": configured,
+            "reason": f"Copilot CLI probe failed: {exc}",
+        }
+
     return {"available": True, "configured": configured, "parts": parts, "exe": exe}
 
 

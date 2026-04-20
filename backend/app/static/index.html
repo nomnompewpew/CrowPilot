@@ -738,18 +738,64 @@ STRIPE_API_KEY=..."></textarea>
           <iframe id="projectPreviewFrame" title="Project preview" style="flex:1;width:100%;border:none;background:#fff;"></iframe>
         </div>
 
-        <!-- Hidden stubs — JS writes to these but they don't need to be visible -->
-        <div style="display:none;" aria-hidden="true">
-          <div id="projectList"></div>
-          <div id="selectedProjectMeta"></div>
-          <div id="projectCapabilityOut"></div>
-          <pre id="projectRuntimeLogs"></pre>
-          <input id="projectAllowSystemAccess" type="checkbox" />
-          <input id="projectIncludeContextToggle" type="checkbox" />
-          <textarea id="projectChatPrompt"></textarea>
-          <button id="sendProjectChatBtn"></button>
-          <pre id="projectChatOut"></pre>
-        </div>
+        <aside class="projects-tools">
+          <article class="card project-tools-card">
+            <h2>Project Prototyper</h2>
+            <label class="inline-check">
+              <input id="projectAllowSystemAccess" type="checkbox" checked />
+              Allow command/script/Copilot CLI execution for selected workspace
+            </label>
+            <label class="inline-check">
+              <input id="projectIncludeContextToggle" type="checkbox" checked />
+              Include project context in chat prompt
+            </label>
+            <div id="projectCapabilityOut" class="tiny mono" style="margin-top:8px;"></div>
+            <div id="selectedProjectMeta" class="tiny mono" style="margin-top:8px;"></div>
+          </article>
+
+          <article class="card project-tools-card">
+            <h2>Run Command</h2>
+            <label for="projectCommandInput">Shell Command</label>
+            <input id="projectCommandInput" type="text" placeholder="npm run dev  or  python3 -m uvicorn app.main:app --reload" />
+            <div class="row" style="margin-top:8px;">
+              <button id="runProjectCommandBtn">Run Command</button>
+            </div>
+          </article>
+
+          <article class="card project-tools-card">
+            <h2>Copilot CLI</h2>
+            <label for="projectCopilotTarget">Target</label>
+            <select id="projectCopilotTarget">
+              <option value="general">general</option>
+              <option value="shell">shell</option>
+            </select>
+            <label for="projectCopilotSessionSelect">Resume From Session (optional)</label>
+            <div class="row" style="margin-top:6px;">
+              <select id="projectCopilotSessionSelect" style="flex:1; min-width:0;">
+                <option value="">No prior session context</option>
+              </select>
+              <button id="refreshProjectSessionsBtn" class="alt" style="width:auto;">↺</button>
+            </div>
+            <label for="projectCopilotPrompt">Prompt</label>
+            <textarea id="projectCopilotPrompt" placeholder="Plan and implement a commit-sized improvement in this workspace."></textarea>
+            <button id="runProjectCopilotCliBtn">Run Copilot CLI</button>
+            <pre id="projectCopilotOut" class="mono project-output"></pre>
+          </article>
+
+          <article class="card project-tools-card">
+            <h2>Workspace Chat</h2>
+            <textarea id="projectChatPrompt" placeholder="Ask for an implementation turn in this selected project folder."></textarea>
+            <button id="sendProjectChatBtn">Send</button>
+            <pre id="projectChatOut" class="mono project-output"></pre>
+          </article>
+
+          <article class="card project-tools-card">
+            <h2>Runtime Logs</h2>
+            <pre id="projectRuntimeLogs" class="mono project-output"></pre>
+          </article>
+
+          <div id="projectList" style="display:none;"></div>
+        </aside>
 
       </section>
 

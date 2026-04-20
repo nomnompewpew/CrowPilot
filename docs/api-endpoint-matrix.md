@@ -2,10 +2,10 @@
 
 Generated from live OpenAPI: `http://127.0.0.1:8787/openapi.json`
 
-- Generated: `2026-04-20 20:55:36 UTC`
+- Generated: `2026-04-20 21:43:30 UTC`
 - API title: `CrowPilot API`
 - API version: `0.1.0`
-- Endpoint count: `148`
+- Endpoint count: `149`
 
 ## Compact Matrix
 
@@ -115,6 +115,7 @@ Generated from live OpenAPI: `http://127.0.0.1:8787/openapi.json`
 | projects | GET | /api/projects/{project_id} | auth-required | get_project_api_projects__project_id__get | Get Project |
 | projects | GET | /api/projects/{project_id}/context-summary | auth-required | get_project_context_summary_api_projects__project_id__context_summary_get | Get Project Context Summary |
 | projects | POST | /api/projects/{project_id}/copilot-cli | auth-required | run_project_copilot_cli_api_projects__project_id__copilot_cli_post | Run Project Copilot Cli |
+| projects | GET | /api/projects/{project_id}/copilot-sessions | auth-required | list_project_copilot_sessions_api_projects__project_id__copilot_sessions_get | List Project Copilot Sessions |
 | projects | POST | /api/projects/{project_id}/mkdir | auth-required | create_project_directory_api_projects__project_id__mkdir_post | Create Project Directory |
 | projects | PATCH | /api/projects/{project_id}/preview | auth-required | update_project_preview_api_projects__project_id__preview_patch | Update Project Preview |
 | projects | POST | /api/projects/{project_id}/run-command | auth-required | run_project_command_api_projects__project_id__run_command_post | Run Project Command |

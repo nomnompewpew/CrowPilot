@@ -114,3 +114,17 @@ Run-only (no debugger attached) profiles are available as VS Code tasks in [.vsc
 - Pantheon: Run All Editions (No Debug)
 
 Use `Tasks: Run Task` from the command palette to launch them.
+
+## Projects Prototyper (In-App)
+
+The Projects tab now supports a full project-scoped prototyper loop:
+
+- Workspace-specific chat with project context injection
+- Script runtime launcher + live runtime logs
+- Direct command execution in the selected project folder
+- Copilot CLI runner scoped to selected folder
+- Resume-context support from archived Copilot sessions linked to the project
+
+For command and Copilot execution, enable the Projects toggle:
+
+- `Allow command/script/Copilot CLI execution for selected workspace`

@@ -266,6 +266,34 @@ def run_project_command(project_id: int, payload: ProjectCommandRequest) -> dict
     }
 
 
+@router.get("/{project_id}/copilot-sessions")
+def list_project_copilot_sessions(project_id: int, limit: int = 30) -> dict:
+    _, project_path = project_row_and_path(project_id)
+    limit = max(1, min(limit, 100))
+    path_text = str(project_path)
+    workspace_like = f"{path_text}%"
+    folder_hint = project_path.name
+
+    rows = g.db.execute(
+        """
+        SELECT session_id, title, workspace, repository, branch, source_type, session_updated_at
+        FROM copilot_cli_sessions
+        WHERE workspace = ?
+           OR workspace LIKE ?
+           OR workspace LIKE ?
+           OR repository LIKE ?
+        ORDER BY session_updated_at DESC
+        LIMIT ?
+        """,
+        (path_text, workspace_like, f"%{folder_hint}%", f"%{folder_hint}%", limit),
+    ).fetchall()
+    return {
+        "project_id": project_id,
+        "project_path": path_text,
+        "sessions": [dict(r) for r in rows],
+    }
+
+
 @router.post("/{project_id}/copilot-cli")
 def run_project_copilot_cli(project_id: int, payload: ProjectCopilotCliRequest) -> dict:
     if not payload.allow_system_access:
@@ -274,7 +302,35 @@ def run_project_copilot_cli(project_id: int, payload: ProjectCopilotCliRequest) 
             detail="System access is disabled. Set allow_system_access=true to run Copilot CLI.",
         )
     _, project_path = project_row_and_path(project_id)
-    args = build_copilot_cli_args(payload.prompt, payload.target)
+    prompt = payload.prompt
+    resumed_from = None
+    if payload.resume_session_id and payload.include_session_context:
+        session_row = g.db.execute(
+            """
+            SELECT session_id, title, workspace, repository, branch, ai_summary, transcript
+            FROM copilot_cli_sessions
+            WHERE session_id = ?
+            """,
+            (payload.resume_session_id,),
+        ).fetchone()
+        if not session_row:
+            raise HTTPException(status_code=404, detail="Requested Copilot session was not found")
+        resumed_from = session_row["session_id"]
+        transcript_excerpt = (session_row["transcript"] or "")[:3000]
+        summary = session_row["ai_summary"] or "No summary available"
+        prompt = (
+            "Resume context from a previous Copilot session.\n\n"
+            f"Session: {session_row['session_id']}\n"
+            f"Title: {session_row['title'] or 'untitled'}\n"
+            f"Workspace: {session_row['workspace'] or 'unknown'}\n"
+            f"Repository: {session_row['repository'] or 'unknown'}\n"
+            f"Branch: {session_row['branch'] or 'unknown'}\n\n"
+            f"Session summary:\n{summary}\n\n"
+            f"Transcript excerpt:\n{transcript_excerpt}\n\n"
+            f"New user request:\n{payload.prompt}"
+        )
+
+    args = build_copilot_cli_args(prompt, payload.target)
     try:
         result = subprocess.run(
             args,
@@ -292,6 +348,7 @@ def run_project_copilot_cli(project_id: int, payload: ProjectCopilotCliRequest) 
         "project_id": project_id,
         "cwd": str(project_path),
         "command": args,
+        "resumed_from_session_id": resumed_from,
         "return_code": result.returncode,
         "stdout": result.stdout,
         "stderr": result.stderr,

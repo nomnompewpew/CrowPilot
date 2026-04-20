@@ -254,6 +254,8 @@ class ProjectCommandRequest(BaseModel):
 class ProjectCopilotCliRequest(BaseModel):
     prompt: str = Field(min_length=1)
     target: Literal["shell", "general"] = "general"
+    resume_session_id: str | None = None
+    include_session_context: bool = True
     allow_system_access: bool = False
     timeout_sec: int = Field(default=120, ge=5, le=900)
 

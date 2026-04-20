@@ -84,3 +84,33 @@ Append one section per turn. Keep this file chronological.
 
 ### Next
 - If launch settings or edition overlays change, keep [../.vscode/launch.json](../.vscode/launch.json) and [../.vscode/tasks.json](../.vscode/tasks.json) synchronized.
+
+## 2026-04-20 Projects Module Stabilization (Pass 1)
+
+### Completed
+- Fixed Projects chat wiring by binding [sendProjectChat](../backend/app/static/js/projects.js) to `#sendProjectChatBtn` in [../backend/app/static/js/app.js](../backend/app/static/js/app.js).
+- Made previously hidden Projects controls visible in [../backend/app/static/index.html](../backend/app/static/index.html), including:
+	- system access toggle,
+	- command runner,
+	- Copilot CLI prompt/target/session picker,
+	- workspace chat output,
+	- runtime logs panel.
+- Added project workbench styles in [../backend/app/static/css/app.css](../backend/app/static/css/app.css).
+- Added project-scoped chat conversation tracking in [../backend/app/static/js/state.js](../backend/app/static/js/state.js) and [../backend/app/static/js/projects.js](../backend/app/static/js/projects.js).
+- Added direct command runner flow in [../backend/app/static/js/projects.js](../backend/app/static/js/projects.js) using `/api/projects/{id}/run-command`.
+- Added Copilot session discovery endpoint in [../backend/app/routers/projects.py](../backend/app/routers/projects.py):
+	- `GET /api/projects/{project_id}/copilot-sessions`
+- Added Copilot resume-context support in [../backend/app/routers/projects.py](../backend/app/routers/projects.py) by enriching prompts from `copilot_cli_sessions` when `resume_session_id` is provided.
+- Hardened Copilot CLI availability checks in [../backend/app/services/projects.py](../backend/app/services/projects.py) so `gh` without `gh copilot` no longer reports as available.
+- Extended [../backend/app/schemas.py](../backend/app/schemas.py) for `resume_session_id` and `include_session_context` in project Copilot requests.
+- Regenerated [api-endpoint-matrix.md](api-endpoint-matrix.md) after route changes.
+
+### Verified
+- Backend import check passed: `python3 -c "import app.main; print('OK')"`.
+- Server confirmed running on `0.0.0.0:8787`.
+- Workspace diagnostics report no errors.
+
+### Next
+- Continue hardening Projects tab UX with explicit error banners for picker/CLI failures.
+- Add interactive Copilot session launch/resume mode if local CLI supports it in this environment.
+- Validate end-to-end against real non-Node projects and multi-root workspaces.

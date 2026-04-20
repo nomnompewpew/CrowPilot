@@ -17,6 +17,7 @@ One router file per domain, mounted in `backend/app/main.py`.
 - `network_routers.py` — OPNsense/pfSense endpoint wrappers and snapshots
 - `nomad.py` — ZIM ingestion and embed mode controls
 - `projects.py` — project workspace management and runtime execution
+	- includes project-scoped Copilot session discovery for resume-context workflows
 - `sensitive.py` — redact/unredact preview API
 - `skills.py` — skill contract CRUD
 - `system.py` — health, model lists, dashboard and logs

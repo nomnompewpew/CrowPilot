@@ -51,6 +51,26 @@ function renderProjectScriptOptions() {
   });
 }
 
+function renderProjectCopilotSessionOptions() {
+  const select = el('projectCopilotSessionSelect');
+  if (!select) return;
+  select.innerHTML = '';
+
+  const none = document.createElement('option');
+  none.value = '';
+  none.textContent = 'No prior session context';
+  select.appendChild(none);
+
+  (state.projectCopilotSessions || []).forEach((row) => {
+    const opt = document.createElement('option');
+    opt.value = row.session_id;
+    const title = row.title || row.session_id;
+    const branch = row.branch ? ` | ${row.branch}` : '';
+    opt.textContent = `${title}${branch}`;
+    select.appendChild(opt);
+  });
+}
+
 function renderProjectRuntimes() {
   const wrap = el('projectRuntimeList');
   if (!wrap) return;
@@ -142,6 +162,10 @@ async function loadProjectCapabilities() {
   }
   const data = await resp.json();
   state.projectCapabilities = data;
+  const browseBtn = el('browseProjectBtn');
+  if (browseBtn && !data.folder_picker_available) {
+    browseBtn.title = 'Native folder picker is unavailable in this environment. Use manual path + Use.';
+  }
   out.textContent = [
     `Projects root: ${data.projects_root}`,
     `Native browse dialog: ${data.folder_picker_available ? 'available' : 'not available (use manual path)'}`,
@@ -202,6 +226,11 @@ async function importProjectByPath(path) {
 }
 
 async function browseProjectFolder() {
+  if (state.projectCapabilities && !state.projectCapabilities.folder_picker_available) {
+    el('projectStatusOut').textContent = 'Native browse is unavailable here. Paste a folder path and click Use.';
+    el('projectFolderPath').focus();
+    return;
+  }
   const resp = await fetch('/api/projects/browse', { method: 'POST' });
   if (!resp.ok) {
     el('projectStatusOut').textContent = `Browse failed: ${await resp.text()}. Use manual path if native picker is unavailable.`;
@@ -228,7 +257,10 @@ async function selectProject(projectId) {
     el('projectFolderPath').value = selected.path;
     if (selected.dev_url) el('projectPreviewUrl').value = selected.dev_url;
   }
-  await Promise.all([loadProjectScripts(), listProjectRuntimes()]);
+  if (state.projectConversationIds?.[projectId]) {
+    state.conversationId = state.projectConversationIds[projectId];
+  }
+  await Promise.all([loadProjectScripts(), listProjectRuntimes(), loadProjectCopilotSessions()]);
 }
 
 async function loadProjectScripts() {
@@ -308,6 +340,100 @@ async function loadProjectRuntimeLogs(runtimeId) {
   el('projectRuntimeLogs').textContent = lines.length ? lines.join('\n') : 'No logs yet.';
 }
 
+async function runProjectCommand() {
+  if (!state.selectedProjectId) {
+    el('projectStatusOut').textContent = 'Select a project first.';
+    return;
+  }
+  const command = (el('projectCommandInput').value || '').trim();
+  if (!command) {
+    el('projectStatusOut').textContent = 'Enter a command first.';
+    return;
+  }
+
+  const resp = await fetch(`/api/projects/${state.selectedProjectId}/run-command`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      command,
+      allow_system_access: !!el('projectAllowSystemAccess').checked,
+      timeout_sec: 300,
+    }),
+  });
+  const out = await resp.json().catch(() => ({}));
+  if (!resp.ok) {
+    el('projectStatusOut').textContent = `Command failed: ${out.detail || resp.status}`;
+    return;
+  }
+  el('projectStatusOut').textContent = `Command exit code: ${out.return_code}`;
+  const combined = [
+    `$ ${out.command}`,
+    out.stdout || '',
+    out.stderr ? `\n[stderr]\n${out.stderr}` : '',
+  ].filter(Boolean).join('\n');
+  el('projectRuntimeLogs').textContent = combined || 'No output.';
+}
+
+async function loadProjectCopilotSessions() {
+  if (!state.selectedProjectId) {
+    state.projectCopilotSessions = [];
+    renderProjectCopilotSessionOptions();
+    return;
+  }
+  const resp = await fetch(`/api/projects/${state.selectedProjectId}/copilot-sessions?limit=40`);
+  if (!resp.ok) {
+    state.projectCopilotSessions = [];
+    renderProjectCopilotSessionOptions();
+    return;
+  }
+  const out = await resp.json();
+  state.projectCopilotSessions = out.sessions || [];
+  renderProjectCopilotSessionOptions();
+}
+
+async function runProjectCopilotCli() {
+  if (!state.selectedProjectId) {
+    el('projectStatusOut').textContent = 'Select a project first.';
+    return;
+  }
+  const prompt = (el('projectCopilotPrompt').value || '').trim();
+  if (!prompt) {
+    el('projectStatusOut').textContent = 'Enter a Copilot prompt first.';
+    return;
+  }
+
+  el('projectCopilotOut').textContent = 'Running Copilot CLI...';
+  const resp = await fetch(`/api/projects/${state.selectedProjectId}/copilot-cli`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      prompt,
+      target: el('projectCopilotTarget').value || 'general',
+      resume_session_id: el('projectCopilotSessionSelect').value || null,
+      include_session_context: true,
+      allow_system_access: !!el('projectAllowSystemAccess').checked,
+      timeout_sec: 600,
+    }),
+  });
+  const out = await resp.json().catch(() => ({}));
+  if (!resp.ok) {
+    el('projectStatusOut').textContent = `Copilot CLI failed: ${out.detail || resp.status}`;
+    el('projectCopilotOut').textContent = out.detail || `Request failed: ${resp.status}`;
+    return;
+  }
+
+  const resumed = out.resumed_from_session_id ? `Resumed: ${out.resumed_from_session_id}\n` : '';
+  const command = Array.isArray(out.command) ? out.command.join(' ') : String(out.command || '');
+  const payload = [
+    resumed,
+    `$ ${command}`,
+    out.stdout || '',
+    out.stderr ? `\n[stderr]\n${out.stderr}` : '',
+  ].filter(Boolean).join('\n');
+  el('projectCopilotOut').textContent = payload || 'No output.';
+  el('projectStatusOut').textContent = `Copilot CLI exit code: ${out.return_code}`;
+}
+
 function buildProjectPreviewUrl() {
   const raw = (el('projectPreviewUrl').value || '').trim();
   if (!raw) return null;
@@ -365,12 +491,14 @@ async function sendProjectChat() {
   const model = state.autoModel && provider === 'copilot_proxy' ? 'auto' : selectedModel;
 
   el('projectChatOut').textContent = 'Thinking...';
+  const conversationId = state.projectConversationIds?.[state.selectedProjectId] || state.conversationId || null;
   const resp = await fetch('/api/chat/stream', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       message: scopedPrompt,
-      conversation_id: state.conversationId,
+      conversation_id: conversationId,
+      project_id: state.selectedProjectId,
       provider,
       model: model || null,
     }),
@@ -396,15 +524,23 @@ async function sendProjectChat() {
     blocks.forEach((block) => {
       const line = block.split('\n').find((l) => l.startsWith('data: '));
       if (!line) return;
-      const payload = JSON.parse(line.slice(6));
+      let payload;
+      try {
+        payload = JSON.parse(line.slice(6));
+      } catch (_) {
+        return;
+      }
       if (payload.type === 'meta') {
         state.conversationId = payload.conversation_id;
+        state.projectConversationIds[state.selectedProjectId] = payload.conversation_id;
       } else if (payload.type === 'token') {
         output += payload.token;
         el('projectChatOut').textContent = output;
       } else if (payload.type === 'error') {
         output += `\n[error] ${payload.error}`;
         el('projectChatOut').textContent = output;
+      } else if (payload.type === 'status' && payload.text) {
+        el('projectStatusOut').textContent = payload.text;
       }
     });
   }

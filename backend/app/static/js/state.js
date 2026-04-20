@@ -21,6 +21,8 @@ const state = {
   projectScripts: [],
   projectRuntimes: [],
   selectedRuntimeId: null,
+  projectConversationIds: {},
+  projectCopilotSessions: [],
   noteList: [],
   serverStats: null,
   lastSummary: null,

@@ -108,6 +108,17 @@ function initApp() {
   el('openProjectPreviewBtn').addEventListener('click', openProjectPreview);
   el('autoDetectPreviewBtn').addEventListener('click', autoDetectPreviewUrl);
   el('projectPreviewUrl').addEventListener('keydown', (e) => { if (e.key === 'Enter') openProjectPreview(); });
+  el('sendProjectChatBtn').addEventListener('click', sendProjectChat);
+  el('projectChatPrompt').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) sendProjectChat();
+  });
+  el('runProjectCommandBtn').addEventListener('click', runProjectCommand);
+  el('projectCommandInput').addEventListener('keydown', (e) => { if (e.key === 'Enter') runProjectCommand(); });
+  el('runProjectCopilotCliBtn').addEventListener('click', runProjectCopilotCli);
+  el('projectCopilotPrompt').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) runProjectCopilotCli();
+  });
+  el('refreshProjectSessionsBtn').addEventListener('click', loadProjectCopilotSessions);
 
   el('refreshServerStatsBtn').addEventListener('click', loadServerStats);
   el('clearLogsBtn').addEventListener('click', () => {

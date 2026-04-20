@@ -457,7 +457,7 @@ nav.sb-nav button.active {
   height: 100%;
   overflow: hidden;
 }
-.view.projects-layout.active { display: flex; flex-direction: column; height: 100%; }
+.view.projects-layout.active { display: flex; flex-direction: row; height: 100%; }
 
 .projects-preview {
   flex: 1;
@@ -465,6 +465,39 @@ nav.sb-nav button.active {
   flex-direction: column;
   overflow: hidden;
   background: #fff;
+}
+
+.projects-tools {
+  width: 420px;
+  max-width: 46vw;
+  min-width: 320px;
+  height: 100%;
+  overflow-y: auto;
+  padding: 12px;
+  background: var(--bg-sb);
+  border-left: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.project-tools-card {
+  padding: 12px;
+}
+
+.project-output {
+  margin-top: 8px;
+  min-height: 80px;
+  max-height: 220px;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  padding: 8px;
+  font-size: .75rem;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 .projects-preview-bar {
   display: flex;
