@@ -22,3 +22,13 @@ Backend runtime entrypoint and source map.
 - Host/port expected in local dev: `0.0.0.0:8787`
 - App object: `app.main:app`
 - OpenAPI docs: `/docs`, `/redoc`, `/openapi.json`
+
+## VS Code Debugging
+
+Use the Run and Debug profiles in [../.vscode/launch.json](../.vscode/launch.json):
+
+- CrowPilot Developer on `8787`
+- CrowPilot on `8788`
+- CrowPilot Lite on `8789`
+- CrowPi on `8790`
+- Compound profile to run all editions together

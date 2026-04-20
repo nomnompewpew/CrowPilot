@@ -8,6 +8,7 @@ Start here, then follow links by domain.
 - [README.md](README.md) — product overview, runtime ports, quick start
 - [docs/README.md](docs/README.md) — full documentation hub
 - [.github/copilot-instructions.md](.github/copilot-instructions.md) — mandatory agent execution rules
+- [.vscode/launch.json](.vscode/launch.json) — VS Code Run and Debug profiles for all editions
 - [apps/README.md](apps/README.md) — edition matrix and runtime profiles
 - [backend/README.md](backend/README.md) — backend runtime map
 - [scripts/README.md](scripts/README.md) — local helper scripts

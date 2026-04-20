@@ -90,3 +90,17 @@ PANTHEON_EDITION=crowpi bash backend/run.sh
 2. Open Swagger at `/docs`.
 3. Validate request/response shape with live calls.
 4. Keep [docs/api.md](docs/api.md) and [docs/agent-turn-log.md](docs/agent-turn-log.md) current.
+
+## VS Code Run And Debug Profiles
+
+Run and Debug profiles are available in [.vscode/launch.json](.vscode/launch.json):
+
+- Pantheon: CrowPilot Developer (8787)
+- Pantheon: CrowPilot (8788)
+- Pantheon: CrowPilot Lite (8789)
+- Pantheon: CrowPi (8790)
+- Pantheon: Run All Editions (8787-8790)
+
+Use the Run and Debug panel, choose a profile, and press F5.
+
+Each profile runs Uvicorn from the backend folder with the edition-specific environment values.

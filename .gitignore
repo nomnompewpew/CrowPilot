@@ -9,7 +9,10 @@ __pycache__/
 .env
 
 # Tooling
-.vscode/
+.vscode/*
+!.vscode/launch.json
+!.vscode/mcp.json
+!.vscode/settings.json
 
 # Runtime scratch
 backend/data/*.db

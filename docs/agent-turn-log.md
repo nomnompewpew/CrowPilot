@@ -52,3 +52,20 @@ Append one section per turn. Keep this file chronological.
 ### Next
 - Run matrix regeneration in any turn that adds, removes, renames, or retags routes.
 - Keep auth classification rules in the generator aligned with middleware public path policy.
+
+## 2026-04-20 VS Code Run And Debug Profiles
+
+### Completed
+- Added VS Code launch profiles for each edition in [../.vscode/launch.json](../.vscode/launch.json).
+- Added profiles for CrowPilot Developer (8787), CrowPilot (8788), CrowPilot Lite (8789), and CrowPi (8790).
+- Added a compound profile to run all editions together.
+- Updated [../.gitignore](../.gitignore) to allow committing shared VS Code config files including [../.vscode/launch.json](../.vscode/launch.json).
+- Updated [../README.md](../README.md), [../backend/README.md](../backend/README.md), and [../INDEX.md](../INDEX.md) with profile discovery and usage notes.
+
+### Verified
+- Launch configuration file exists and contains all edition-specific debug entries.
+- Port assignments avoid collisions so editions can be debugged individually or together.
+
+### Next
+- If edition env overlays change, mirror those changes in [../.vscode/launch.json](../.vscode/launch.json).
+- Consider adding a task profile set if you want no-debug run commands alongside debug launchers.

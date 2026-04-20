@@ -1,0 +1,138 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Pantheon: CrowPilot Developer (8787)",
+      "type": "python",
+      "request": "launch",
+      "module": "uvicorn",
+      "cwd": "${workspaceFolder}/backend",
+      "args": [
+        "app.main:app",
+        "--host",
+        "0.0.0.0",
+        "--port",
+        "8787",
+        "--reload",
+        "--timeout-graceful-shutdown",
+        "1",
+        "--reload-delay",
+        "2"
+      ],
+      "envFile": "${workspaceFolder}/backend/.env",
+      "env": {
+        "PANTHEON_EDITION": "crowpilot-developer",
+        "PANTHEON_RUNTIME_PROFILE": "developer",
+        "PANTHEON_EMBED_MODE": "realtime",
+        "PANTHEON_PORT": "8787"
+      },
+      "justMyCode": false,
+      "console": "integratedTerminal"
+    },
+    {
+      "name": "Pantheon: CrowPilot (8788)",
+      "type": "python",
+      "request": "launch",
+      "module": "uvicorn",
+      "cwd": "${workspaceFolder}/backend",
+      "args": [
+        "app.main:app",
+        "--host",
+        "0.0.0.0",
+        "--port",
+        "8788",
+        "--reload",
+        "--timeout-graceful-shutdown",
+        "1",
+        "--reload-delay",
+        "2"
+      ],
+      "envFile": "${workspaceFolder}/backend/.env",
+      "env": {
+        "PANTHEON_EDITION": "crowpilot",
+        "PANTHEON_RUNTIME_PROFILE": "workstation",
+        "PANTHEON_EMBED_MODE": "realtime",
+        "PANTHEON_EMBEDDING_MODEL": "Qwen3-Embedding-0.6B-Q8_0.gguf",
+        "PANTHEON_PORT": "8788"
+      },
+      "justMyCode": false,
+      "console": "integratedTerminal"
+    },
+    {
+      "name": "Pantheon: CrowPilot Lite (8789)",
+      "type": "python",
+      "request": "launch",
+      "module": "uvicorn",
+      "cwd": "${workspaceFolder}/backend",
+      "args": [
+        "app.main:app",
+        "--host",
+        "0.0.0.0",
+        "--port",
+        "8789",
+        "--reload",
+        "--timeout-graceful-shutdown",
+        "1",
+        "--reload-delay",
+        "2"
+      ],
+      "envFile": "${workspaceFolder}/backend/.env",
+      "env": {
+        "PANTHEON_EDITION": "crowpilot-lite",
+        "PANTHEON_RUNTIME_PROFILE": "lite",
+        "PANTHEON_EMBED_MODE": "realtime",
+        "PANTHEON_EMBEDDING_MODEL": "nomic-embed-text-v1.5.Q8_0.gguf",
+        "PANTHEON_PORT": "8789"
+      },
+      "justMyCode": false,
+      "console": "integratedTerminal"
+    },
+    {
+      "name": "Pantheon: CrowPi (8790)",
+      "type": "python",
+      "request": "launch",
+      "module": "uvicorn",
+      "cwd": "${workspaceFolder}/backend",
+      "args": [
+        "app.main:app",
+        "--host",
+        "0.0.0.0",
+        "--port",
+        "8790",
+        "--reload",
+        "--timeout-graceful-shutdown",
+        "1",
+        "--reload-delay",
+        "2"
+      ],
+      "envFile": "${workspaceFolder}/backend/.env",
+      "env": {
+        "PANTHEON_EDITION": "crowpi",
+        "PANTHEON_RUNTIME_PROFILE": "raspberry-pi",
+        "PANTHEON_LOCAL_BASE_URL": "http://127.0.0.1:8082/v1",
+        "PANTHEON_LOCAL_MODEL": "Llama-3.2-1B-Instruct-Q4_K_M.gguf",
+        "PANTHEON_SCAN_BASE_URL": "http://127.0.0.1:8083/v1",
+        "PANTHEON_SCAN_MODEL": "Llama-3.2-1B-Instruct-Q4_K_M.gguf",
+        "PANTHEON_SCAN_PROMPT_MODE": "instruction",
+        "PANTHEON_EMBEDDING_BASE_URL": "http://127.0.0.1:8081/v1",
+        "PANTHEON_EMBED_MODE": "overnight",
+        "PANTHEON_EMBEDDING_MODEL": "nomic-embed-text-v1.5.Q8_0.gguf",
+        "PANTHEON_PORT": "8790"
+      },
+      "justMyCode": false,
+      "console": "integratedTerminal"
+    }
+  ],
+  "compounds": [
+    {
+      "name": "Pantheon: Run All Editions (8787-8790)",
+      "configurations": [
+        "Pantheon: CrowPilot Developer (8787)",
+        "Pantheon: CrowPilot (8788)",
+        "Pantheon: CrowPilot Lite (8789)",
+        "Pantheon: CrowPi (8790)"
+      ],
+      "stopAll": true
+    }
+  ]
+}
