@@ -19,3 +19,32 @@ Each edition stores:
 - `backend.env` - edition-specific backend environment overlay loaded by `backend/run.sh`
 
 The shared implementation currently stays in `backend/` and `frontend/`. As modules are extracted, shared code will move into `packages/` and edition-specific deltas will remain under `apps/<edition>/`.
+
+## Running An Edition
+
+For direct foreground runs:
+
+```bash
+scripts/edition.sh run crowpi
+```
+
+To switch the already-running dev server on port `8787`:
+
+```bash
+scripts/edition.sh switch crowpi
+```
+
+To inspect what is currently running:
+
+```bash
+scripts/edition.sh status
+```
+
+## Current Reality
+
+Phase 1 is mostly edition scaffolding.
+
+- All editions still share the same backend and frontend implementation.
+- The main differences today are env overlays and runtime-profile defaults.
+- Hard feature gating and per-edition UI/route pruning have not been built yet.
+- CrowPi and Lite are not fully productized yet; they are testable profiles on the shared codebase.
