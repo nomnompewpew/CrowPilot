@@ -36,9 +36,9 @@ CHUNK_OVERLAP = 120
 # Parsing helpers
 # ---------------------------------------------------------------------------
 
-def _parse_events(events_path: Path) -> dict[str, Any]:
+def _parse_events_from_lines(raw_lines: list[str]) -> dict[str, Any]:
     """
-    Parse events.jsonl and return a structured summary dict:
+    Parse a list of JSONL strings (events.jsonl content) into a transcript dict:
       {transcript, user_messages, assistant_turns, tool_calls}
     """
     lines: list[str] = []
@@ -46,56 +46,44 @@ def _parse_events(events_path: Path) -> dict[str, Any]:
     asst_count = 0
     tool_count = 0
 
-    try:
-        raw_events = []
-        with events_path.open("r", encoding="utf-8") as f:
-            for line in f:
-                line = line.strip()
-                if not line:
-                    continue
-                try:
-                    raw_events.append(json.loads(line))
-                except json.JSONDecodeError:
-                    continue
+    raw_events = []
+    for line in raw_lines:
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            raw_events.append(json.loads(line))
+        except json.JSONDecodeError:
+            continue
 
-        for ev in raw_events:
-            etype = ev.get("type", "")
-            data = ev.get("data", {}) or {}
+    for ev in raw_events:
+        etype = ev.get("type", "")
+        data = ev.get("data", {}) or {}
 
-            if etype == "user.message":
-                content = data.get("content", "").strip()
-                if content:
-                    lines.append(f"USER: {content}")
-                    user_count += 1
+        if etype == "user.message":
+            content = data.get("content", "").strip()
+            if content:
+                lines.append(f"USER: {content}")
+                user_count += 1
 
-            elif etype == "assistant.message":
-                content = ""
-                if isinstance(data, dict):
-                    content = (data.get("content") or "").strip()
-                # Skip pure tool-call messages (no visible text)
-                if content:
-                    lines.append(f"ASSISTANT: {content}")
-                    asst_count += 1
+        elif etype == "assistant.message":
+            content = ""
+            if isinstance(data, dict):
+                content = (data.get("content") or "").strip()
+            if content:
+                lines.append(f"ASSISTANT: {content}")
+                asst_count += 1
 
-            elif etype == "assistant.turn_start":
-                # count turns (includes tool-only turns)
-                asst_count_real = asst_count  # updated below
+        elif etype in ("tool.execution_start",):
+            tool_count += 1
 
-            elif etype in ("tool.execution_start",):
-                tool_count += 1
-
-        # deduplicate sequential assistant turns where text was streamed in parts
-        # (the CLI sometimes emits multiple assistant.message events per turn)
-        deduped: list[str] = []
-        prev = None
-        for line in lines:
-            if line != prev:
-                deduped.append(line)
-            prev = line
-
-    except Exception as exc:
-        log.warning("Failed to parse %s: %s", events_path, exc)
-        deduped = []
+    # deduplicate sequential duplicate lines
+    deduped: list[str] = []
+    prev = None
+    for line in lines:
+        if line != prev:
+            deduped.append(line)
+        prev = line
 
     return {
         "transcript": "\n\n".join(deduped),
@@ -103,6 +91,19 @@ def _parse_events(events_path: Path) -> dict[str, Any]:
         "assistant_turns": asst_count,
         "tool_calls": tool_count,
     }
+
+
+def _parse_events(events_path: Path) -> dict[str, Any]:
+    """
+    Parse events.jsonl file and return a structured summary dict:
+      {transcript, user_messages, assistant_turns, tool_calls}
+    """
+    try:
+        raw_lines = events_path.read_text(encoding="utf-8").splitlines()
+        return _parse_events_from_lines(raw_lines)
+    except Exception as exc:
+        log.warning("Failed to parse %s: %s", events_path, exc)
+        return {"transcript": "", "user_messages": 0, "assistant_turns": 0, "tool_calls": 0}
 
 
 def _parse_workspace_yaml(yaml_path: Path) -> dict[str, str]:
@@ -525,9 +526,84 @@ async def scan_vscode_local(force: bool = False) -> int:
     return count
 
 
+async def _ingest_crow_cli_session(
+    lines: list[str],
+    session_id: str,
+    device_id: int,
+    device_label: str,
+    source_path: str,
+    file_size: int,
+    force: bool = False,
+) -> bool:
+    """Parse a crow CLI events.jsonl and ingest into copilot_cli_sessions."""
+    if not session_id or not lines:
+        return False
+
+    conn = g.db
+    existing = conn.execute(
+        "SELECT session_id, file_size, embedded FROM copilot_cli_sessions WHERE session_id=?",
+        (session_id,),
+    ).fetchone()
+
+    if existing and not force:
+        if existing["file_size"] == file_size and existing["embedded"]:
+            return False
+
+    parsed = _parse_events_from_lines(lines)
+    if not parsed["transcript"]:
+        return False
+
+    # Build title from first user message
+    title = ""
+    for line in parsed["transcript"].splitlines():
+        if line.startswith("USER:"):
+            title = line[5:].strip()[:120]
+            break
+    title = title or f"Session {session_id[:8]}"
+
+    ai_summary = await _generate_ai_summary(parsed["transcript"], title)
+
+    conn.execute(
+        """
+        INSERT INTO copilot_cli_sessions
+            (session_id, title, workspace, repository, branch, cli_summary, ai_summary,
+             user_messages, assistant_turns, tool_calls, transcript,
+             session_created_at, session_updated_at, embedded, last_scanned_at,
+             source_type, source_device_id, source_device_label, source_path, file_size)
+        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,0,datetime('now'),?,?,?,?,?)
+        ON CONFLICT(session_id) DO UPDATE SET
+            title=excluded.title,
+            ai_summary=excluded.ai_summary,
+            user_messages=excluded.user_messages,
+            assistant_turns=excluded.assistant_turns,
+            tool_calls=excluded.tool_calls,
+            transcript=excluded.transcript,
+            session_updated_at=excluded.session_updated_at,
+            embedded=0,
+            last_scanned_at=datetime('now'),
+            source_type=excluded.source_type,
+            source_device_id=excluded.source_device_id,
+            source_device_label=excluded.source_device_label,
+            source_path=excluded.source_path,
+            file_size=excluded.file_size
+        """,
+        (
+            session_id, title, "", "", "", "", ai_summary,
+            parsed["user_messages"], parsed["assistant_turns"], parsed["tool_calls"],
+            parsed["transcript"], "", "",
+            "crow_cli", device_id, device_label, source_path, file_size,
+        ),
+    )
+    conn.commit()
+
+    chunks = _chunk_transcript(parsed["transcript"])
+    await _embed_chunks(session_id, chunks)
+    return True
+
+
 async def harvest_crow_device(device_id: int, force: bool = False) -> int:
     """
-    Pull all VS Code transcripts from a crow agent device and ingest them.
+    Pull all VS Code transcripts and Copilot CLI sessions from a crow agent device and ingest them.
     Returns count of sessions ingested.
     """
     conn = g.db
@@ -597,6 +673,62 @@ async def harvest_crow_device(device_id: int, force: bool = False) -> int:
             log.warning("Crow harvest: ingest failed for %s: %s", file_path, exc)
 
     log.info("Crow harvest %s: %d session(s) ingested", label, count)
+
+    # --- Copilot CLI sessions ---
+    cli_sessions = history.get("copilot_cli", [])
+    cli_event_sessions = [s for s in cli_sessions if s.get("source") == "copilot-cli-session"]
+    for cli_meta in cli_event_sessions:
+        file_path = cli_meta.get("file", "")
+        file_size = cli_meta.get("size", 0)
+        if not file_path:
+            continue
+
+        # Session ID is the parent directory name (UUID)
+        # e.g. C:\Users\...\session-state\1e5c767a-eadb-4953-8902-a0658dd4a2c2\events.jsonl
+        import posixpath
+        path_parts = file_path.replace("\\", "/").split("/")
+        session_id = ""
+        for i, part in enumerate(path_parts):
+            if part == "session-state" and i + 1 < len(path_parts):
+                session_id = path_parts[i + 1]
+                break
+        if not session_id:
+            continue
+
+        try:
+            async with httpx.AsyncClient(timeout=60.0) as client:
+                resp = await client.get(
+                    f"http://{ip}:{port}/read",
+                    params={"path": file_path},
+                    headers=headers,
+                )
+                if resp.status_code != 200:
+                    continue
+                read_data = resp.json()
+                if not read_data.get("ok"):
+                    continue
+                content = read_data.get("content", "")
+                cli_lines = content.splitlines()
+        except Exception as exc:
+            log.warning("Crow harvest: failed to read CLI session %s from %s: %s", file_path, label, exc)
+            continue
+
+        try:
+            updated = await _ingest_crow_cli_session(
+                lines=cli_lines,
+                session_id=session_id,
+                device_id=device_id,
+                device_label=label,
+                source_path=file_path,
+                file_size=file_size,
+                force=force,
+            )
+            if updated:
+                count += 1
+        except Exception as exc:
+            log.warning("Crow harvest: CLI ingest failed for %s: %s", file_path, exc)
+
+    log.info("Crow harvest %s: %d total session(s) ingested (including CLI)", label, count)
     return count
 
 
